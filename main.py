@@ -30,6 +30,19 @@ def reply(returnFormat, httpCode, message, title = None):
         str = ujson.dumps({"code" : httpCode, "message" : message})
 
     connection.sendall(str)
+    connection.close()
+
+
+def togglePin(pin):
+    pin.value(1 - pin.value())
+
+
+def processJson(json):
+    for command in json.get("commands"):
+        if command in PIN:
+            togglePin(PIN.get(command))
+        elif command[0:5] == "SLEEP":
+            time.sleep_ms(int(command[5:].strip()))
 
 
 def processGetQuery():
@@ -37,9 +50,11 @@ def processGetQuery():
 
 
 def processPostQuery():
+
     try:
         json = ujson.loads(body)
         reply("JSON", "200 OK", ";-)")
+        processJson(json)
     except:
         reply("JSON", "400 Bad Request", "The request body could not be parsed as JSON.")
 
