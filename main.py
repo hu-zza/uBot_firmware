@@ -95,10 +95,10 @@ while True:
                 method = line[0:firstSpace]
                 path   = line[firstSpace+1:pathEnd]
 
-            if 0 <= line.find("Content-Length:"):
+            if 0 <= line.lower().find("content-length:"):
                 contentLength = int(line[15:].strip())
 
-            if 0 <= line.find("Content-Type:"):
+            if 0 <= line.lower().find("content-type:"):
                 contentType = line[13:].strip()
 
         if method == "GET":
