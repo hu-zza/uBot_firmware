@@ -1,7 +1,7 @@
 #import esp
 #esp.osdebug(None)
 
-import uos, machine, gc, webrepl, network
+import uos, machine, gc, webrepl, network, ujson
 #uos.dupterm(None,1) # disable REPL on UART(0)
 gc.enable()
 webrepl.start()
