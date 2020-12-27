@@ -1,3 +1,17 @@
+def checkButtons():
+    pressed = -1
+
+    for i in range(10):
+        CLK.off()
+        if INP.value() == 1:
+            if pressed == -1:
+                pressed = i
+            else:
+                pressed += 7 + i
+        CLK.on()
+
+    return pressed
+
 def getDebugTable(method, path, length = 0, type = "-", body = "-"):
     length = str(length)
 
@@ -11,27 +25,30 @@ def getDebugTable(method, path, length = 0, type = "-", body = "-"):
 
 
 def reply(returnFormat, httpCode, message, title = None):
-    connection.send("HTTP/1.1 " + httpCode + "\r\n")
+    try:
+        connection.send("HTTP/1.1 " + httpCode + "\r\n")
 
-    if returnFormat == "HTML":
-        str = "text/html"
-    elif returnFormat == "JSON":
-        str = "application/json"
+        if returnFormat == "HTML":
+            str = "text/html"
+        elif returnFormat == "JSON":
+            str = "application/json"
 
-    connection.send("Content-Type: " + str + "\r\n")
-    connection.send("Connection: close\r\n\r\n")
+        connection.send("Content-Type: " + str + "\r\n")
+        connection.send("Connection: close\r\n\r\n")
 
-    if returnFormat == "HTML":
-        if title == None:
-            title = httpCode
-        str  = "<html><head><title>" + title + "</title></head>"
-        str += "<body><h1>" + httpCode + "</h1><p>" + message + "</p></body></html>\r\n\r\n"
-    elif returnFormat == "JSON":
-        str = ujson.dumps({"code" : httpCode, "message" : message})
+        if returnFormat == "HTML":
+            if title == None:
+                title = httpCode
+            str  = "<html><head><title>" + title + "</title></head>"
+            str += "<body><h1>" + httpCode + "</h1><p>" + message + "</p></body></html>\r\n\r\n"
+        elif returnFormat == "JSON":
+            str = ujson.dumps({"code" : httpCode, "message" : message})
 
-    connection.sendall(str)
-    connection.close()
-
+        connection.sendall(str)
+    except:
+        print("The connection has been closed.")
+    finally:
+        connection.close()
 
 def togglePin(pin):
     pin.value(1 - pin.value())
@@ -59,11 +76,9 @@ def processPostQuery():
         reply("JSON", "400 Bad Request", "The request body could not be parsed as JSON.")
 
 
-
 s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 s.bind(("", 80))
 s.listen(5)
-
 
 while True:
     method = ""
@@ -71,6 +86,11 @@ while True:
     contentLength = 0
     contentType = ""
     body = ""
+
+    while True:
+        button = checkButtons()
+        if 0 <= button:
+            print(button)
 
     connection, address = s.accept()
     requestFile         = connection.makefile("rwb", 0)

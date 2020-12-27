@@ -36,10 +36,10 @@ MSG = Pin(15, Pin.OUT)
 LED.on()
 MSG.off()
 
-INP1 = Pin(12, Pin.IN, Pin.PULL_UP) #GPIO pin. Used to Charlieplexing on turtle HAT.
-INP2 = Pin(13, Pin.IN, Pin.PULL_UP) #GPIO pin. Used to Charlieplexing on turtle HAT.
-INP3 = Pin(14, Pin.IN, Pin.PULL_UP) #GPIO pin. Used to Charlieplexing on turtle HAT.
-INP4 = Pin(16, Pin.OUT)             #GPIO pin. Used to Charlieplexing on turtle HAT.
+CLK = Pin(13, Pin.OUT)  #GPIO pin. Advances the counter (CD4017) which maps the buttons of the turtle HAT.
+INP = Pin(16, Pin.IN)   #GPIO pin. Receives button presses from turtle HAT. Internally pulled-down.
+CLK.off()
+
 
 MOT1 = Pin(1, Pin.OUT)  #Connected to the  2nd pin of the motor driver (SN754410). Left motor.
 MOT2 = Pin(3, Pin.OUT)  #Connected to the  7th pin of the motor driver (SN754410). Left motor.
@@ -54,10 +54,8 @@ PIN = {
     "LED" : LED,
     "MSG" : MSG,
 
-    "INP1" : INP1,
-    "INP2" : INP2,
-    "INP3" : INP3,
-    "INP4" : INP4,
+    "CLK" : CLK,
+    "INP" : INP,
 
     "MOT1" : MOT1,
     "MOT2" : MOT2,
