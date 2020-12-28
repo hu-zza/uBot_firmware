@@ -1,21 +1,28 @@
 def checkButtons():
-    pressed = -1
-
-    for i in range(10):
+    if INP.value() == 1:
         INP.init(Pin.OUT)
-        INP.off()
+        INP.off()           # pseudo pull-down
         INP.init(Pin.IN)
 
-        CLK.off()
+    if INP.value() == 1:
+        if COUNTER_ACC != -1:
+            COUNTER_ACC += 7
 
-        if INP.value() == 1:
-            if pressed == -1:
-                pressed = i
-            else:
-                pressed += 7 + i
-        CLK.on()
+        COUNTER_ACC += COUNTER_POS
 
-    return pressed
+    CLK.on()
+
+    COUNTER_POS += 1
+
+    if 9 < COUNTER_POS:
+        PRESSED_BTNS.append(COUNTER_ACC)
+        COUNTER_ACC = -1
+        COUNTER_POS = 0
+
+    CLK.off()
+
+def chk():
+    checkButtons()
 
 def getDebugTable(method, path, length = 0, type = "-", body = "-"):
     length = str(length)
@@ -30,6 +37,10 @@ def getDebugTable(method, path, length = 0, type = "-", body = "-"):
 
 
 def reply(returnFormat, httpCode, message, title = None):
+    """ Try to reply with a text/html or application/json
+        if the connection is alive, then closes it.
+    """
+
     try:
         connection.send("HTTP/1.1 " + httpCode + "\r\n")
 
@@ -60,6 +71,9 @@ def togglePin(pin):
 
 
 def processJson(json):
+    #item = json.get("datetime")
+
+
     for command in json.get("commands"):
         if command in PIN:
             togglePin(PIN.get(command))
@@ -81,9 +95,17 @@ def processPostQuery():
         reply("JSON", "400 Bad Request", "The request body could not be parsed as JSON.")
 
 
-s = usocket.socket(usocket.AF_INET, usocket.SOCK_STREAM)
-s.bind(("", 80))
-s.listen(5)
+########################################################################################################################
+########################################################################################################################
+
+COMMANDS = []
+
+COUNTER_POS  = 0
+COUNTER_ACC  = -1
+PRESSED_BTNS = []
+
+T.init(period = 10, mode = Timer.PERIODIC, callback = lambda t:chk())
+
 
 while True:
     method = ""
@@ -92,12 +114,7 @@ while True:
     contentType = ""
     body = ""
 
-    while True:
-        button = checkButtons()
-        if 0 <= button:
-            print(button)
-
-    connection, address = s.accept()
+    connection, address = S.accept()
     requestFile         = connection.makefile("rwb", 0)
 
     try:
