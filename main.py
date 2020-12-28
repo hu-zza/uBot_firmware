@@ -59,7 +59,7 @@ def processJson(json):
         if command in PIN:
             togglePin(PIN.get(command))
         elif command[0:5] == "SLEEP":
-            time.sleep_ms(int(command[5:].strip()))
+            utime.sleep_ms(int(command[5:].strip()))
 
 
 def processGetQuery():
@@ -76,7 +76,7 @@ def processPostQuery():
         reply("JSON", "400 Bad Request", "The request body could not be parsed as JSON.")
 
 
-s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+s = usocket.socket(usocket.AF_INET, usocket.SOCK_STREAM)
 s.bind(("", 80))
 s.listen(5)
 
