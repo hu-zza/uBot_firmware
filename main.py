@@ -2,7 +2,12 @@ def checkButtons():
     pressed = -1
 
     for i in range(10):
+        INP.init(Pin.OUT)
+        INP.off()
+        INP.init(Pin.IN)
+
         CLK.off()
+
         if INP.value() == 1:
             if pressed == -1:
                 pressed = i

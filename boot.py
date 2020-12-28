@@ -1,8 +1,16 @@
+ESSID = ""  # Set the WiFi name in the quotation marks.     For example: ESSID = "uBot_01"
+PASSW = ""  # Set the WiFi password in the quotation marks. For example: PASSW = "uBot_01_pwd"
+
+
+################################################################################
+################################################################################
+
+
 ###########
 ## GENERAL
 
 from machine import I2C, Pin
-import esp, gc, machine, network, ujson, uos, usocket, utime, webrepl, ustruct
+import esp, gc, machine, network, ubinascii, ujson, uos, usocket, utime, webrepl, ustruct
 #uos.dupterm(None,1) # disable REPL on UART(0)
 #esp.osdebug(None)
 gc.enable()
@@ -13,11 +21,27 @@ esp.sleep_type(esp.SLEEP_NONE)
 ###########
 ## AP
 
-ap = network.WLAN(network.AP_IF)
-ap.ifconfig(('192.168.11.1', '255.255.255.0', '192.168.11.1', '192.168.11.1'))
-ap.config(authmode = network.AUTH_WPA_WPA2_PSK)
-ap.config(essid = 'uBot_01')
-ap.config(password = 'uBot_01_pwd')
+AP = network.WLAN(network.AP_IF)
+AP.ifconfig(("192.168.11.1", "255.255.255.0", "192.168.11.1", "192.168.11.1"))
+AP.config(authmode = network.AUTH_WPA_WPA2_PSK)
+
+if ESSID == "":
+    ESSID = "uBot__" + ubinascii.hexlify(network.WLAN().config('mac'), ':').decode()[9:]
+
+try:
+    AP.config(essid = ESSID)
+except:
+    AP.config(essid = "uBot")
+
+
+if PASSW == "":
+    PASSW = "uBot_pwd"
+
+try:
+    AP.config(password = PASSWD)
+except:
+    AP.config(password = "uBot_pwd")
+
 
 
 ###########
@@ -32,8 +56,10 @@ MSG = Pin(15, Pin.OUT)
 MSG.off()
 
 CLK = Pin(13, Pin.OUT)  #GPIO pin. Advances the counter (CD4017) which maps the buttons of the turtle HAT.
-INP = Pin(16, Pin.IN)   #GPIO pin. Receives button presses from turtle HAT. Internally pulled-down.
+INP = Pin(16, Pin.OUT)  #GPIO pin. Receives button presses from turtle HAT.
 CLK.off()
+INP.off()
+INP.init(Pin.IN)
 
 P12 = Pin(12, Pin.OUT)  #GPIO pin.
 P14 = Pin(14, Pin.OUT)  #GPIO pin.
@@ -287,10 +313,10 @@ ACCEL_MS2_PER_LSB = 0.00980665 # meters/second^2 per least significant bit
 GAUSS_TO_MICROTESLA = 100.0
 
 class LSM303(object):
-    'LSM303 3-axis accelerometer/magnetometer'
+    "LSM303 3-axis accelerometer/magnetometer"
 
     def __init__(self, i2c, hires=True):
-        'Initialize the sensor'
+        "Initialize the sensor"
         self._bus = i2c
 
         # Enable the accelerometer - all 3 channels
@@ -318,7 +344,7 @@ class LSM303(object):
         self.set_mag_gain(MAG_GAIN_1_3)
 
     def read_accel(self):
-        'Read raw acceleration in meters/second squared'
+        "Read raw acceleration in meters/second squared"
         # Read as signed 12-bit little endian values
         accel_bytes = self._bus.read_i2c_block_data(LSM303_ADDRESS_ACCEL,
                                                     LSM303_REGISTER_ACCEL_OUT_X_L_A | 0x80,
@@ -332,7 +358,7 @@ class LSM303(object):
         )
 
     def set_mag_gain(self, gain):
-        'Set magnetometer gain'
+        "Set magnetometer gain"
         self._gain = gain
         if gain == MAG_GAIN_1_3:
             self._lsb_per_gauss_xy = 1100
@@ -361,13 +387,13 @@ class LSM303(object):
                                        [self._gain])
 
     def set_mag_rate(self, rate):
-        'Set magnetometer rate'
+        "Set magnetometer rate"
         self._bus.write_i2c_block_data(LSM303_ADDRESS_MAG,
                                        LSM303_REGISTER_MAG_CRA_REG_M,
                                        [(rate & 0x07) << 2])
 
     def read_mag(self):
-        'Read raw magnetic field in microtesla'
+        "Read raw magnetic field in microtesla"
         # Read as signed 16-bit big endian values
         mag_bytes = self._bus.read_i2c_block_data(LSM303_ADDRESS_MAG,
                                                   LSM303_REGISTER_MAG_OUT_X_H_M,
