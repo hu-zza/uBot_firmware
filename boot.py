@@ -90,8 +90,37 @@ NOTE_C5  = 523
 
 
 
-###########
-## SMBus
+################################################################################
+################################################################################
+
+"""
+micropython-smbus by Geoff Lee
+
+[https://github.com/gkluoe/micropython-smbus]
+
+
+MIT License
+
+Copyright (c) 2017 Geoff Lee
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+"""
 
 
 class SMBus(I2C):
@@ -122,6 +151,7 @@ class SMBus(I2C):
         # writeto_mem() expects something it can treat as a buffer
         if isinstance(data, int):
             data = bytes([data])
+        # ADDED: for the compatibility with lsm303-python
         else:
             data = bytearray([data[0]])
         return self.writeto_mem(addr, register, data)
@@ -132,6 +162,7 @@ class SMBus(I2C):
         # writeto_mem() expects something it can treat as a buffer
         if isinstance(data, int):
             data = bytes([data])
+        # ADDED: for the compatibility with lsm303-python
         else:
             data = bytearray([data[0]])
         return self.writeto_mem(addr, register, data)
@@ -154,11 +185,38 @@ class SMBus(I2C):
         raise RuntimeError("Not yet implemented")
 
 
-###########
-## LSM303
+
+"""
+lsm303-python by Jack Whittaker
+
+[https://github.com/jackw01/lsm303-python]
 
 
-LSM303_ADDRESS_ACCEL                      = 0x18 # 0011001x
+MIT License
+
+Copyright (c) 2020 Jack
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+"""
+# MODIFIED: 0x19 -> 0x18 ... because of the non-genuine chip maybe
+LSM303_ADDRESS_ACCEL                      = 0x18 # 0011000x
+
 LSM303_REGISTER_ACCEL_CTRL_REG1_A         = 0x20
 LSM303_REGISTER_ACCEL_CTRL_REG2_A         = 0x21
 LSM303_REGISTER_ACCEL_CTRL_REG3_A         = 0x22
@@ -333,5 +391,7 @@ def _test():
             [round(v, 2) for v in mag_data]
         )
         utime.sleep(0.1)
+
+
 
 LSM = LSM303(SMBus(freq=400000, sda=SDA, scl=SCL))
