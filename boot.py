@@ -9,12 +9,13 @@ passw = ""  # Set the WiFi password in the quotation marks. For example: PASSW =
 ###########
 ## GPIO
 
-from machine import Pin
+from machine import Pin, PWM
 
 SDA = Pin(0, Pin.OUT, 0)
 SCL = Pin(2, Pin.OUT, 0)
 
 MSG = Pin(15, Pin.OUT, 0)
+BEE = PWM(Pin(15), freq = 262, duty = 0)
 
 CLK = Pin(13, Pin.OUT, 0)  #GPIO pin. Advances the counter (CD4017) which maps the buttons of the turtle HAT.
 INP = Pin(16, Pin.OUT, 0)  #GPIO pin. Receives button presses from turtle HAT.
@@ -99,35 +100,14 @@ S = usocket.socket(usocket.AF_INET, usocket.SOCK_STREAM)
 S.bind(("", 80))
 S.listen(5)
 
-
-###########
-## AUDIO
-
-# Frequencies for the buzzer
-
-from micropython import const
-
-NOTE_C4  = const(262)
-NOTE_CS4 = const(277)
-NOTE_D4  = const(294)
-NOTE_DS4 = const(311)
-NOTE_E4  = const(330)
-NOTE_F4  = const(349)
-NOTE_FS4 = const(370)
-NOTE_G4  = const(392)
-NOTE_GS4 = const(415)
-NOTE_A4  = const(440)
-NOTE_AS4 = const(466)
-NOTE_B4  = const(494)
-NOTE_C5  = const(523)
-
-
 ###########
 ## GENERAL
 
 from machine import I2C, RTC, Timer, WDT, reset
+from micropython import const
 from uio import FileIO
-import esp, gc, ujson, utime, webrepl
+from utime import sleep, sleep_ms, sleep_us
+import esp, gc, ujson, webrepl
 
 gc.enable()
 esp.sleep_type(esp.SLEEP_NONE)
@@ -139,6 +119,8 @@ DT = RTC()
 IIC = I2C(freq=400000, sda=SDA, scl=SCL)
 webrepl.start()
 
+EXCEPTIONS = []
+
 CONN = ""
 ADDR = ""
 COMMANDS = []
@@ -147,7 +129,9 @@ COUNTER_POS  = 0
 COUNTER_ACC  = -1
 PRESSED_BTNS = []
 
-EXCEPTIONS = []
+BEEP_MODE = True
+
+
 
 ########################################################################################################################
 ########################################################################################################################
@@ -458,7 +442,7 @@ def _test():
             [round(v, 2) for v in accel_data],
             [round(v, 2) for v in mag_data]
         )
-        utime.sleep(0.1)
+        sleep_ms(100)
 
 
 

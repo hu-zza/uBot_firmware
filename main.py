@@ -26,6 +26,31 @@ def checkButtons():
     CLK.off()
 
 
+def beep(freq = 262, duration = 3, pause = 10, count = 1):
+    for i in range(count):
+        MSG.off()
+
+        if BEEP_MODE:
+            BEE.freq(freq)
+            BEE.duty(512)
+
+            rest = round((1000000 / freq) * (freq * duration / 10 ))
+            sleep_us(rest)
+
+            BEE.duty(0)
+        else:
+            MSG.on()
+            sleep_ms(duration * 100)
+            MSG.off()
+
+        sleep_ms(pause * 10)
+
+
+def midiBeep(noteOn = 60, duration = 3, pause = 10, count = 1):
+    f = round(440 * pow(2, (noteOn - 69) / 12))
+    beep(f, duration, pause, count)
+
+
 
 def getDebugTable(method, path, length = 0, type = "-", body = "-"):
     length = str(length)
@@ -87,7 +112,11 @@ def processJson(json):
         if command in PIN:
             togglePin(PIN.get(command))
         elif command[0:5] == "SLEEP":
-            utime.sleep_ms(int(command[5:].strip()))
+            sleep_ms(int(command[5:].strip()))
+        elif command[0:5] == "BEEP_":
+            beep(int(command[5:].strip()), 2, 4)
+        elif command[0:5] == "MIDI_":
+            midiBeep(int(command[5:].strip()), 2, 4)
 
 
 def processGetQuery(path):
