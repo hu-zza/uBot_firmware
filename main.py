@@ -30,14 +30,20 @@ def checkButtons():
 def getDebugTable(method, path, length = 0, type = "-", body = "-"):
     length = str(length)
 
-    return """<table>
-    <tr><td>Method: </td><td>""" + method + """</td></tr>
-    <tr><td>Path: </td><td>"""   + path   + """</td></tr>
-    <tr><td>Length: </td><td>""" + length + """</td></tr>
-    <tr><td>Type: </td><td>"""   + type   + """</td></tr>
-    <tr><td>Body: </td><td>"""   + body   + """</td></tr>
-    </table>"""
+    result = ""
 
+    with open("stats.html") as file:
+        for line in file:
+            result += line
+
+    allMem = gc.mem_free() + gc.mem_alloc()
+    freePercent = gc.mem_free() * 100 // allMem
+
+    return result.format(
+        method = method, path = path, length = length, type = type, body = body,
+        freePercent = freePercent, freeMem = gc.mem_free(), allMem = allMem,
+        pressed = PRESSED_BTNS, commands = COMMANDS, exceptions = EXCEPTIONS
+    )
 
 def reply(returnFormat, httpCode, message, title = None):
     """ Try to reply with a text/html or application/json
@@ -45,15 +51,15 @@ def reply(returnFormat, httpCode, message, title = None):
     """
 
     try:
-        connection.send("HTTP/1.1 " + httpCode + "\r\n")
+        CONN.send("HTTP/1.1 " + httpCode + "\r\n")
 
         if returnFormat == "HTML":
             str = "text/html"
         elif returnFormat == "JSON":
             str = "application/json"
 
-        connection.send("Content-Type: " + str + "\r\n")
-        connection.send("Connection: close\r\n\r\n")
+        CONN.send("Content-Type: " + str + "\r\n")
+        CONN.send("Connection: close\r\n\r\n")
 
         if returnFormat == "HTML":
             if title == None:
@@ -63,11 +69,11 @@ def reply(returnFormat, httpCode, message, title = None):
         elif returnFormat == "JSON":
             str = ujson.dumps({"code" : httpCode, "message" : message})
 
-        connection.sendall(str)
-    except:
+        CONN.sendall(str)
+    except Exception:
         print("The connection has been closed.")
     finally:
-        connection.close()
+        CONN.close()
 
 def togglePin(pin):
     pin.value(1 - pin.value())
@@ -84,41 +90,32 @@ def processJson(json):
             utime.sleep_ms(int(command[5:].strip()))
 
 
-def processGetQuery():
-    reply("HTML", "200 OK", getDebugTable(method, path), "uBot Debug Page")
+def processGetQuery(path):
+    reply("HTML", "200 OK", getDebugTable("GET", path), "uBot Debug Page")
 
 
-def processPostQuery():
+def processPostQuery(body):
 
     try:
         json = ujson.loads(body)
         reply("JSON", "200 OK", ";-)")
         processJson(json)
-    except:
+    except Exception:
         reply("JSON", "400 Bad Request", "The request body could not be parsed as JSON.")
 
 
-########################################################################################################################
-########################################################################################################################
+def processSockets():
+    global CONN
+    global ADDR
 
-COMMANDS = []
-
-COUNTER_POS  = 0
-COUNTER_ACC  = -1
-PRESSED_BTNS = []
-
-T.init(period = 2, mode = Timer.PERIODIC, callback = lambda t:checkButtons())
-
-
-while True:
     method = ""
     path = ""
     contentLength = 0
     contentType = ""
     body = ""
 
-    connection, address = S.accept()
-    requestFile         = connection.makefile("rwb", 0)
+    CONN, ADDR  = S.accept()
+    requestFile = CONN.makefile("rwb", 0)
 
     try:
         while True:
@@ -147,13 +144,28 @@ while True:
                 contentType = line[13:].strip()
 
         if method == "GET":
-            processGetQuery()
+            processGetQuery(path)
         elif method == "POST":
             if contentType == "application/json":
-                processPostQuery()
+                processPostQuery(body)
             else:
                 reply("HTML", "400 Bad Request", "'Content-Type' should be 'application/json'.")
         else:
             reply("HTML", "405 Method Not Allowed", "Only two HTTP request methods (GET and PUT) are allowed.")
     finally:
-        connection.close()
+        CONN.close()
+
+
+########################################################################################################################
+########################################################################################################################
+
+T.init(period = 2, mode = Timer.PERIODIC, callback = lambda t:checkButtons())
+
+
+while True:
+    try:
+        processSockets()
+    except Exception as e:
+        EXCEPTIONS.append((DT.datetime(), e))
+        #if 10 < len(EXCEPTIONS):
+        #    reset()
