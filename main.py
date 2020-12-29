@@ -1,28 +1,31 @@
 def checkButtons():
+    global COUNTER_POS
+    global COUNTER_ACC
+
     if INP.value() == 1:
         INP.init(Pin.OUT)
         INP.off()           # pseudo pull-down
         INP.init(Pin.IN)
 
     if INP.value() == 1:
-        if COUNTER_ACC != -1:
-            COUNTER_ACC += 7
-
-        COUNTER_ACC += COUNTER_POS
+        if COUNTER_ACC == -1:
+            COUNTER_ACC = COUNTER_POS
+        else:
+            COUNTER_ACC += 7 + COUNTER_POS
 
     CLK.on()
 
     COUNTER_POS += 1
 
     if 9 < COUNTER_POS:
-        PRESSED_BTNS.append(COUNTER_ACC)
-        COUNTER_ACC = -1
         COUNTER_POS = 0
+        if 0 <= COUNTER_ACC:
+            PRESSED_BTNS.append(COUNTER_ACC)
+        COUNTER_ACC = -1
 
     CLK.off()
 
-def chk():
-    checkButtons()
+
 
 def getDebugTable(method, path, length = 0, type = "-", body = "-"):
     length = str(length)
@@ -104,7 +107,7 @@ COUNTER_POS  = 0
 COUNTER_ACC  = -1
 PRESSED_BTNS = []
 
-T.init(period = 10, mode = Timer.PERIODIC, callback = lambda t:chk())
+T.init(period = 2, mode = Timer.PERIODIC, callback = lambda t:checkButtons())
 
 
 while True:

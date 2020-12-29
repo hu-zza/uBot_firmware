@@ -94,9 +94,8 @@ except:
 
 import usocket
 
-ADDR = usocket.getaddrinfo("127.0.0.1", 80)[0][-1]
 S = usocket.socket(usocket.AF_INET, usocket.SOCK_STREAM)
-S.bind(ADDR) #("", 80)
+S.bind(("", 80))
 S.listen(5)
 
 
