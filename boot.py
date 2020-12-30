@@ -15,7 +15,7 @@ def initDir(dirName):
             EXCEPTIONS.append((DT.datetime(), e))
 
 
-def createBlankFile(fileName, dirName = ""):
+def initFile(fileName, dirName = "", content = ""):
     global CONFIG
 
     if dirName != "":
@@ -23,7 +23,7 @@ def createBlankFile(fileName, dirName = ""):
 
     try:
         with open(dirName + fileName, "w") as file:
-            pass
+            file.write(str(content) + "\n")
         CONFIG[dirName[:-1] + "List"].append(fileName)
     except Exception as e:
         EXCEPTIONS.append((DT.datetime(), e))
@@ -100,7 +100,7 @@ if "datetime.txt" in CONFIG.get("etcList"):
     except Exception as e:
         EXCEPTIONS.append((DT.datetime(), e))
 else:
-    createBlankFile("datetime.txt", "etc")
+    initFile("datetime.txt", "etc", DT.datetime())
 
 
 if configException != "":
@@ -126,7 +126,7 @@ if "persistence.txt" in CONFIG.get("etcList"):
     except Exception as e:
         EXCEPTIONS.append((DT.datetime(), e))
 else:
-    createBlankFile("persistence.txt", "etc")
+    initFile("persistence.txt", "etc")
 
 
 try:
