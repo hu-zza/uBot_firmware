@@ -230,7 +230,7 @@ def startWebServer():
     global CONFIG
     global EXCEPTIONS
 
-    while CONFIG.get("webRepl"):
+    while CONFIG.get("webServer"):
         try:
             processSockets()
         except Exception as e:

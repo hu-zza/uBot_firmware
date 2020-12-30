@@ -79,16 +79,10 @@ configDefaults = {
     # These can also be configured.
     # (But almost never will be necessary to do that.)
 
+    "apActive"    : True,
     "sda"         : const(0),
     "scl"         : const(2),
-    "freq"        : const(400000),
-
-    "apActive"    : True,
-    "apAuthMode"  : network.AUTH_WPA_WPA2_PSK,
-    "apIp"        : "192.168.11.1",
-    "apSubnet"    : "192.168.11.1",
-    "apGateway"   : "255.255.255.0",
-    "apDns"       : "192.168.11.1"
+    "freq"        : const(400000)
 }
 
 try:
@@ -178,9 +172,10 @@ MOT4.off()
 ## AP
 
 AP = network.WLAN(network.AP_IF)
+
 AP.active(CONFIG.get("apActive"))
-AP.ifconfig((CONFIG.get("apIp"), CONFIG.get("apSubnet"), CONFIG.get("apGateway"), CONFIG.get("apDns")))
-AP.config(authmode = CONFIG.get("apAuthMode"))
+AP.ifconfig(("192.168.11.1", "255.255.255.0", "192.168.11.1", "192.168.11.1"))
+AP.config(authmode = network.AUTH_WPA_WPA2_PSK)
 
 # if ESSID is an empty string, generate the default: uBot__xx:xx:xx (MAC address' last 3 octets )
 if CONFIG.get("essid") == "":
