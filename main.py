@@ -20,7 +20,7 @@ def checkButtons():
         # pseudo pull-down
         if INP.value() == 1:
             INP.init(Pin.OUT)
-            INP.off()           # needed explicitly
+            INP.off()
             INP.init(Pin.IN)
 
 
@@ -36,8 +36,8 @@ def checkButtons():
     advanceCounter()                # shift "resting position"
 
     # safety belt XD
-    if 500 < len(PRESSED_BTNS):
-        PRESSED_BTNS = PRESSED_BTNS[:100]
+    if 200 < len(PRESSED_BTNS):
+        PRESSED_BTNS = PRESSED_BTNS[:20]
 
 
 
@@ -45,7 +45,7 @@ def beep(freq = 262, duration = 3, pause = 10, count = 1):
     for i in range(count):
         MSG.off()
 
-        if BEEP_MODE:
+        if config.BEEP_MODE:
             BEE.freq(freq)
             BEE.duty(512)
 
@@ -82,7 +82,7 @@ def getDebugTable(method, path, length = 0, type = "-", body = "-"):
     return result.format(
         method = method, path = path, length = length, type = type, body = body,
         freePercent = freePercent, freeMem = gc.mem_free(), allMem = allMem,
-        pressed = PRESSED_BTNS, commands = COMMANDS, exceptions = EXCEPTIONS
+        pressed = PRESSED_BTNS, commands = COMMANDS, evals = EVALS, exceptions = EXCEPTIONS
     )
 
 def reply(returnFormat, httpCode, message, title = None):
@@ -120,22 +120,32 @@ def togglePin(pin):
 
 
 def processJson(json):
-    #item = json.get("datetime")
+    global WEB_SERVER
 
+    if json.get("webrepl") != None and json.get("webrepl") == "START":
+        import webrepl
+        webrepl.start()
 
-    for command in json.get("commands"):
-        if command in PIN:
-            togglePin(PIN.get(command))
-        elif command[0:5] == "SLEEP":
-            sleep_ms(int(command[5:].strip()))
-        elif command[0:5] == "BEEP_":
-            beep(int(command[5:].strip()), 2, 4)
-        elif command[0:5] == "MIDI_":
-            midiBeep(int(command[5:].strip()), 2, 4)
-        elif command[0:5] == "EXEC_": ##################################################################################
-            exec(command[5:])
-        elif command[0:5] == "EVAL_": ##################################################################################
-            eval(command[5:])
+    if json.get("webserver") != None and json.get("webserver") == "STOP":
+        config.WEB_SERVER = False
+
+    if json.get("datetime") != None:
+        print(json.get("datetime"))
+
+    if json.get("commands") != None:
+        for command in json.get("commands"):
+            if command in PIN:
+                togglePin(PIN.get(command))
+            elif command[0:5] == "SLEEP":
+                sleep_ms(int(command[5:].strip()))
+            elif command[0:5] == "BEEP_":
+                beep(int(command[5:].strip()), 2, 4)
+            elif command[0:5] == "MIDI_":
+                midiBeep(int(command[5:].strip()), 2, 4)
+            elif command[0:5] == "EXEC_": ##############################################################################
+                exec(command[5:])
+            elif command[0:5] == "EVAL_": ##############################################################################
+                EVALS.append(eval(command[5:]))
 
 
 def processGetQuery(path):
@@ -204,16 +214,21 @@ def processSockets():
         CONN.close()
 
 
+def startWebServer():
+    global EXCEPTIONS
+
+    while config.WEB_SERVER:
+        try:
+            processSockets()
+        except Exception as e:
+            EXCEPTIONS.append((DT.datetime(), e))
+            #if 10 < len(EXCEPTIONS):
+            #    reset()
+
+
 ########################################################################################################################
 ########################################################################################################################
 
 T.init(period = 20, mode = Timer.PERIODIC, callback = lambda t:checkButtons())
 
-
-while True:
-    try:
-        processSockets()
-    except Exception as e:
-        EXCEPTIONS.append((DT.datetime(), e))
-        #if 10 < len(EXCEPTIONS):
-        #    reset()
+startWebServer()

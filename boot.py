@@ -1,34 +1,40 @@
-essid = ""  # Set the WiFi name in the quotation marks.     For example: ESSID = "uBot_01"
-passw = ""  # Set the WiFi password in the quotation marks. For example: PASSW = "uBot_01_pwd"
-
-
-########################################################################################################################
-########################################################################################################################
-
+import config
 
 ###########
 ## GPIO
 
 from machine import Pin, PWM
 
-SDA = Pin(0, Pin.OUT, 0)
-SCL = Pin(2, Pin.OUT, 0)
+SDA = Pin(0, Pin.OUT)
+SCL = Pin(2, Pin.OUT)
+SDA.off()
+SCL.off()
 
-MSG = Pin(15, Pin.OUT, 0)
+MSG = Pin(15, Pin.OUT)
 BEE = PWM(Pin(15), freq = 262, duty = 0)
+MSG.off()
 
-CLK = Pin(13, Pin.OUT, 0)  #GPIO pin. Advances the counter (CD4017) which maps the buttons of the turtle HAT.
-INP = Pin(16, Pin.OUT, 0)  #GPIO pin. Receives button presses from turtle HAT.
+CLK = Pin(13, Pin.OUT)  #GPIO pin. Advances the counter (CD4017) which maps the buttons of the turtle HAT.
+INP = Pin(16, Pin.OUT)  #GPIO pin. Receives button presses from turtle HAT.
+CLK.off()
+INP.off()
 INP.init(Pin.IN)
 
-P12 = Pin(12, Pin.OUT, 0)  #GPIO pin.
-P14 = Pin(14, Pin.OUT, 0)  #GPIO pin.
+P12 = Pin(12, Pin.OUT)  #GPIO pin.
+P14 = Pin(14, Pin.OUT)  #GPIO pin.
+P12.off()
+P14.off()
 
-MOT1 = Pin(1, Pin.OUT, 0)  #Connected to the  2nd pin of the motor driver (SN754410). Left motor.
-MOT2 = Pin(3, Pin.OUT, 0)  #Connected to the  7th pin of the motor driver (SN754410). Left motor.
-MOT3 = Pin(4, Pin.OUT, 0)  #Connected to the 10th pin of the motor driver (SN754410). Right motor.
-MOT4 = Pin(5, Pin.OUT, 0)  #Connected to the 15th pin of the motor driver (SN754410). Right motor.
+if not config.UART0:
+    MOT1 = Pin(1, Pin.OUT)  #Connected to the  2nd pin of the motor driver (SN754410). Left motor.
+    MOT2 = Pin(3, Pin.OUT)  #Connected to the  7th pin of the motor driver (SN754410). Left motor.
+    MOT1.off()
+    MOT2.off()
 
+MOT3 = Pin(4, Pin.OUT)  #Connected to the 10th pin of the motor driver (SN754410). Right motor.
+MOT4 = Pin(5, Pin.OUT)  #Connected to the 15th pin of the motor driver (SN754410). Right motor.
+MOT3.off()
+MOT4.off()
 
 PIN = {
     "SDA" : SDA,
@@ -42,11 +48,14 @@ PIN = {
     "P12" : P12,
     "P14" : P14,
 
-    "MOT1" : MOT1,
-    "MOT2" : MOT2,
     "MOT3" : MOT3,
     "MOT4" : MOT4
 }
+
+if not config.UART0:
+    PIN["MOT1"] = MOT1
+    PIN["MOT2"] = MOT2
+
 
 
 ###########
@@ -60,9 +69,9 @@ AP.active(True)
 AP.ifconfig(("192.168.11.1", "255.255.255.0", "192.168.11.1", "192.168.11.1"))
 AP.config(authmode = network.AUTH_WPA_WPA2_PSK)
 
-# check variable essid existence
+# check variable config.ESSID existence
 try:
-    essid
+    essid = config.ESSID
 except Exception:
     essid = ""
 
@@ -75,9 +84,9 @@ try:
 except Exception:
     AP.config(essid = "uBot")
 
-# check variable passw existence
+# check variable config.PASSW existence
 try:
-    passw
+    passw = config.PASSW
 except Exception:
     passw = ""
 
@@ -107,9 +116,10 @@ from machine import I2C, RTC, Timer, WDT, reset
 from micropython import const
 from uio import FileIO
 from utime import sleep, sleep_ms, sleep_us
-import esp, gc, ujson, webrepl
+import esp, gc, ujson
 
 gc.enable()
+esp.osdebug(0)
 esp.sleep_type(esp.SLEEP_NONE)
 
 T  = Timer(-1)
@@ -117,17 +127,7 @@ DT = RTC()
 #WD = WDT()
 
 IIC = I2C(freq=400000, sda=SDA, scl=SCL)
-webrepl.start()
 
-# CONFIG
-
-BEEP_MODE = True
-                            # The amount of time in millisecond = variable * timer interval (2) * channels count (10)
-PRESS_LENGTH = const(5)     # The button press is recognized only if it takes 100 ms or longer time.
-FIRST_REPEAT = const(25)    # After the button press recognition this time (500 ms) must pass before you enter same command.
-
-
-# GLOBALS
 
 EXCEPTIONS = []
 
@@ -137,9 +137,12 @@ ADDR = ""
 COUNTER_POS  = 0
 PRESSED_BTNS = []
 COMMANDS = []
+EVALS = []
 
 
-
+if config.WEB_REPL:
+    import webrepl
+    webrepl.start()
 
 ########################################################################################################################
 ########################################################################################################################
