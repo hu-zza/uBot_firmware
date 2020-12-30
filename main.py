@@ -1,29 +1,44 @@
-def checkButtons():
+def advanceCounter():
     global COUNTER_POS
-    global COUNTER_ACC
-
-    if INP.value() == 1:
-        INP.init(Pin.OUT)
-        INP.off()           # pseudo pull-down
-        INP.init(Pin.IN)
-
-    if INP.value() == 1:
-        if COUNTER_ACC == -1:
-            COUNTER_ACC = COUNTER_POS
-        else:
-            COUNTER_ACC += 7 + COUNTER_POS
 
     CLK.on()
-
     COUNTER_POS += 1
 
     if 9 < COUNTER_POS:
         COUNTER_POS = 0
-        if 0 <= COUNTER_ACC:
-            PRESSED_BTNS.append(COUNTER_ACC)
-        COUNTER_ACC = -1
 
     CLK.off()
+
+
+def checkButtons():
+    global COUNTER_POS
+    global PRESSED_BTNS
+    pressed = -1
+
+    for i in range(10):
+
+        # pseudo pull-down
+        if INP.value() == 1:
+            INP.init(Pin.OUT)
+            INP.off()           # needed explicitly
+            INP.init(Pin.IN)
+
+
+        if INP.value() == 1:
+            if pressed == -1:
+                pressed = COUNTER_POS
+            else:
+                pressed += 7 + COUNTER_POS
+
+        advanceCounter()
+
+    PRESSED_BTNS.append(pressed)
+    advanceCounter()                # shift "resting position"
+
+    # safety belt XD
+    if 500 < len(PRESSED_BTNS):
+        PRESSED_BTNS = PRESSED_BTNS[:100]
+
 
 
 def beep(freq = 262, duration = 3, pause = 10, count = 1):
@@ -117,6 +132,10 @@ def processJson(json):
             beep(int(command[5:].strip()), 2, 4)
         elif command[0:5] == "MIDI_":
             midiBeep(int(command[5:].strip()), 2, 4)
+        elif command[0:5] == "EXEC_": ##################################################################################
+            exec(command[5:])
+        elif command[0:5] == "EVAL_": ##################################################################################
+            eval(command[5:])
 
 
 def processGetQuery(path):
@@ -188,7 +207,7 @@ def processSockets():
 ########################################################################################################################
 ########################################################################################################################
 
-T.init(period = 2, mode = Timer.PERIODIC, callback = lambda t:checkButtons())
+T.init(period = 20, mode = Timer.PERIODIC, callback = lambda t:checkButtons())
 
 
 while True:
