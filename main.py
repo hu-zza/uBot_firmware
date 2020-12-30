@@ -42,10 +42,12 @@ def checkButtons():
 
 
 def beep(freq = 262, duration = 3, pause = 10, count = 1):
+    global CONFIG
+
     for i in range(count):
         MSG.off()
 
-        if config.BEEP_MODE:
+        if CONFIG.get("beepMode"):
             BEE.freq(freq)
             BEE.duty(512)
 
@@ -120,23 +122,33 @@ def togglePin(pin):
 
 
 def processJson(json):
-    global WEB_SERVER
+    global AP
+    global CONFIG
+
+    if json.get("uart") != None:
+        if json.get("uart") == "START":
+            uart = UART(0, 115200)
+            uos.dupterm(uart, 1)
+            CONFIG['uart'] = True
+        elif json.get("uart") == "STOP":
+            uos.dupterm(None, 1)
+            CONFIG['uart'] = False
 
     if json.get("webrepl") != None and json.get("webrepl") == "START":
-        import webrepl
         webrepl.start()
+        CONFIG['webRepl'] = True
 
     if json.get("webserver") != None and json.get("webserver") == "STOP":
-        config.WEB_SERVER = False
+        AP.active(False)
+        CONFIG['apActive'] = False
+        CONFIG['webServer'] = False
 
     if json.get("datetime") != None:
-        print(json.get("datetime"))
+        DT.datetime(eval(json.get("datetime")))
 
     if json.get("commands") != None:
         for command in json.get("commands"):
-            if command in PIN:
-                togglePin(PIN.get(command))
-            elif command[0:5] == "SLEEP":
+            if command[0:5] == "SLEEP":
                 sleep_ms(int(command[5:].strip()))
             elif command[0:5] == "BEEP_":
                 beep(int(command[5:].strip()), 2, 4)
@@ -215,9 +227,10 @@ def processSockets():
 
 
 def startWebServer():
+    global CONFIG
     global EXCEPTIONS
 
-    while config.WEB_SERVER:
+    while CONFIG.get("webRepl"):
         try:
             processSockets()
         except Exception as e:

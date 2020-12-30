@@ -1,10 +1,27 @@
-ESSID = ""  # Set the WiFi name in the quotation marks.     For example: ESSID = "uBot_01"
-PASSW = ""  # Set the WiFi password in the quotation marks. For example: PASSW = "uBot_01_pwd"
+essid = ""  # Set the WiFi name in the quotation marks.     For example: essid = "uBot_01"
+passw = ""  # Set the WiFi password in the quotation marks. For example: passw = "uBot_01_pwd"
 
-UART0      = True
-WEB_REPL   = False
-WEB_SERVER = True
-BEEP_MODE  = True
-                            # The amount of time in millisecond = variable * timer interval (2) * channels count (10)
-PRESS_LENGTH = const(5)     # The button press is recognized only if it takes 100 ms or longer time.
-FIRST_REPEAT = const(25)    # After the button press recognition this time (500 ms) must pass before you enter same command.
+########################################################################################################################
+########################################################################################################################
+
+uart      = True    # Enables the UART0                                           TX: GPIO1, RX: GPIO3, baudrate: 115200
+webRepl   = True    # Enables the WebREPL on 192.168.11.1:8266         More info: https://github.com/micropython/webrepl
+webServer = True    # Enables the HTTP request processing.      Needed for remote controll: app / webpage (192.168.11.1)
+
+"""
+beepMode
+
+If it's True enables the feedback beeps: The by oscillating GPIO 15 signal at LED blinks.
+If it's False the feedback is a simple on-off cycle: The LED blinks normally, but the buzzer only ticks once.
+You can mute the μBot by the switch 'BUZZER' (on the main PCB) too. The two switches are independent from each other.
+"""
+beepMode  = True
+
+
+"""
+The amount of time in millisecond = variable * timer interval (2) * channels count (10)
+
+Note: The const() method accepts only integer numbers.
+"""
+pressLength = const(5)  # The button press is recognized only if it takes 100 ms or longer time.
+firstRepeat = const(25) # After the button press recognition this time (500 ms) must pass before you enter same command.

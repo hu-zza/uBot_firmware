@@ -1,14 +1,151 @@
-import config
+def initDir(dirName):
+    global CONFIG
+    global EXCEPTIONS
+
+    if dirName in CONFIG.get("rootList"):
+        try:
+            CONFIG[dirName + "List"] = uos.listdir(dirName)
+        except Exception as e:
+            EXCEPTIONS.append((DT.datetime(), e))
+    else:
+        try:
+            uos.mkdir(dirName)
+            CONFIG[dirName + "List"] = []
+        except Exception as e:
+            EXCEPTIONS.append((DT.datetime(), e))
+
+
+def createBlankFile(fileName, dirName = ""):
+    global CONFIG
+
+    if dirName != "":
+        dirName += "/"
+
+    try:
+        with open(dirName + fileName, "w") as file:
+            pass
+        CONFIG[dirName[:-1] + "List"].append(fileName)
+    except Exception as e:
+        EXCEPTIONS.append((DT.datetime(), e))
+
+
+###########
+## IMPORTS
+
+import esp, network, gc, ujson, uos, usocket, webrepl
+
+from machine     import I2C, Pin, PWM, RTC, Timer, UART, WDT, reset
+from micropython import const
+from ubinascii   import hexlify
+from uio         import FileIO
+from utime       import sleep, sleep_ms, sleep_us
+
+try:
+    configException = ""
+    import config
+except Exception as e:
+    configException = e
+
+try:
+    feedbackException = ""
+    from feedback import Feedback
+except Exception as e:
+    feedbackException = e
+
+
+###########
+## CONFIG
+
+DT         = RTC()
+EXCEPTIONS = []
+CONFIG     = {}
+
+configDefaults = {
+
+    # General settings, indicated in config.py too.
+
+    "essid"       : "",
+    "passw"       : "uBot_pwd",
+
+    "uart"        : False,
+    "webRepl"     : True,
+    "webServer"   : True,
+    "beepMode"    : True,
+
+    "pressLength" : const(5),
+    "firstRepeat" : const(25),
+
+
+    # These can also be configured.
+    # (But almost never will be necessary to do that.)
+
+    "sda"         : const(0),
+    "scl"         : const(2),
+    "freq"        : const(400000),
+
+    "apActive"    : True,
+    "apAuthMode"  : network.AUTH_WPA_WPA2_PSK,
+    "apIp"        : "192.168.11.1",
+    "apSubnet"    : "192.168.11.1",
+    "apGateway"   : "255.255.255.0",
+    "apDns"       : "192.168.11.1"
+}
+
+try:
+    CONFIG["rootList"] = uos.listdir()
+except Exception as e:
+    EXCEPTIONS.append((DT.datetime(), e))
+
+
+initDir("etc")
+
+if "datetime.txt" in CONFIG.get("etcList"):
+    try:
+        with open("etc/datetime.txt") as file:
+            DT.datetime(eval(file.readline().strip()))
+    except Exception as e:
+        EXCEPTIONS.append((DT.datetime(), e))
+else:
+    createBlankFile("datetime.txt", "etc")
+
+
+if configException != "":
+    EXCEPTIONS.append((DT.datetime(), configException))
+
+if feedbackException != "":
+    EXCEPTIONS.append((DT.datetime(), feedbackException))
+
+
+for key in configDefaults.keys():
+    try:
+        CONFIG[key] = eval("config." + key)
+    except Exception as e:
+        CONFIG[key] = configDefaults.get(key)
+
+
+if "persistence.txt" in CONFIG.get("etcList"):
+    try:
+        with open("etc/persistence.txt") as file:
+            for line in file:
+                sep = line.find("=")
+                CONFIG[line[:sep].strip()] = eval(line[sep+1:].strip())
+    except Exception as e:
+        EXCEPTIONS.append((DT.datetime(), e))
+else:
+    createBlankFile("persistence.txt", "etc")
+
+
+try:
+    F = Feedback(CONFIG.get("freq"), Pin(CONFIG.get("sda")), Pin(CONFIG.get("scl")))
+except Exception as e:
+    EXCEPTIONS.append((DT.datetime(), e))
+
+
+initDir("code")
+
 
 ###########
 ## GPIO
-
-from machine import Pin, PWM
-
-SDA = Pin(0, Pin.OUT)
-SCL = Pin(2, Pin.OUT)
-SDA.off()
-SCL.off()
 
 MSG = Pin(15, Pin.OUT)
 BEE = PWM(Pin(15), freq = 262, duty = 0)
@@ -25,77 +162,42 @@ P14 = Pin(14, Pin.OUT)  #GPIO pin.
 P12.off()
 P14.off()
 
-if not config.UART0:
+if not CONFIG.get("uart"):
     MOT1 = Pin(1, Pin.OUT)  #Connected to the  2nd pin of the motor driver (SN754410). Left motor.
     MOT2 = Pin(3, Pin.OUT)  #Connected to the  7th pin of the motor driver (SN754410). Left motor.
     MOT1.off()
     MOT2.off()
 
-MOT3 = Pin(4, Pin.OUT)  #Connected to the 10th pin of the motor driver (SN754410). Right motor.
-MOT4 = Pin(5, Pin.OUT)  #Connected to the 15th pin of the motor driver (SN754410). Right motor.
+MOT3 = Pin(4, Pin.OUT)      #Connected to the 10th pin of the motor driver (SN754410). Right motor.
+MOT4 = Pin(5, Pin.OUT)      #Connected to the 15th pin of the motor driver (SN754410). Right motor.
 MOT3.off()
 MOT4.off()
-
-PIN = {
-    "SDA" : SDA,
-    "SCL" : SCL,
-
-    "MSG" : MSG,
-
-    "CLK" : CLK,
-    "INP" : INP,
-
-    "P12" : P12,
-    "P14" : P14,
-
-    "MOT3" : MOT3,
-    "MOT4" : MOT4
-}
-
-if not config.UART0:
-    PIN["MOT1"] = MOT1
-    PIN["MOT2"] = MOT2
-
 
 
 ###########
 ## AP
 
-import network
-from ubinascii import hexlify
-
 AP = network.WLAN(network.AP_IF)
-AP.active(True)
-AP.ifconfig(("192.168.11.1", "255.255.255.0", "192.168.11.1", "192.168.11.1"))
-AP.config(authmode = network.AUTH_WPA_WPA2_PSK)
+AP.active(CONFIG.get("apActive"))
+AP.ifconfig((CONFIG.get("apIp"), CONFIG.get("apSubnet"), CONFIG.get("apGateway"), CONFIG.get("apDns")))
+AP.config(authmode = CONFIG.get("apAuthMode"))
 
-# check variable config.ESSID existence
-try:
-    essid = config.ESSID
-except Exception:
-    essid = ""
-
-# if empty, set to default
-if essid == "":
-    essid = "uBot__" + hexlify(network.WLAN().config('mac'), ':').decode()[9:]
+# if ESSID is an empty string, generate the default: uBot__xx:xx:xx (MAC address' last 3 octets )
+if CONFIG.get("essid") == "":
+    CONFIG["essid"] = "uBot__" + hexlify(network.WLAN().config('mac'), ':').decode()[9:]
 
 try:
-    AP.config(essid = essid)
+    AP.config(essid = CONFIG.get("essid"))
 except Exception:
     AP.config(essid = "uBot")
 
-# check variable config.PASSW existence
-try:
-    passw = config.PASSW
-except Exception:
-    passw = ""
 
-# if empty, set to default
-if passw == "":
-    passw = "uBot_pwd"
+# if password is too short (< 8 chars), set to default
+if len(CONFIG.get("passw")) < 8:
+    CONFIG["passw"] = configDefaults.get("passw")
 
 try:
-    AP.config(password = passw)
+    AP.config(password = CONFIG.get("passw"))
 except Exception:
     AP.config(password = "uBot_pwd")
 
@@ -103,34 +205,20 @@ except Exception:
 ###########
 ## SOCKET
 
-import usocket
-
 S = usocket.socket(usocket.AF_INET, usocket.SOCK_STREAM)
 S.bind(("", 80))
 S.listen(5)
 
+
 ###########
 ## GENERAL
-
-from machine import I2C, RTC, Timer, WDT, reset
-from micropython import const
-from uio import FileIO
-from utime import sleep, sleep_ms, sleep_us
-import esp, gc, ujson
 
 gc.enable()
 esp.osdebug(0)
 esp.sleep_type(esp.SLEEP_NONE)
 
-T  = Timer(-1)
-DT = RTC()
-#WD = WDT()
-
-IIC = I2C(freq=400000, sda=SDA, scl=SCL)
-
-
-EXCEPTIONS = []
-
+T    = Timer(-1)
+#WD   = WDT()
 CONN = ""
 ADDR = ""
 
@@ -139,322 +227,12 @@ PRESSED_BTNS = []
 COMMANDS = []
 EVALS = []
 
+# The REPL is attached by default, deattache if not needed.
+if not CONFIG.get("uart"):
+    uos.dupterm(None, 1)
 
-if config.WEB_REPL:
-    import webrepl
-    webrepl.start()
-
-########################################################################################################################
-########################################################################################################################
-
-"""
-micropython-smbus by Geoff Lee
-
-[https://github.com/gkluoe/micropython-smbus]
-
-
-MIT License
-
-Copyright (c) 2017 Geoff Lee
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
-"""
-
-
-class SMBus(I2C):
-    """ Provides an 'SMBus' module which supports some of the py-smbus
-        i2c methods, as well as being a subclass of machine.I2C
-        Hopefully this will allow you to run code that was targeted at
-        py-smbus unmodified on micropython.
-	    Use it like you would the machine.I2C class:
-            import usmbus.SMBus
-            bus = SMBus(1, pins=('G15','G10'), baudrate=100000)
-            bus.read_byte_data(addr, register)
-            ... etc
-	"""
-
-    def read_byte_data(self, addr, register):
-        """ Read a single byte from register of device at addr
-            Returns a single byte """
-        return self.readfrom_mem(addr, register, 1)[0]
-
-    def read_i2c_block_data(self, addr, register, length):
-        """ Read a block of length from register of device at addr
-            Returns a bytes object filled with whatever was read """
-        return self.readfrom_mem(addr, register, length)
-
-    def write_byte_data(self, addr, register, data):
-        """ Write a single byte from buffer `data` to register of device at addr
-            Returns None """
-        # writeto_mem() expects something it can treat as a buffer
-        if isinstance(data, int):
-            data = bytes([data])
-        # ADDED: for the compatibility with lsm303-python
-        else:
-            data = bytearray([data[0]])
-        return self.writeto_mem(addr, register, data)
-
-    def write_i2c_block_data(self, addr, register, data):
-        """ Write multiple bytes of data to register of device at addr
-            Returns None """
-        # writeto_mem() expects something it can treat as a buffer
-        if isinstance(data, int):
-            data = bytes([data])
-        # ADDED: for the compatibility with lsm303-python
-        else:
-            data = bytearray([data[0]])
-        return self.writeto_mem(addr, register, data)
-
-    # The follwing haven't been implemented, but could be.
-    def read_byte(self, *args, **kwargs):
-        """ Not yet implemented """
-        raise RuntimeError("Not yet implemented")
-
-    def write_byte(self, *args, **kwargs):
-        """ Not yet implemented """
-        raise RuntimeError("Not yet implemented")
-
-    def read_word_data(self, *args, **kwargs):
-        """ Not yet implemented """
-        raise RuntimeError("Not yet implemented")
-
-    def write_word_data(self, *args, **kwargs):
-        """ Not yet implemented """
-        raise RuntimeError("Not yet implemented")
-
-
-
-"""
-lsm303-python by Jack Whittaker
-
-[https://github.com/jackw01/lsm303-python]
-
-
-MIT License
-
-Copyright (c) 2020 Jack
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
-"""
-
-#import smbus
-#import struct
-from ustruct import unpack
-#import time
-
-# MODIFIED ALL: const()
-# MODIFIED: 0x19 -> 0x18 ... because of the non-genuine chip maybe
-LSM303_ADDRESS_ACCEL                      = const(0x18) # 0011000x
-
-LSM303_REGISTER_ACCEL_CTRL_REG1_A         = const(0x20)
-#LSM303_REGISTER_ACCEL_CTRL_REG2_A         = const(0x21)
-#LSM303_REGISTER_ACCEL_CTRL_REG3_A         = const(0x22)
-LSM303_REGISTER_ACCEL_CTRL_REG4_A         = const(0x23)
-#LSM303_REGISTER_ACCEL_CTRL_REG5_A         = const(0x24)
-#LSM303_REGISTER_ACCEL_CTRL_REG6_A         = const(0x25)
-#LSM303_REGISTER_ACCEL_REFERENCE_A         = const(0x26)
-#LSM303_REGISTER_ACCEL_STATUS_REG_A        = const(0x27)
-LSM303_REGISTER_ACCEL_OUT_X_L_A           = const(0x28)
-#LSM303_REGISTER_ACCEL_OUT_X_H_A           = const(0x29)
-#LSM303_REGISTER_ACCEL_OUT_Y_L_A           = const(0x2A)
-#LSM303_REGISTER_ACCEL_OUT_Y_H_A           = const(0x2B)
-#LSM303_REGISTER_ACCEL_OUT_Z_L_A           = const(0x2C)
-#LSM303_REGISTER_ACCEL_OUT_Z_H_A           = const(0x2D)
-#LSM303_REGISTER_ACCEL_FIFO_CTRL_REG_A     = const(0x2E)
-#LSM303_REGISTER_ACCEL_FIFO_SRC_REG_A      = const(0x2F)
-#LSM303_REGISTER_ACCEL_INT1_CFG_A          = const(0x30)
-#LSM303_REGISTER_ACCEL_INT1_SOURCE_A       = const(0x31)
-#LSM303_REGISTER_ACCEL_INT1_THS_A          = const(0x32)
-#LSM303_REGISTER_ACCEL_INT1_DURATION_A     = const(0x33)
-#LSM303_REGISTER_ACCEL_INT2_CFG_A          = const(0x34)
-#LSM303_REGISTER_ACCEL_INT2_SOURCE_A       = const(0x35)
-#LSM303_REGISTER_ACCEL_INT2_THS_A          = const(0x36)
-#LSM303_REGISTER_ACCEL_INT2_DURATION_A     = const(0x37)
-#LSM303_REGISTER_ACCEL_CLICK_CFG_A         = const(0x38)
-#LSM303_REGISTER_ACCEL_CLICK_SRC_A         = const(0x39)
-#LSM303_REGISTER_ACCEL_CLICK_THS_A         = const(0x3A)
-#LSM303_REGISTER_ACCEL_TIME_LIMIT_A        = const(0x3B)
-#LSM303_REGISTER_ACCEL_TIME_LATENCY_A      = const(0x3C)
-#LSM303_REGISTER_ACCEL_TIME_WINDOW_A       = const(0x3D)
-
-LSM303_ADDRESS_MAG                        = const(0x1E) # 0011110x
-LSM303_REGISTER_MAG_CRA_REG_M             = const(0x00)
-LSM303_REGISTER_MAG_CRB_REG_M             = const(0x01)
-LSM303_REGISTER_MAG_MR_REG_M              = const(0x02)
-LSM303_REGISTER_MAG_OUT_X_H_M             = const(0x03)
-#LSM303_REGISTER_MAG_OUT_X_L_M             = const(0x04)
-#LSM303_REGISTER_MAG_OUT_Z_H_M             = const(0x05)
-#LSM303_REGISTER_MAG_OUT_Z_L_M             = const(0x06)
-#LSM303_REGISTER_MAG_OUT_Y_H_M             = const(0x07)
-#LSM303_REGISTER_MAG_OUT_Y_L_M             = const(0x08)
-#LSM303_REGISTER_MAG_SR_REG_Mg             = const(0x09)
-#LSM303_REGISTER_MAG_IRA_REG_M             = const(0x0A)
-#LSM303_REGISTER_MAG_IRB_REG_M             = const(0x0B)
-#LSM303_REGISTER_MAG_IRC_REG_M             = const(0x0C)
-#LSM303_REGISTER_MAG_TEMP_OUT_H_M          = const(0x31)
-#LSM303_REGISTER_MAG_TEMP_OUT_L_M          = const(0x32)
-
-MAG_GAIN_1_3                              = const(0x20) # +/- 1.3
-#MAG_GAIN_1_9                              = const(0x40) # +/- 1.9
-#MAG_GAIN_2_5                              = const(0x60) # +/- 2.5
-#MAG_GAIN_4_0                              = const(0x80) # +/- 4.0
-#MAG_GAIN_4_7                              = const(0xA0) # +/- 4.7
-#MAG_GAIN_5_6                              = const(0xC0) # +/- 5.6
-#MAG_GAIN_8_1                              = const(0xE0) # +/- 8.1
-
-#MAG_RATE_0_7                              = const(0x00) # 0.75 H
-#MAG_RATE_1_5                              = const(0x01) # 1.5 Hz
-#MAG_RATE_3_0                              = const(0x62) # 3.0 Hz
-#MAG_RATE_7_5                              = const(0x03) # 7.5 Hz
-#MAG_RATE_15                               = const(0x04) # 15 Hz
-#MAG_RATE_30                               = const(0x05) # 30 Hz
-#MAG_RATE_75                               = const(0x06) # 75 Hz
-#MAG_RATE_220                              = const(0x07) # 210 Hz
-
-ACCEL_MS2_PER_LSB = 0.00980665 # meters/second^2 per least significant bit
-
-GAUSS_TO_MICROTESLA = 100.0
-
-class LSM303(object):
-    "LSM303 3-axis accelerometer/magnetometer"
-
-    def __init__(self, i2c, hires=True):
-        "Initialize the sensor"
-        self._bus = i2c
-
-        # Enable the accelerometer - all 3 channels
-        self._bus.write_i2c_block_data(LSM303_ADDRESS_ACCEL,
-                                       LSM303_REGISTER_ACCEL_CTRL_REG1_A,
-                                       [0b01000111])
-
-        # Select hi-res (12-bit) or low-res (10-bit) output mode.
-        # Low-res mode uses less power and sustains a higher update rate,
-        # output is padded to compatible 12-bit units.
-        if hires:
-            self._bus.write_i2c_block_data(LSM303_ADDRESS_ACCEL,
-                                           LSM303_REGISTER_ACCEL_CTRL_REG4_A,
-                                           [0b00001000])
-        else:
-            self._bus.write_i2c_block_data(LSM303_ADDRESS_ACCEL,
-                                           LSM303_REGISTER_ACCEL_CTRL_REG4_A,
-                                           [0b00000000])
-
-        # Enable the magnetometer
-        self._bus.write_i2c_block_data(LSM303_ADDRESS_MAG,
-                                       LSM303_REGISTER_MAG_MR_REG_M,
-                                       [0b00000000])
-
-        self.set_mag_gain(MAG_GAIN_1_3)
-
-    def read_accel(self):
-        "Read raw acceleration in meters/second squared"
-        # Read as signed 12-bit little endian values
-        accel_bytes = self._bus.read_i2c_block_data(LSM303_ADDRESS_ACCEL,
-                                                    LSM303_REGISTER_ACCEL_OUT_X_L_A | 0x80,
-                                                    6)
-        # MODIFIED : struct.unpack -> method import + unpack()
-        accel_raw = unpack('<hhh', bytearray(accel_bytes))
-
-        return (
-            (accel_raw[0] >> 4) * ACCEL_MS2_PER_LSB,
-            (accel_raw[1] >> 4) * ACCEL_MS2_PER_LSB,
-            (accel_raw[2] >> 4) * ACCEL_MS2_PER_LSB,
-        )
-
-    def set_mag_gain(self, gain):
-        "Set magnetometer gain"
-        self._gain = gain
-        if gain == MAG_GAIN_1_3:
-            self._lsb_per_gauss_xy = 1100
-            self._lsb_per_gauss_z = 980
-#        elif gain == MAG_GAIN_1_9:
-#            self._lsb_per_gauss_xy = 855
-#            self._lsb_per_gauss_z = 760
-#        elif gain == MAG_GAIN_2_5:
-#            self._lsb_per_gauss_xy = 670
-#            self._lsb_per_gauss_z = 600
-#        elif gain == MAG_GAIN_4_0:
-#            self._lsb_per_gauss_xy = 450
-#            self._lsb_per_gauss_z = 400
-#        elif gain == MAG_GAIN_4_7:
-#            self._lsb_per_gauss_xy = 400
-#            self._lsb_per_gauss_z = 355
-#        elif gain == MAG_GAIN_5_6:
-#            self._lsb_per_gauss_xy = 330
-#            self._lsb_per_gauss_z = 295
-#        elif gain == MAG_GAIN_8_1:
-#            self._lsb_per_gauss_xy = 230
-#            self._lsb_per_gauss_z = 205
-
-        self._bus.write_i2c_block_data(LSM303_ADDRESS_MAG,
-                                       LSM303_REGISTER_MAG_CRB_REG_M,
-                                       [self._gain])
-
-    def set_mag_rate(self, rate):
-        "Set magnetometer rate"
-        self._bus.write_i2c_block_data(LSM303_ADDRESS_MAG,
-                                       LSM303_REGISTER_MAG_CRA_REG_M,
-                                       [(rate & 0x07) << 2])
-
-    def read_mag(self):
-        "Read raw magnetic field in microtesla"
-        # Read as signed 16-bit big endian values
-        mag_bytes = self._bus.read_i2c_block_data(LSM303_ADDRESS_MAG,
-                                                  LSM303_REGISTER_MAG_OUT_X_H_M,
-                                                  6)
-        # MODIFIED : struct.unpack -> method import + unpack()
-        mag_raw = unpack('>hhh', bytearray(mag_bytes))
-
-        return (
-            mag_raw[0] / self._lsb_per_gauss_xy * GAUSS_TO_MICROTESLA,
-            mag_raw[2] / self._lsb_per_gauss_xy * GAUSS_TO_MICROTESLA,
-            mag_raw[1] / self._lsb_per_gauss_z * GAUSS_TO_MICROTESLA,
-        )
-
-def _test():
-    bus = SMBus(freq=400000, sda=SDA, scl=SCL)
-    device = LSM303(bus)
-    while True:
-        accel_data = device.read_accel()
-        mag_data = device.read_mag()
-        print(
-            [round(v, 2) for v in accel_data],
-            [round(v, 2) for v in mag_data]
-        )
-        sleep_ms(100)
-
-
-
-LSM = LSM303(SMBus(freq=400000, sda=SDA, scl=SCL))
+if CONFIG.get("webRepl"):
+    try:
+        webrepl.start()
+    except Exception as e:
+        EXCEPTIONS.append((DT.datetime(), e))
