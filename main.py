@@ -19,31 +19,26 @@ def setMotor(motor = 0, mode = 0):
         MOT[motor][1 - mode].on()
         MOT[motor][abs(mode - 2)].off()
 
+def setController(modeRight, modeLeft):
+        setMotor(0, modeRight)
+        setMotor(1, modeLeft)
 
 def move(direction = 0, duration = 1000):
 
-    if direction == 0:      # STOP
-        setMotor(0, 0)
-        setMotor(1, 0)
-    elif direction == 1:    # FORWARD
-        setMotor(0, 1)
-        setMotor(0, 1)
-    elif direction == 2:    # RIGHT
-        setMotor(0, 1)
-        setMotor(1, 2)
-    elif direction == 3:    # LEFT
-        setMotor(0, 2)
-        setMotor(1, 1)
-    elif direction == 4:    # BACKWARD
-        setMotor(0, 2)
-        setMotor(1, 2)
+    if direction == 1:          # FORWARD
+        setController(1, 1)
+    elif direction == 2:        # RIGHT
+        setController(1, 2)
+    elif direction == 3:        # LEFT
+        setController(2, 1)
+    elif direction == 4:        # BACKWARD
+        setController(2, 2)
 
     if direction != 0:
         sleep_ms(duration)
-        setMotor(0, 0)
-        setMotor(1, 0)
+        setController(0, 0)
 
-
+"""
 def advanceCounter():
     global COUNTER_POS
 
@@ -133,7 +128,7 @@ def beep(freq = 262, duration = 3, pause = 10, count = 1):
 def midiBeep(noteOn = 60, duration = 3, pause = 10, count = 1):
     f = round(440 * pow(2, (noteOn - 69) / 12))
     beep(f, duration, pause, count)
-
+"""
 
 
 def getDebugTable(method, path, length = 0, type = "-", body = "-"):
@@ -352,7 +347,7 @@ def startWebServer():
             except Exception as e:
                 EXCEPTIONS.append((DT.datetime(), e))
 
-
+"""
 def stopWebServer(message):
     global CONFIG
     global EXCEPTIONS
@@ -374,6 +369,6 @@ if CONFIG.get("turtleHat"):
     TIMER.init(period = 20, mode = Timer.PERIODIC, callback = lambda t:tryCheckButtons())
 else:
     TIMER.init(period = 1000, mode = Timer.PERIODIC, callback = lambda t:tryCheckWebserver())
-
+"""
 
 startWebServer()

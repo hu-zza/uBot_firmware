@@ -269,7 +269,7 @@ gc.enable()
 esp.osdebug(0)
 esp.sleep_type(esp.SLEEP_NONE)
 
-TIMER = Timer(-1)
+#TIMER = Timer(-1)
 
 
 if CONFIG.get("_wdActive"):
