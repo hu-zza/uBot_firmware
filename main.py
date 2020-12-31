@@ -18,10 +18,10 @@ def checkButtons():
     for i in range(10):
 
         # pseudo pull-down
-        if INP.value() == 1:
-            INP.init(Pin.OUT)
-            INP.off()
-            INP.init(Pin.IN)
+        if INP.value() == 1:        # DEPRECATED: New PCB design (2.1) will resolve this.
+            INP.init(Pin.OUT)       # DEPRECATED: New PCB design (2.1) will resolve this.
+            INP.off()               # DEPRECATED: New PCB design (2.1) will resolve this.
+            INP.init(Pin.IN)        # DEPRECATED: New PCB design (2.1) will resolve this.
 
 
         if INP.value() == 1:
@@ -51,6 +51,15 @@ def tryCheckButtons():
         if len(EXCEPTIONS) < 20:
             EXCEPTIONS.append((DT.datetime(), e))
 
+
+def tryCheckWebserver():
+    try:
+    if CONFIG.get("_wdActive") and AP.active():             # TODO: Some more sophisticated checks needed.
+        global WD
+        WD.feed()
+    except Exception as e:
+        if len(EXCEPTIONS) < 20:
+            EXCEPTIONS.append((DT.datetime(), e))
 
 
 def beep(freq = 262, duration = 3, pause = 10, count = 1):
@@ -146,6 +155,7 @@ def reply(returnFormat, httpCode, message, title = None):
         print("The connection has been closed.")
     finally:
         CONN.close()
+
 
 def togglePin(pin):
     pin.value(1 - pin.value())
@@ -278,7 +288,6 @@ def processSockets():
         CONN.close()
 
 
-
 def startWebServer():
     global CONFIG
     global EXCEPTIONS
@@ -296,8 +305,6 @@ def startWebServer():
                 processSockets()
             except Exception as e:
                 EXCEPTIONS.append((DT.datetime(), e))
-                #if 10 < len(EXCEPTIONS):
-                #    reset()
 
 
 def stopWebServer(message):
@@ -316,6 +323,9 @@ def stopWebServer(message):
 ########################################################################################################################
 ########################################################################################################################
 
-BTN_TIMER.init(period = 20, mode = Timer.PERIODIC, callback = lambda t:tryCheckButtons())
+if CONFIG.get("turtleHat"):
+    TIMER.init(period = 20, mode = Timer.PERIODIC, callback = lambda t:tryCheckButtons())
+else:
+    TIMER.init(period = 1000, mode = Timer.PERIODIC, callback = lambda t:tryCheckWebserver())
 
 startWebServer()

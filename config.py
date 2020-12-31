@@ -7,6 +7,7 @@ passw = ""  # Set the WiFi password in the quotation marks. For example: passw =
 uart      = True    # Enables the UART0                                           TX: GPIO1, RX: GPIO3, baudrate: 115200
 webRepl   = True    # Enables the WebREPL on 192.168.11.1:8266         More info: https://github.com/micropython/webrepl
 webServer = True    # Enables the HTTP request processing.      Needed for remote controll: app / webpage (192.168.11.1)
+turtleHat = True    # Enables the turtle HAT by allocating GPIO pins to it and starting timer to map button presses.
 
 """
 beepMode

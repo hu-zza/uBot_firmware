@@ -96,8 +96,10 @@ configDefaults = {
     "passw"       : "uBot_pwd",
 
     "uart"        : False,
-    "webRepl"     : True,
+    "webRepl"     : False,
     "webServer"   : True,
+
+    "turtleHat"   : True,
     "beepMode"    : True,
 
     "pressLength" : const(5),
@@ -109,6 +111,7 @@ configDefaults = {
 
     "_apActive"  : True,
     "_wdActive"  : True,
+
     "_i2cActive" : True,
     "_sda"       : const(0),
     "_scl"       : const(2),
@@ -179,31 +182,40 @@ initDir("code")
 ###########
 ## GPIO
 
-MSG = Pin(15, Pin.OUT)
+MSG = P15 = Pin(15, Pin.OUT)
 BEE = PWM(Pin(15), freq = 262, duty = 0)
 MSG.off()
 
-CLK = Pin(13, Pin.OUT)  #GPIO pin. Advances the counter (CD4017) which maps the buttons of the turtle HAT.
-INP = Pin(16, Pin.OUT)  #GPIO pin. Receives button presses from turtle HAT.
-CLK.off()
-INP.off()
-INP.init(Pin.IN)
 
-P12 = Pin(12, Pin.OUT)  #GPIO pin.
-P14 = Pin(14, Pin.OUT)  #GPIO pin.
+if CONFIG.get("turtleHat"):
+    CLK = Pin(13, Pin.OUT)  # GPIO pin. It is connected to the counter (CD4017) if physical switch CLOCK is on.
+    INP = Pin(16, Pin.OUT)  # GPIO pin. Receives button presses from turtle HAT if physical switches: WAKE off, PULL down
+                            # FUTURE: INP = Pin(16, Pin.IN)
+    INP.off()               # DEPRECATED: New PCB design (2.1) will resolve this.
+    INP.init(Pin.IN)        # DEPRECATED: New PCB design (2.1) will resolve this.
+    CLK.off()
+else:
+    P13 = Pin(13, Pin.OUT)
+    P16 = Pin(16, Pin.IN)   # MicroPython can not handle the pull-down resistor of the GPIO16: Use PULL physical switch.
+    P13.off()
+
+
+P12 = Pin(12, Pin.OUT)              # GPIO pin. On turtle HAT it can drive a LED if you switch physical switch on.
+P14 = Pin(14, Pin.IN, Pin.PULL_UP)  # GPIO pin.
 P12.off()
-P14.off()
+
 
 if not CONFIG.get("uart"):
-    MOT1 = Pin(1, Pin.OUT)  #Connected to the  2nd pin of the motor driver (SN754410). Left motor.
-    MOT2 = Pin(3, Pin.OUT)  #Connected to the  7th pin of the motor driver (SN754410). Left motor.
+    MOT1 = P1 = Pin(1, Pin.OUT)     #Connected to the  2nd pin of the motor driver (SN754410). Left motor.
+    MOT2 = P3 = Pin(3, Pin.OUT)     #Connected to the  7th pin of the motor driver (SN754410). Left motor.
     MOT1.off()
     MOT2.off()
 
-MOT3 = Pin(4, Pin.OUT)      #Connected to the 10th pin of the motor driver (SN754410). Right motor.
-MOT4 = Pin(5, Pin.OUT)      #Connected to the 15th pin of the motor driver (SN754410). Right motor.
+MOT3 = P4 = Pin(4, Pin.OUT)         #Connected to the 10th pin of the motor driver (SN754410). Right motor.
+MOT4 = P5 = Pin(5, Pin.OUT)         #Connected to the 15th pin of the motor driver (SN754410). Right motor.
 MOT3.off()
 MOT4.off()
+
 
 if not CONFIG.get("_i2cActive"):
     P0 = Pin(0, Pin.IN)
@@ -259,7 +271,7 @@ BTN_TIMER = Timer(-1)
 if CONFIG.get("_wdActive"):
     WD = WDT()
 
-# The REPL is attached by default, deattache if not needed.
+# The REPL is attached by default, detach if not needed.
 if not CONFIG.get("uart"):
     uos.dupterm(None, 1)
 
