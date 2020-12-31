@@ -54,9 +54,9 @@ def tryCheckButtons():
 
 def tryCheckWebserver():
     try:
-    if CONFIG.get("_wdActive") and AP.active():             # TODO: Some more sophisticated checks needed.
-        global WD
-        WD.feed()
+        if CONFIG.get("_wdActive") and AP.active():             # TODO: Some more sophisticated checks needed.
+            global WD
+            WD.feed()
     except Exception as e:
         if len(EXCEPTIONS) < 20:
             EXCEPTIONS.append((DT.datetime(), e))

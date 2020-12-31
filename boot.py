@@ -134,7 +134,7 @@ except Exception as e:
 
 initDir("etc")
 
-if "datetime" in CONFIG.get("_etcList"):
+if ".datetime" in CONFIG.get("_etcList"):
     try:
         with open("etc/.datetime") as file:
             DT.datetime(eval(file.readline().strip()))
@@ -158,7 +158,7 @@ for key in configDefaults.keys():
         CONFIG[key] = configDefaults.get(key)
 
 
-if "config" in CONFIG.get("_etcList"):
+if ".config" in CONFIG.get("_etcList"):
     try:
         with open("etc/.config") as file:
             for line in file:
@@ -266,10 +266,12 @@ gc.enable()
 esp.osdebug(0)
 esp.sleep_type(esp.SLEEP_NONE)
 
-BTN_TIMER = Timer(-1)
+TIMER = Timer(-1)
+
 
 if CONFIG.get("_wdActive"):
     WD = WDT()
+
 
 # The REPL is attached by default, detach if not needed.
 if not CONFIG.get("uart"):
