@@ -369,9 +369,11 @@ def stopWebServer(message):
 ########################################################################################################################
 ########################################################################################################################
 
+
 if CONFIG.get("turtleHat"):
     TIMER.init(period = 20, mode = Timer.PERIODIC, callback = lambda t:tryCheckButtons())
 else:
     TIMER.init(period = 1000, mode = Timer.PERIODIC, callback = lambda t:tryCheckWebserver())
+
 
 startWebServer()

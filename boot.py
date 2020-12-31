@@ -110,7 +110,7 @@ configDefaults = {
     # (But almost never will be necessary to do that.)
 
     "_apActive"  : True,
-    "_wdActive"  : True,
+    "_wdActive"  : False,
 
     "_i2cActive" : True,
     "_sda"       : const(0),
@@ -163,7 +163,8 @@ if ".config" in CONFIG.get("_etcList"):
         with open("etc/.config") as file:
             for line in file:
                 sep = line.find("=")
-                CONFIG[line[:sep].strip()] = eval(line[sep+1:].strip())
+                if -1 < sep:
+                    CONFIG[line[:sep].strip()] = eval(line[sep+1:].strip())
     except Exception as e:
         EXCEPTIONS.append((DT.datetime(), e))
 else:
