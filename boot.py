@@ -205,16 +205,18 @@ P14 = Pin(14, Pin.IN, Pin.PULL_UP)  # GPIO pin.
 P12.off()
 
 
-if not CONFIG.get("uart"):
-    MOT1 = P1 = Pin(1, Pin.OUT)     #Connected to the  2nd pin of the motor driver (SN754410). Left motor.
-    MOT2 = P3 = Pin(3, Pin.OUT)     #Connected to the  7th pin of the motor driver (SN754410). Left motor.
-    MOT1.off()
-    MOT2.off()
+P4 = Pin(4, Pin.OUT)         #Connected to the 10th pin of the motor driver (SN754410). T1 terminal (M11, M14)
+P5 = Pin(5, Pin.OUT)         #Connected to the 15th pin of the motor driver (SN754410). T1 terminal (M11, M14)
+P4.off()
+P5.off()
 
-MOT3 = P4 = Pin(4, Pin.OUT)         #Connected to the 10th pin of the motor driver (SN754410). Right motor.
-MOT4 = P5 = Pin(5, Pin.OUT)         #Connected to the 15th pin of the motor driver (SN754410). Right motor.
-MOT3.off()
-MOT4.off()
+MOT = [[P4, P5], [P4, P5]]
+
+if not CONFIG.get("uart"):
+    MOT[0][0] = P1 = Pin(1, Pin.OUT)     #Connected to the  2nd pin of the motor driver (SN754410). T0 terminal (M3, M6)
+    MOT[0][1] = P3 = Pin(3, Pin.OUT)     #Connected to the  7th pin of the motor driver (SN754410). T0 terminal (M3, M6)
+    P1.off()
+    P3.off()
 
 
 if not CONFIG.get("_i2cActive"):

@@ -1,3 +1,49 @@
+def setMotor(motor = 0, mode = 0):
+    """
+    Low-level motor setter
+
+    motor : integer parameter
+    0     : (M3, M6)   T0 terminal / RIGHT MOTOR
+    1     : (M11, M14) T1 terminal / LEFT MOTOR
+
+    mode  : integer parameter
+    0     : (off, off)  -> STOP
+    1     : (on, off)   -> FORWARD
+    2     : (off, on)   -> BACKWARD
+    """
+
+    if mode == 0:
+        MOT[motor][0].off()
+        MOT[motor][1].off()
+    else:
+        MOT[motor][1 - mode].on()
+        MOT[motor][abs(mode - 2)].off()
+
+
+def move(direction = 0, duration = 1000):
+
+    if direction == 0:      # STOP
+        setMotor(0, 0)
+        setMotor(1, 0)
+    elif direction == 1:    # FORWARD
+        setMotor(0, 1)
+        setMotor(0, 1)
+    elif direction == 2:    # RIGHT
+        setMotor(0, 1)
+        setMotor(1, 2)
+    elif direction == 3:    # LEFT
+        setMotor(0, 2)
+        setMotor(1, 1)
+    elif direction == 4:    # BACKWARD
+        setMotor(0, 2)
+        setMotor(1, 2)
+
+    if direction != 0:
+        sleep_ms(duration)
+        setMotor(0, 0)
+        setMotor(1, 0)
+
+
 def advanceCounter():
     global COUNTER_POS
 
