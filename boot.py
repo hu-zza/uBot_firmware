@@ -2,15 +2,15 @@ def initDir(dirName):
     global CONFIG
     global EXCEPTIONS
 
-    if dirName in CONFIG.get("rootList"):
+    if dirName in CONFIG.get("~rootList"):
         try:
-            CONFIG[dirName + "List"] = uos.listdir(dirName)
+            CONFIG["~" + dirName + "List"] = uos.listdir(dirName)
         except Exception as e:
             EXCEPTIONS.append((DT.datetime(), e))
     else:
         try:
             uos.mkdir(dirName)
-            CONFIG[dirName + "List"] = []
+            CONFIG["~" + dirName + "List"] = []
         except Exception as e:
             EXCEPTIONS.append((DT.datetime(), e))
 
@@ -24,7 +24,23 @@ def initFile(fileName, dirName = "", content = ""):
     try:
         with open(dirName + fileName, "w") as file:
             file.write(str(content) + "\n")
-        CONFIG[dirName[:-1] + "List"].append(fileName)
+        CONFIG["~" + dirName[:-1] + "List"].append(fileName)
+    except Exception as e:
+        EXCEPTIONS.append((DT.datetime(), e))
+
+
+def saveConfig():
+    global CONFIG
+
+    try:
+        with open("etc/config.txt", "w") as file:
+            for key, value in CONFIG.items():
+                # Exclude transients
+                if (key[0] != "~"):
+                    if isinstance(value, str):
+                        file.write("{} = \"{}\"\n".format(key, value))
+                    else:
+                        file.write("{} = {}\n".format(key, value))
     except Exception as e:
         EXCEPTIONS.append((DT.datetime(), e))
 
@@ -79,21 +95,21 @@ configDefaults = {
     # These can also be configured.
     # (But almost never will be necessary to do that.)
 
-    "apActive"    : True,
-    "sda"         : const(0),
-    "scl"         : const(2),
-    "freq"        : const(400000)
+    "~apActive"    : True,
+    "~sda"         : const(0),
+    "~scl"         : const(2),
+    "~freq"        : const(400000)
 }
 
 try:
-    CONFIG["rootList"] = uos.listdir()
+    CONFIG["~rootList"] = uos.listdir()
 except Exception as e:
     EXCEPTIONS.append((DT.datetime(), e))
 
 
 initDir("etc")
 
-if "datetime.txt" in CONFIG.get("etcList"):
+if "datetime.txt" in CONFIG.get("~etcList"):
     try:
         with open("etc/datetime.txt") as file:
             DT.datetime(eval(file.readline().strip()))
@@ -117,20 +133,20 @@ for key in configDefaults.keys():
         CONFIG[key] = configDefaults.get(key)
 
 
-if "persistence.txt" in CONFIG.get("etcList"):
+if "config.txt" in CONFIG.get("~etcList"):
     try:
-        with open("etc/persistence.txt") as file:
+        with open("etc/config.txt") as file:
             for line in file:
                 sep = line.find("=")
                 CONFIG[line[:sep].strip()] = eval(line[sep+1:].strip())
     except Exception as e:
         EXCEPTIONS.append((DT.datetime(), e))
 else:
-    initFile("persistence.txt", "etc")
+    initFile("config.txt", "etc")
 
 
 try:
-    F = Feedback(CONFIG.get("freq"), Pin(CONFIG.get("sda")), Pin(CONFIG.get("scl")))
+    F = Feedback(CONFIG.get("~freq"), Pin(CONFIG.get("~sda")), Pin(CONFIG.get("~scl")))
 except Exception as e:
     EXCEPTIONS.append((DT.datetime(), e))
 
@@ -173,7 +189,7 @@ MOT4.off()
 
 AP = network.WLAN(network.AP_IF)
 
-AP.active(CONFIG.get("apActive"))
+AP.active(CONFIG.get("~apActive"))
 AP.ifconfig(("192.168.11.1", "255.255.255.0", "192.168.11.1", "192.168.11.1"))
 AP.config(authmode = network.AUTH_WPA_WPA2_PSK)
 

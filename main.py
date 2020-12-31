@@ -125,24 +125,6 @@ def processJson(json):
     global AP
     global CONFIG
 
-    if json.get("uart") != None:
-        if json.get("uart") == "START":
-            uart = UART(0, 115200)
-            uos.dupterm(uart, 1)
-            CONFIG['uart'] = True
-        elif json.get("uart") == "STOP":
-            uos.dupterm(None, 1)
-            CONFIG['uart'] = False
-
-    if json.get("webrepl") != None and json.get("webrepl") == "START":
-        webrepl.start()
-        CONFIG['webRepl'] = True
-
-    if json.get("webserver") != None and json.get("webserver") == "STOP":
-        AP.active(False)
-        CONFIG['apActive'] = False
-        CONFIG['webServer'] = False
-
     if json.get("datetime") != None:
         DT.datetime(eval(json.get("datetime")))
 
@@ -158,6 +140,26 @@ def processJson(json):
                 exec(command[5:])
             elif command[0:5] == "EVAL_": ##############################################################################
                 EVALS.append(eval(command[5:]))
+
+    if json.get("service") != None:
+            for command in json.get("service"):
+                if command == "START UART":
+                    uart = UART(0, 115200)
+                    uos.dupterm(uart, 1)
+                    CONFIG['uart'] = True
+                elif command == "STOP UART":
+                    uos.dupterm(None, 1)
+                    CONFIG['uart'] = False
+                elif command == "START WEBREPL":
+                    webrepl.start()
+                    CONFIG['webRepl'] = True
+                elif command == "STOP WEBREPL":
+                    webrepl.stop()
+                    CONFIG['webRepl'] = False
+                elif command == "STOP WEBSERVER":
+                    stopWebServer()
+                elif command == "SAVE CONFIG":
+                    saveConfig()
 
 
 def processGetQuery(path):
@@ -226,9 +228,19 @@ def processSockets():
         CONN.close()
 
 
+
 def startWebServer():
     global CONFIG
     global EXCEPTIONS
+
+
+    try:
+        AP.active(True)
+        CONFIG['~apActive'] = True
+        CONFIG['webServer'] = True
+    except Exception as e:
+        EXCEPTIONS.append((DT.datetime(), e))
+
 
     while CONFIG.get("webServer"):
         try:
@@ -237,6 +249,18 @@ def startWebServer():
             EXCEPTIONS.append((DT.datetime(), e))
             #if 10 < len(EXCEPTIONS):
             #    reset()
+
+
+def stopWebServer():
+    global CONFIG
+    global EXCEPTIONS
+
+    try:
+        AP.active(False)
+        CONFIG['~apActive'] = False
+        CONFIG['webServer'] = False
+    except Exception as e:
+        EXCEPTIONS.append((DT.datetime(), e))
 
 
 ########################################################################################################################
