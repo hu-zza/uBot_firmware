@@ -2,15 +2,15 @@ def initDir(dirName):
     global CONFIG
     global EXCEPTIONS
 
-    if dirName in CONFIG.get("~rootList"):
+    if dirName in CONFIG.get("_rootList"):
         try:
-            CONFIG["~" + dirName + "List"] = uos.listdir(dirName)
+            CONFIG["_" + dirName + "List"] = uos.listdir(dirName)
         except Exception as e:
             EXCEPTIONS.append((DT.datetime(), e))
     else:
         try:
             uos.mkdir(dirName)
-            CONFIG["~" + dirName + "List"] = []
+            CONFIG["_" + dirName + "List"] = []
         except Exception as e:
             EXCEPTIONS.append((DT.datetime(), e))
 
@@ -24,7 +24,15 @@ def initFile(fileName, dirName = "", content = ""):
     try:
         with open(dirName + fileName, "w") as file:
             file.write(str(content) + "\n")
-        CONFIG["~" + dirName[:-1] + "List"].append(fileName)
+        CONFIG["_" + dirName[:-1] + "List"].append(fileName)
+    except Exception as e:
+        EXCEPTIONS.append((DT.datetime(), e))
+
+
+def saveDateTime():
+    try:
+        with open("etc/.datetime", "w") as file:
+            file.write(str(DT.datetime()) + "\n")
     except Exception as e:
         EXCEPTIONS.append((DT.datetime(), e))
 
@@ -33,10 +41,10 @@ def saveConfig():
     global CONFIG
 
     try:
-        with open("etc/config.txt", "w") as file:
+        with open("etc/.config", "w") as file:
             for key, value in CONFIG.items():
                 # Exclude transients
-                if (key[0] != "~"):
+                if (key[0] != "_"):
                     if isinstance(value, str):
                         file.write("{} = \"{}\"\n".format(key, value))
                     else:
@@ -55,6 +63,7 @@ from micropython import const
 from ubinascii   import hexlify
 from uio         import FileIO
 from utime       import sleep, sleep_ms, sleep_us
+from sys         import print_exception
 
 try:
     configException = ""
@@ -72,7 +81,10 @@ except Exception as e:
 ###########
 ## CONFIG
 
-DT         = RTC()
+DT = RTC()
+# fallback datetime
+DT.datetime((2020, 12, 31, 0, 0, 0, 0, 0))
+
 EXCEPTIONS = []
 CONFIG     = {}
 
@@ -92,31 +104,31 @@ configDefaults = {
     "firstRepeat" : const(25),
 
 
-    # These can also be configured.
+    # These can also be configured manually (in config.py).
     # (But almost never will be necessary to do that.)
 
-    "~apActive"    : True,
-    "~sda"         : const(0),
-    "~scl"         : const(2),
-    "~freq"        : const(400000)
+    "_apActive"    : True,
+    "_sda"         : const(0),
+    "_scl"         : const(2),
+    "_freq"        : const(400000)
 }
 
 try:
-    CONFIG["~rootList"] = uos.listdir()
+    CONFIG["_rootList"] = uos.listdir()
 except Exception as e:
     EXCEPTIONS.append((DT.datetime(), e))
 
 
 initDir("etc")
 
-if "datetime.txt" in CONFIG.get("~etcList"):
+if "datetime" in CONFIG.get("_etcList"):
     try:
-        with open("etc/datetime.txt") as file:
+        with open("etc/.datetime") as file:
             DT.datetime(eval(file.readline().strip()))
     except Exception as e:
         EXCEPTIONS.append((DT.datetime(), e))
 else:
-    initFile("datetime.txt", "etc", DT.datetime())
+    initFile(".datetime", "etc", DT.datetime())
 
 
 if configException != "":
@@ -133,20 +145,20 @@ for key in configDefaults.keys():
         CONFIG[key] = configDefaults.get(key)
 
 
-if "config.txt" in CONFIG.get("~etcList"):
+if "config" in CONFIG.get("_etcList"):
     try:
-        with open("etc/config.txt") as file:
+        with open("etc/.config") as file:
             for line in file:
                 sep = line.find("=")
                 CONFIG[line[:sep].strip()] = eval(line[sep+1:].strip())
     except Exception as e:
         EXCEPTIONS.append((DT.datetime(), e))
 else:
-    initFile("config.txt", "etc")
+    initFile(".config", "etc")
 
 
 try:
-    F = Feedback(CONFIG.get("~freq"), Pin(CONFIG.get("~sda")), Pin(CONFIG.get("~scl")))
+    F = Feedback(CONFIG.get("_freq"), Pin(CONFIG.get("_sda")), Pin(CONFIG.get("_scl")))
 except Exception as e:
     EXCEPTIONS.append((DT.datetime(), e))
 
@@ -189,7 +201,7 @@ MOT4.off()
 
 AP = network.WLAN(network.AP_IF)
 
-AP.active(CONFIG.get("~apActive"))
+AP.active(CONFIG.get("_apActive"))
 AP.ifconfig(("192.168.11.1", "255.255.255.0", "192.168.11.1", "192.168.11.1"))
 AP.config(authmode = network.AUTH_WPA_WPA2_PSK)
 
@@ -228,10 +240,11 @@ gc.enable()
 esp.osdebug(0)
 esp.sleep_type(esp.SLEEP_NONE)
 
-T    = Timer(-1)
-#WD   = WDT()
-CONN = ""
-ADDR = ""
+BTN_TIMER = Timer(-1)
+
+#WD    = WDT()
+CONN  = ""
+ADDR  = ""
 
 COUNTER_POS  = 0
 PRESSED_BTNS = []

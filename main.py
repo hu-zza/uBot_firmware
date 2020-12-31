@@ -81,11 +81,24 @@ def getDebugTable(method, path, length = 0, type = "-", body = "-"):
     allMem = gc.mem_free() + gc.mem_alloc()
     freePercent = gc.mem_free() * 100 // allMem
 
+
+    exceptionList = "<table class=\"exceptions\"><colgroup><col><col><col></colgroup><tbody>"
+    index = 0
+
+    for (dt, exception) in EXCEPTIONS:
+        exceptionList += "<tr><td> {} </td><td> {}. {}. {}. {}:{}:{}.{} </td><td> {} </td></tr>".format(
+            index, dt[0], dt[1], dt[2], dt[4], dt[5], dt[6], dt[7], exception
+        )
+        index += 1
+
+    exceptionList += "</tbody></table>"
+
     return result.format(
         method = method, path = path, length = length, type = type, body = body,
         freePercent = freePercent, freeMem = gc.mem_free(), allMem = allMem,
-        pressed = PRESSED_BTNS, commands = COMMANDS, evals = EVALS, exceptions = EXCEPTIONS
+        pressed = PRESSED_BTNS, commands = COMMANDS, evals = EVALS, exceptions = exceptionList
     )
+
 
 def reply(returnFormat, httpCode, message, title = None):
     """ Try to reply with a text/html or application/json
@@ -106,7 +119,12 @@ def reply(returnFormat, httpCode, message, title = None):
         if returnFormat == "HTML":
             if title == None:
                 title = httpCode
-            str  = "<html><head><title>" + title + "</title></head>"
+            str  = "<html><head><title>" + title + "</title><style>"
+            str += "tr:nth-child(even) {background: #EEE}"
+            str += ".exceptions col:nth-child(1) {width: 40px;}"
+            str += ".exceptions col:nth-child(2) {width: 250px;}"
+            str += ".exceptions col:nth-child(3) {width: 500px;}"
+            str += "</style></head>"
             str += "<body><h1>" + httpCode + "</h1><p>" + message + "</p></body></html>\r\n\r\n"
         elif returnFormat == "JSON":
             str = ujson.dumps({"code" : httpCode, "message" : message})
@@ -124,12 +142,14 @@ def togglePin(pin):
 def processJson(json):
     global AP
     global CONFIG
+    result = ""
 
-    if json.get("datetime") != None:
-        DT.datetime(eval(json.get("datetime")))
+    if json.get("dateTime") != None:
+        DT.datetime(eval(json.get("dateTime")))
+        saveDateTime()
 
-    if json.get("commands") != None:
-        for command in json.get("commands"):
+    if json.get("commandList") != None:
+        for command in json.get("commandList"):
             if command[0:5] == "SLEEP":
                 sleep_ms(int(command[5:].strip()))
             elif command[0:5] == "BEEP_":
@@ -141,25 +161,35 @@ def processJson(json):
             elif command[0:5] == "EVAL_": ##############################################################################
                 EVALS.append(eval(command[5:]))
 
+
     if json.get("service") != None:
             for command in json.get("service"):
                 if command == "START UART":
                     uart = UART(0, 115200)
                     uos.dupterm(uart, 1)
                     CONFIG['uart'] = True
+                    result = "UART has started."
                 elif command == "STOP UART":
                     uos.dupterm(None, 1)
                     CONFIG['uart'] = False
+                    result = "UART has stopped."
                 elif command == "START WEBREPL":
                     webrepl.start()
                     CONFIG['webRepl'] = True
+                    result = "WebREPL has started."
                 elif command == "STOP WEBREPL":
                     webrepl.stop()
                     CONFIG['webRepl'] = False
+                    result = "WebREPL has stopped."
                 elif command == "STOP WEBSERVER":
-                    stopWebServer()
+                    stopWebServer("WebServer has stopped.")
+                elif command == "CHECK DATETIME":
+                    result = str(DT.datetime())
                 elif command == "SAVE CONFIG":
                     saveConfig()
+                    result = "Configuration has saved."
+
+    reply("JSON", "200 OK", result)
 
 
 def processGetQuery(path):
@@ -170,10 +200,14 @@ def processPostQuery(body):
 
     try:
         json = ujson.loads(body)
-        reply("JSON", "200 OK", ";-)")
+
+        if json.get("execute") == True:
+            reply("JSON", "200 OK", "JSON parsed, execution in progress.")
+
         processJson(json)
-    except Exception:
-        reply("JSON", "400 Bad Request", "The request body could not be parsed as JSON.")
+    except Exception as e:
+        EXCEPTIONS.append((DT.datetime(), e))
+        reply("JSON", "400 Bad Request", "The request body could not be parsed and processed.")
 
 
 def processSockets():
@@ -233,32 +267,32 @@ def startWebServer():
     global CONFIG
     global EXCEPTIONS
 
-
-    try:
-        AP.active(True)
-        CONFIG['~apActive'] = True
-        CONFIG['webServer'] = True
-    except Exception as e:
-        EXCEPTIONS.append((DT.datetime(), e))
-
-
-    while CONFIG.get("webServer"):
+    if CONFIG.get("webServer"):
         try:
-            processSockets()
+            AP.active(True)
+            CONFIG['_apActive'] = True
         except Exception as e:
             EXCEPTIONS.append((DT.datetime(), e))
-            #if 10 < len(EXCEPTIONS):
-            #    reset()
 
 
-def stopWebServer():
+        while CONFIG.get("webServer"):
+            try:
+                processSockets()
+            except Exception as e:
+                EXCEPTIONS.append((DT.datetime(), e))
+                #if 10 < len(EXCEPTIONS):
+                #    reset()
+
+
+def stopWebServer(message):
     global CONFIG
     global EXCEPTIONS
 
     try:
-        AP.active(False)
-        CONFIG['~apActive'] = False
         CONFIG['webServer'] = False
+        CONFIG['_apActive'] = False
+        reply("JSON", "200 OK", message)
+        AP.active(False)
     except Exception as e:
         EXCEPTIONS.append((DT.datetime(), e))
 
@@ -266,6 +300,6 @@ def stopWebServer():
 ########################################################################################################################
 ########################################################################################################################
 
-T.init(period = 20, mode = Timer.PERIODIC, callback = lambda t:checkButtons())
+BTN_TIMER.init(period = 20, mode = Timer.PERIODIC, callback = lambda t:checkButtons())
 
 startWebServer()
