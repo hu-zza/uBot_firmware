@@ -39,6 +39,18 @@ def checkButtons():
     if 200 < len(PRESSED_BTNS):
         PRESSED_BTNS = PRESSED_BTNS[:20]
 
+    if CONFIG.get("_wdActive"):
+        global WD
+        WD.feed()
+
+
+def tryCheckButtons():
+    try:
+        checkButtons()
+    except Exception as e:
+        if len(EXCEPTIONS) < 20:
+            EXCEPTIONS.append((DT.datetime(), e))
+
 
 
 def beep(freq = 262, duration = 3, pause = 10, count = 1):
@@ -142,11 +154,12 @@ def togglePin(pin):
 def processJson(json):
     global AP
     global CONFIG
-    result = ""
+    results = []
 
     if json.get("dateTime") != None:
         DT.datetime(eval(json.get("dateTime")))
         saveDateTime()
+        results.append("New dateTime has been set.")
 
     if json.get("commandList") != None:
         for command in json.get("commandList"):
@@ -168,28 +181,31 @@ def processJson(json):
                     uart = UART(0, 115200)
                     uos.dupterm(uart, 1)
                     CONFIG['uart'] = True
-                    result = "UART has started."
+                    results.append("UART has started.")
                 elif command == "STOP UART":
                     uos.dupterm(None, 1)
                     CONFIG['uart'] = False
-                    result = "UART has stopped."
+                    results.append("UART has stopped.")
                 elif command == "START WEBREPL":
                     webrepl.start()
                     CONFIG['webRepl'] = True
-                    result = "WebREPL has started."
+                    results.append("WebREPL has started.")
                 elif command == "STOP WEBREPL":
                     webrepl.stop()
                     CONFIG['webRepl'] = False
-                    result = "WebREPL has stopped."
+                    results.append("WebREPL has stopped.")
                 elif command == "STOP WEBSERVER":
                     stopWebServer("WebServer has stopped.")
                 elif command == "CHECK DATETIME":
-                    result = str(DT.datetime())
+                    results.append(str(DT.datetime()))
                 elif command == "SAVE CONFIG":
                     saveConfig()
-                    result = "Configuration has saved."
+                    results.append("Configuration has saved.")
 
-    reply("JSON", "200 OK", result)
+    if len(results) == 0:
+        results = ["Processing has completed without any result."]
+
+    reply("JSON", "200 OK", results)
 
 
 def processGetQuery(path):
@@ -291,7 +307,7 @@ def stopWebServer(message):
     try:
         CONFIG['webServer'] = False
         CONFIG['_apActive'] = False
-        reply("JSON", "200 OK", message)
+        reply("JSON", "200 OK", [message])
         AP.active(False)
     except Exception as e:
         EXCEPTIONS.append((DT.datetime(), e))
@@ -300,6 +316,6 @@ def stopWebServer(message):
 ########################################################################################################################
 ########################################################################################################################
 
-BTN_TIMER.init(period = 20, mode = Timer.PERIODIC, callback = lambda t:checkButtons())
+BTN_TIMER.init(period = 20, mode = Timer.PERIODIC, callback = lambda t:tryCheckButtons())
 
 startWebServer()

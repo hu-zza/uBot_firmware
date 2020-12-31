@@ -44,7 +44,7 @@ def saveConfig():
         with open("etc/.config", "w") as file:
             for key, value in CONFIG.items():
                 # Exclude transients
-                if (key[0] != "_"):
+                if key[0] != "_":
                     if isinstance(value, str):
                         file.write("{} = \"{}\"\n".format(key, value))
                     else:
@@ -107,11 +107,21 @@ configDefaults = {
     # These can also be configured manually (in config.py).
     # (But almost never will be necessary to do that.)
 
-    "_apActive"    : True,
-    "_sda"         : const(0),
-    "_scl"         : const(2),
-    "_freq"        : const(400000)
+    "_apActive"  : True,
+    "_wdActive"  : True,
+    "_i2cActive" : True,
+    "_sda"       : const(0),
+    "_scl"       : const(2),
+    "_freq"      : const(400000)
 }
+
+CONN  = ""
+ADDR  = ""
+
+COUNTER_POS  = 0
+PRESSED_BTNS = []
+COMMANDS = []
+EVALS = []
 
 try:
     CONFIG["_rootList"] = uos.listdir()
@@ -156,11 +166,11 @@ if "config" in CONFIG.get("_etcList"):
 else:
     initFile(".config", "etc")
 
-
-try:
-    F = Feedback(CONFIG.get("_freq"), Pin(CONFIG.get("_sda")), Pin(CONFIG.get("_scl")))
-except Exception as e:
-    EXCEPTIONS.append((DT.datetime(), e))
+if CONFIG.get("_i2cActive"):
+    try:
+        F = Feedback(CONFIG.get("_freq"), Pin(CONFIG.get("_sda")), Pin(CONFIG.get("_scl")))
+    except Exception as e:
+        EXCEPTIONS.append((DT.datetime(), e))
 
 
 initDir("code")
@@ -194,6 +204,10 @@ MOT3 = Pin(4, Pin.OUT)      #Connected to the 10th pin of the motor driver (SN75
 MOT4 = Pin(5, Pin.OUT)      #Connected to the 15th pin of the motor driver (SN754410). Right motor.
 MOT3.off()
 MOT4.off()
+
+if not CONFIG.get("_i2cActive"):
+    P0 = Pin(0, Pin.IN)
+    P2 = Pin(2, Pin.IN)
 
 
 ###########
@@ -242,14 +256,8 @@ esp.sleep_type(esp.SLEEP_NONE)
 
 BTN_TIMER = Timer(-1)
 
-#WD    = WDT()
-CONN  = ""
-ADDR  = ""
-
-COUNTER_POS  = 0
-PRESSED_BTNS = []
-COMMANDS = []
-EVALS = []
+if CONFIG.get("_wdActive"):
+    WD = WDT()
 
 # The REPL is attached by default, deattache if not needed.
 if not CONFIG.get("uart"):
