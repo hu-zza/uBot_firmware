@@ -59,6 +59,7 @@ def saveConfig():
 import esp, network, gc, ujson, uos, usocket, webrepl
 
 from buzzer      import Buzzer
+from motor       import Motor
 
 from machine     import Pin, PWM, RTC, Timer, UART, WDT, reset
 from micropython import const
@@ -212,14 +213,15 @@ P5 = Pin(5, Pin.OUT)         #Connected to the 15th pin of the motor driver (SN7
 P4.off()
 P5.off()
 
-MOT = [[P4, P5], [P4, P5]]
+motorPins = [[P4, P5], [P4, P5]]
 
 if not CONFIG.get("uart"):
-    MOT[0][0] = P1 = Pin(1, Pin.OUT)     #Connected to the  2nd pin of the motor driver (SN754410). T0 terminal (M3, M6)
-    MOT[0][1] = P3 = Pin(3, Pin.OUT)     #Connected to the  7th pin of the motor driver (SN754410). T0 terminal (M3, M6)
+    motorPins[0][0] = P1 = Pin(1, Pin.OUT)     #Connected to the  2nd pin of the motor driver (SN754410). T0 terminal (M3, M6)
+    motorPins[0][1] = P3 = Pin(3, Pin.OUT)     #Connected to the  7th pin of the motor driver (SN754410). T0 terminal (M3, M6)
     P1.off()
     P3.off()
 
+MOT = Motor(motorPins[0][0], motorPins[0][1], motorPins[1][0], motorPins[1][1])
 
 if not CONFIG.get("_i2cActive"):
     P0 = Pin(0, Pin.IN)

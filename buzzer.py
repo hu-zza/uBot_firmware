@@ -31,4 +31,4 @@ class Buzzer(PWM):
 
     def midiBeep(self, noteOn = 60, duration = 3, pause = 10, count = 1):
         f = round(440 * pow(2, (noteOn - 69) / 12))
-        beep(f, duration, pause, count)
+        self.beep(f, duration, pause, count)

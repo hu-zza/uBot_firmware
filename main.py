@@ -1,43 +1,3 @@
-def setMotor(motor = 0, mode = 0):
-    """
-    Low-level motor setter
-
-    motor : integer parameter
-    0     : (M3, M6)   T0 terminal / RIGHT MOTOR
-    1     : (M11, M14) T1 terminal / LEFT MOTOR
-
-    mode  : integer parameter
-    0     : (off, off)  -> STOP
-    1     : (on, off)   -> FORWARD
-    2     : (off, on)   -> BACKWARD
-    """
-
-    if mode == 0:
-        MOT[motor][0].off()
-        MOT[motor][1].off()
-    else:
-        MOT[motor][1 - mode].on()
-        MOT[motor][abs(mode - 2)].off()
-
-def setController(modeRight, modeLeft):
-        setMotor(0, modeRight)
-        setMotor(1, modeLeft)
-
-def move(direction = 0, duration = 1000):
-
-    if direction == 1:          # FORWARD
-        setController(1, 1)
-    elif direction == 2:        # RIGHT
-        setController(1, 2)
-    elif direction == 3:        # LEFT
-        setController(2, 1)
-    elif direction == 4:        # BACKWARD
-        setController(2, 2)
-
-    if direction != 0:
-        sleep_ms(duration)
-        setController(0, 0)
-
 """
 def advanceCounter():
     global COUNTER_POS
@@ -101,33 +61,6 @@ def tryCheckWebserver():
     except Exception as e:
         if len(EXCEPTIONS) < 20:
             EXCEPTIONS.append((DT.datetime(), e))
-
-
-def beep(freq = 262, duration = 3, pause = 10, count = 1):
-    global CONFIG
-
-    for i in range(count):
-        MSG.off()
-
-        if CONFIG.get("beepMode"):
-            BEE.freq(freq)
-            BEE.duty(512)
-
-            rest = round((1000000 / freq) * (freq * duration / 10 ))
-            sleep_us(rest)
-
-            BEE.duty(0)
-        else:
-            MSG.on()
-            sleep_ms(duration * 100)
-            MSG.off()
-
-        sleep_ms(pause * 10)
-
-
-def midiBeep(noteOn = 60, duration = 3, pause = 10, count = 1):
-    f = round(440 * pow(2, (noteOn - 69) / 12))
-    beep(f, duration, pause, count)
 """
 
 
@@ -203,9 +136,10 @@ def togglePin(pin):
 
 
 def processJson(json):
-    global AP
     global CONFIG
+    global AP
     global BUZZ
+    global MOT
     results = []
 
     if json.get("dateTime") != None:
