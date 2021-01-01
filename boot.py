@@ -58,12 +58,15 @@ def saveConfig():
 
 import esp, network, gc, ujson, uos, usocket, webrepl
 
-from machine     import I2C, Pin, PWM, RTC, Timer, UART, WDT, reset
+from buzzer      import Buzzer
+
+from machine     import Pin, PWM, RTC, Timer, UART, WDT, reset
 from micropython import const
 from ubinascii   import hexlify
 from uio         import FileIO
 from utime       import sleep, sleep_ms, sleep_us
 from sys         import print_exception
+
 
 try:
     configException = ""
@@ -183,9 +186,7 @@ initDir("code")
 ###########
 ## GPIO
 
-MSG = P15 = Pin(15, Pin.OUT)
-BEE = PWM(Pin(15), freq = 262, duty = 0)
-MSG.off()
+BUZZ = Buzzer(Pin(15), 262, 0, CONFIG.get("beepMode"))
 
 
 if CONFIG.get("turtleHat"):

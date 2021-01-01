@@ -205,6 +205,7 @@ def togglePin(pin):
 def processJson(json):
     global AP
     global CONFIG
+    global BUZZ
     results = []
 
     if json.get("dateTime") != None:
@@ -217,9 +218,9 @@ def processJson(json):
             if command[0:5] == "SLEEP":
                 sleep_ms(int(command[5:].strip()))
             elif command[0:5] == "BEEP_":
-                beep(int(command[5:].strip()), 2, 4)
+                BUZZ.beep(int(command[5:].strip()), 2, 4)
             elif command[0:5] == "MIDI_":
-                midiBeep(int(command[5:].strip()), 2, 4)
+                BUZZ.midiBeep(int(command[5:].strip()), 2, 4)
             elif command[0:5] == "EXEC_": ##############################################################################
                 exec(command[5:])
             elif command[0:5] == "EVAL_": ##############################################################################
