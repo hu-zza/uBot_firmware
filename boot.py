@@ -1,7 +1,8 @@
 ############
 ## IMPORTS
 
-exceptions = []
+exceptions    = []
+missingConfig = False
 
 try:
     import network, gc, uos, usocket, webrepl
@@ -16,12 +17,18 @@ except Exception as e:
 try:
     import config
 except Exception as e:
-    exceptions.append(e)
-
+    missingConfig = True
 
 
 ############
 ## METHODS
+
+def mkDir(path):
+    try:
+        uos.mkdir(path)
+    except Exception as e:
+        exceptions.append(e)
+
 
 def recursiveRmdir(dirName):
 
@@ -31,17 +38,35 @@ def recursiveRmdir(dirName):
         type = "{0:07o}".format(uos.stat(file)[0])[:3]  # uos.stat(file)[0] -> ST_MODE
 
         if type == "010":                               # S_IFREG    0100000   regular file
-            uos.remove(file)
+            if dirName != "/":                          # \\
+                uos.remove(file)                        #  \\
+            elif file != ".setup":                      # .setup in root will be deleted later.
+                uos.remove(file)
         elif type == "004":                             # S_IFDIR    0040000   directory
             if len(uos.listdir(file)) == 0:
-                uos.rmdir(file)
+                uos.remove(file)
             else:
                 recursiveRmdir(file)
 
     if dirName != "/":
         uos.chdir("..")
-        uos.rmdir(dirName)
+        uos.remove(dirName)
 
+
+def saveStringListToFile(path, stringList):
+    try:
+        with open(path, "w") as file:
+            for item in stringList:
+                file.write(item)
+    except Exception as e:
+        exceptions.append(e)
+
+
+def saveToFile(path, content):
+    try:
+        saveStringListToFile(path, [str(content) + "\n"])
+    except Exception as e:
+        exceptions.append(e)
 
 
 ############
@@ -56,6 +81,26 @@ except Exception as e:
 # Enable automatic garbage collection.
 try:
     gc.enable()
+except Exception as e:
+    exceptions.append(e)
+
+# Copy the content of uBot driver files as raw
+# text from the end of this file to .setup
+try:
+    separatorCount = 0
+    copyToSetup    = False
+
+    with open("boot.py") as boot, open(".setup", "w") as setup:
+        for line in boot:
+            if line == "#" * 120 + "\n":
+                separatorCount += 1
+                if separatorCount == 2:
+                    copyToSetup = True
+            else:
+                separatorCount = 0
+
+            if copyToSetup:
+                setup.write(line)
 except Exception as e:
     exceptions.append(e)
 
@@ -82,7 +127,7 @@ configDefaults = {
     "_pressLength"     : 5,
     "_firstRepeat"     : 25,
 
-    "_initialDateTime" : ((2021, 1, 2), (0, 0)),
+    "_initialDateTime" : ((2021, 1, 3), (0, 0)),
 
     "_apActive"        : True,
     "_wdActive"        : False,
@@ -125,7 +170,10 @@ config = {}
 
 for key in configDefaults.keys():
     try:
-        config[key] = eval("config." + key)
+        if missingConfig:
+            config[key] = configDefaults.get(key)
+        else:
+            config[key] = eval("config." + key)
     except Exception as e:
         config[key] = configDefaults.get(key)
 
@@ -157,35 +205,13 @@ except Exception as e:
 
 
 # Build folder structure
-try:
-    uos.mkdir("etc")
-    uos.mkdir("home")
-    uos.mkdir("lib")
-    uos.mkdir("tmp")
-    uos.mkdir("etc/web")
-    uos.mkdir("home/programs")
-    uos.mkdir("tmp/programs")
-except Exception as e:
-    exceptions.append(e)
-
-
-# Save WebREPL's password from config dictionary to separate file
-try:
-    with open("webrepl_cfg.py", "w") as file:
-        file.write("PASS = '{}'\n".format(configDefaults.get("replPassword")))
-except Exception as e:
-    exceptions.append(e)
-
-
-# Save datetime from config dictionary to separate file
-try:
-    initDT   = config.get("_initialDateTime")
-    datetime = (initDT[0][0], initDT[0][1], initDT[0][2], 0, initDT[1][0], initDT[1][1], 0, 0)
-
-    with open("etc/.datetime", "w") as file:
-        file.write(str(datetime) + "\n")
-except Exception as e:
-    exceptions.append(e)
+mkDir("etc")
+mkDir("home")
+mkDir("lib")
+mkDir("tmp")
+mkDir("etc/web")
+mkDir("home/programs")
+mkDir("tmp/programs")
 
 
 # Save config dictionary to file
@@ -202,14 +228,40 @@ except Exception as e:
     exceptions.append(e)
 
 
-# Save stylesheet
+# Save WebREPL's password from config dictionary to separate file
 try:
-    with open("etc/web/style.css", "w") as file:
-        file.write( """
-                    tr:nth-child(even) {background: #EEE}
-                    .exceptions col:nth-child(1) {width: 40px;}
-                    .exceptions col:nth-child(2) {width: 500px;}
-                    """)
+    saveToFile("webrepl_cfg.py", "PASS = '{}'".format(configDefaults.get("replPassword")))
+except Exception as e:
+    exceptions.append(e)
+
+
+# Save datetime from config dictionary to separate file
+try:
+    initDT   = config.get("_initialDateTime")
+    datetime = (initDT[0][0], initDT[0][1], initDT[0][2], 0, initDT[1][0], initDT[1][1], 0, 0)
+    saveToFile("etc/.datetime", datetime)
+except Exception as e:
+    exceptions.append(e)
+
+
+# Create uBot driver files from the raw content which was copied from the end of this file to .setup
+path   = ""
+lines  = []
+
+try:
+    with open(".setup") as setup:
+        for line in setup:
+            if path != "":
+                if line.startswith('"""'):
+                    saveStringListToFile(path, lines)
+                    path = ""
+                    lines.clear()
+                else:
+                    lines.append(line)
+            elif line.startswith('"""'):
+                path = line[3:].strip()
+
+    uos.remove(".setup")
 except Exception as e:
     exceptions.append(e)
 
@@ -278,52 +330,98 @@ except Exception as e:
 
 
 # Feedback page template
-template =  """
-            <!DOCTYPE html>
-            <html>
-                <head>
-                    <title>
-                        μBot setup report
-                    </title>
-                    <link rel='stylesheet' href='/etc/web/style.css'>
-                </head>
-                <body>
-                    <h1>{}</h1>
-                    {}
-                </body>
-            </html>
-            """
+template =     ("<!DOCTYPE html><html><head><title>&micro;Bot setup report</title>"
+                "<style>{}</style></head>"
+                "<body><h1>{}</h1>{}</body></html>")
 
+style =        ("tr:nth-child(even) {background: #EEE}"
+                ".exceptions col:nth-child(1) {width: 40px;}"
+                ".exceptions col:nth-child(2) {width: 500px;}")
 
 if len(exceptions) == 0:
-    title = "Successful installation"
-    exceptionList = ""
+    title   = "Successful installation"
+    message = "Restart the robot and have fun! ;-)"
 else:
-    title = "Exceptions"
-    exceptionList = """
-                    <table class='exceptions'>
-                        <colgroup><col><col></colgroup>
-                        <tbody>
-                    """
+    title   = "Exceptions"
+    message = "<table class='exceptions'><colgroup><col><col></colgroup><tbody>"
     index = 0
 
     for e in exceptions:
-        exceptionList += """        <tr><td> {} </td><td> {} </td></tr>""".format(index, e)
+        message += "<tr><td> {} </td><td> {} </td></tr>".format(index, e)
         index += 1
 
-    exceptionList += """
-                        </tbody>
-                    </table>
-                    """
+    message += "</tbody></table>"
 
 # Handle HTTP GET requests, serve the feedback page
 try:
     while True:
         connection, address = socket.accept()
-        response = template.format(title, exceptionList)
+        response = template.format(style, title, message)
 
         connection.send("HTTP/1.0 200 OK\r\nContent-type: text/html\r\n\r\n")
-        connection.send(response)
+        connection.write(response)
         connection.close()
 except Exception as e:
     exceptions.append(e)
+
+
+
+########################################################################################################################
+########################################################################################################################
+# Content of files to create during setup
+#
+# Formatting rules:
+#
+# Comments should start at the beginning of the line with a hash mark.
+#
+# First line: Three quotation marks + path with filename + LF.
+#             Leading and trailing whitespaces will be omitted by strip().
+#
+# Last line: Only three quotation marks (and LF of course).
+
+
+#                                                                                                     General stylesheet
+"""                                                                                                    etc/web/style.css
+tr:nth-child(even) {background: #EEE}
+.exceptions col:nth-child(1) {width: 40px;}
+.exceptions col:nth-child(2) {width: 500px;}
+"""
+
+#                                                                                       Website with general debug infos
+"""                                                                                                   etc/web/stats.html
+<table>
+    <tr>
+		<td>Method: </td><td>{method}</td>
+	</tr>
+	<tr>
+		<td>Path: </td><td>{path}</td>
+	</tr>
+	<tr>
+		<td>Length: </td><td>{length}</td>
+	</tr>
+	<tr>
+		<td>Type: </td><td>{type}</td>
+	</tr>
+	<tr>
+		<td>Body: </td><td>{body}</td>
+	</tr>
+</table>
+<br><br>
+<table>
+    <tr>
+		<td>Memory: </td><td>{freePercent}% free ({freeMem}/{allMem})</td>
+	</tr>
+    <tr>
+		<td>Pressed: </td><td>{pressed}</td>
+	</tr>
+    <tr>
+		<td>Commands: </td><td>{commands}</td>
+	</tr>
+    <tr>
+		<td>Evals: </td><td>{evals}</td>
+	</tr>
+</table>
+<br><br><hr><hr>
+<h3>Exceptions</h3>
+{exceptions}
+"""
