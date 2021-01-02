@@ -1,4 +1,3 @@
-"""
 def advanceCounter():
     global COUNTER_POS
 
@@ -61,7 +60,7 @@ def tryCheckWebserver():
     except Exception as e:
         if len(EXCEPTIONS) < 20:
             EXCEPTIONS.append((DT.datetime(), e))
-"""
+
 
 
 def getDebugTable(method, path, length = 0, type = "-", body = "-"):
@@ -282,7 +281,7 @@ def startWebServer():
             except Exception as e:
                 EXCEPTIONS.append((DT.datetime(), e))
 
-"""
+
 def stopWebServer(message):
     global CONFIG
     global EXCEPTIONS
@@ -296,14 +295,11 @@ def stopWebServer(message):
         EXCEPTIONS.append((DT.datetime(), e))
 
 
-########################################################################################################################
-########################################################################################################################
-
 
 if CONFIG.get("turtleHat"):
     TIMER.init(period = 20, mode = Timer.PERIODIC, callback = lambda t:tryCheckButtons())
 else:
     TIMER.init(period = 1000, mode = Timer.PERIODIC, callback = lambda t:tryCheckWebserver())
-"""
+
 
 startWebServer()

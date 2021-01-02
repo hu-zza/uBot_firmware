@@ -1,34 +1,3 @@
-def initDir(dirName):
-    global CONFIG
-    global EXCEPTIONS
-
-    if dirName in CONFIG.get("_rootList"):
-        try:
-            CONFIG["_" + dirName + "List"] = uos.listdir(dirName)
-        except Exception as e:
-            EXCEPTIONS.append((DT.datetime(), e))
-    else:
-        try:
-            uos.mkdir(dirName)
-            CONFIG["_" + dirName + "List"] = []
-        except Exception as e:
-            EXCEPTIONS.append((DT.datetime(), e))
-
-
-def initFile(fileName, dirName = "", content = ""):
-    global CONFIG
-
-    if dirName != "":
-        dirName += "/"
-
-    try:
-        with open(dirName + fileName, "w") as file:
-            file.write(str(content) + "\n")
-        CONFIG["_" + dirName[:-1] + "List"].append(fileName)
-    except Exception as e:
-        EXCEPTIONS.append((DT.datetime(), e))
-
-
 def saveDateTime():
     try:
         with open("etc/.datetime", "w") as file:
@@ -46,7 +15,7 @@ def saveConfig():
                 # Exclude transients
                 if key[0] != "_":
                     if isinstance(value, str):
-                        file.write("{} = \"{}\"\n".format(key, value))
+                        file.write("{} = '{}'\n".format(key, value))
                     else:
                         file.write("{} = {}\n".format(key, value))
     except Exception as e:
@@ -58,8 +27,8 @@ def saveConfig():
 
 import esp, network, gc, ujson, uos, usocket, webrepl
 
-from buzzer      import Buzzer
-from motor       import Motor
+from lib.buzzer  import Buzzer
+from lib.motor   import Motor
 
 from machine     import Pin, PWM, RTC, Timer, UART, WDT, reset
 from micropython import const
@@ -77,7 +46,7 @@ except Exception as e:
 
 try:
     feedbackException = ""
-    from feedback import Feedback
+    from lib.feedback import Feedback
 except Exception as e:
     feedbackException = e
 
@@ -86,57 +55,19 @@ except Exception as e:
 ## CONFIG
 
 DT = RTC()
-# fallback datetime
-DT.datetime((2020, 12, 31, 0, 0, 0, 0, 0))
 
 EXCEPTIONS = []
 CONFIG     = {}
-
-configDefaults = {
-
-    # General settings, indicated in config.py too.
-
-    "essid"       : "",
-    "passw"       : "uBot_pwd",
-
-    "uart"        : False,
-    "webRepl"     : False,
-    "webServer"   : True,
-
-    "turtleHat"   : True,
-    "beepMode"    : True,
-
-    "pressLength" : const(5),
-    "firstRepeat" : const(25),
-
-
-    # These can also be configured manually (in config.py).
-    # (But almost never will be necessary to do that.)
-
-    "_apActive"  : True,
-    "_wdActive"  : False,
-
-    "_i2cActive" : True,
-    "_sda"       : const(0),
-    "_scl"       : const(2),
-    "_freq"      : const(400000)
-}
 
 CONN  = ""
 ADDR  = ""
 
 COUNTER_POS  = 0
 PRESSED_BTNS = []
-COMMANDS = []
-EVALS = []
-
-try:
-    CONFIG["_rootList"] = uos.listdir()
-except Exception as e:
-    EXCEPTIONS.append((DT.datetime(), e))
+COMMANDS     = []
+EVALS        = []
 
 
-initDir("etc")
 
 if ".datetime" in CONFIG.get("_etcList"):
     try:
@@ -272,7 +203,7 @@ gc.enable()
 esp.osdebug(0)
 esp.sleep_type(esp.SLEEP_NONE)
 
-#TIMER = Timer(-1)
+TIMER = Timer(-1)
 
 
 if CONFIG.get("_wdActive"):

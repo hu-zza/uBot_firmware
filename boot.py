@@ -14,8 +14,15 @@ except Exception as e:
     exceptions.append(e)
 
 
+# Start feedbackLed
 try:
-    import config
+    feedbackLed = PWM(Pin(2), 15, 1010)
+except Exception as e:
+    exceptions.append(e)
+
+
+try:
+    import config as configPy
 except Exception as e:
     missingConfig = True
 
@@ -69,14 +76,25 @@ def saveToFile(path, content):
         exceptions.append(e)
 
 
+def saveDictionaryToFile(dictionaryName):
+    try:
+        with open("etc/." + dictionaryName, "w") as file:
+            dictionary = eval(dictionaryName)
+            sortedKeys = sorted([k for k in dictionary.keys()])
+
+            for key in sortedKeys:
+                value = dictionary.get(key)
+                if isinstance(value, str):
+                    file.write("{} = '{}'\n".format(key, value))
+                else:
+                    file.write("{} = {}\n".format(key, value))
+    except Exception as e:
+        exceptions.append(e)
+
+
+
 ############
 ## CONFIG
-
-# Start feedbackLed
-try:
-    feedbackLed = PWM(Pin(2), 15, 1010)
-except Exception as e:
-    exceptions.append(e)
 
 # Enable automatic garbage collection.
 try:
@@ -109,7 +127,7 @@ configDefaults = {
 
     # General settings, indicated in config.py too.
 
-    "apEssid"         : "",
+    "apEssid"         : "uBot__" + hexlify(network.WLAN().config('mac'), ':').decode()[9:],
     "apPassword"      : "uBot_pwd",
     "replPassword"    : "uBot_REPL",
 
@@ -160,7 +178,6 @@ _firstRepeat = const(25) # After the button press recognition this time (500 ms)
 
 _initialDateTime = ((2021, 1, 2), (14, 30))     # Do not use leading zeros. Format: ((year, month, day), (hour, minute))
 
-
 """
 
 
@@ -173,23 +190,23 @@ for key in configDefaults.keys():
         if missingConfig:
             config[key] = configDefaults.get(key)
         else:
-            config[key] = eval("config." + key)
+            config[key] = eval("configPy." + key)
     except Exception as e:
         config[key] = configDefaults.get(key)
 
 
 ## Config dictionary validation
 
-# If apEssid is an empty string, generate the default: uBot__xx:xx:xx (MAC address' last 3 octets )
+# If apEssid is an empty string, set to the default: uBot__xx:xx:xx (MAC address' last 3 octets )
 if config.get("apEssid") == "":
-    config["apEssid"] = "uBot__" + hexlify(network.WLAN().config('mac'), ':').decode()[9:]
+    config["apEssid"] = configDefaults.get("apEssid")
 
-# If apPassword is too short (less than 8 chars) or too long (more than 63 chars), set to default.
+# If apPassword is too short (less than 8 chars) or too long (more than 63 chars), set to the default.
 length = len(config.get("apPassword"))
 if  length < 8 or 63 < length:
     config["apPassword"] = configDefaults.get("apPassword")
 
-# If replPassword is too short (less than 4 chars) or too long (more than 9 chars), set to default.
+# If replPassword is too short (less than 4 chars) or too long (more than 9 chars), set to the default.
 length = len(config.get("replPassword"))
 if  length < 4 or 9 < length:
     config["replPassword"] = configDefaults.get("replPassword")
@@ -214,18 +231,12 @@ mkDir("home/programs")
 mkDir("tmp/programs")
 
 
+# Save configDefaults dictionary to file
+saveDictionaryToFile("configDefaults")
+
+
 # Save config dictionary to file
-try:
-    with open("etc/.config", "w") as file:
-        for key, value in config.items():
-            # Exclude transients
-            if key[0] != "_":
-                if isinstance(value, str):
-                    file.write("{} = '{}'\n".format(key, value))
-                else:
-                    file.write("{} = {}\n".format(key, value))
-except Exception as e:
-    exceptions.append(e)
+saveDictionaryToFile("config")
 
 
 # Save WebREPL's password from config dictionary to separate file
@@ -352,6 +363,7 @@ else:
 
     message += "</tbody></table>"
 
+
 # Handle HTTP GET requests, serve the feedback page
 try:
     while True:
@@ -373,6 +385,7 @@ except Exception as e:
 # Formatting rules:
 #
 # Comments should start at the beginning of the line with a hash mark.
+# Only first and last line can begin with three quotation marks.
 #
 # First line: Three quotation marks + path with filename + LF.
 #             Leading and trailing whitespaces will be omitted by strip().
