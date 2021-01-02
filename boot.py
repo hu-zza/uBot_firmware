@@ -1,290 +1,329 @@
-def initDir(dirName):
-    global CONFIG
-    global EXCEPTIONS
-
-    if dirName in CONFIG.get("_rootList"):
-        try:
-            CONFIG["_" + dirName + "List"] = uos.listdir(dirName)
-        except Exception as e:
-            EXCEPTIONS.append((DT.datetime(), e))
-    else:
-        try:
-            uos.mkdir(dirName)
-            CONFIG["_" + dirName + "List"] = []
-        except Exception as e:
-            EXCEPTIONS.append((DT.datetime(), e))
-
-
-def initFile(fileName, dirName = "", content = ""):
-    global CONFIG
-
-    if dirName != "":
-        dirName += "/"
-
-    try:
-        with open(dirName + fileName, "w") as file:
-            file.write(str(content) + "\n")
-        CONFIG["_" + dirName[:-1] + "List"].append(fileName)
-    except Exception as e:
-        EXCEPTIONS.append((DT.datetime(), e))
-
-
-def saveDateTime():
-    try:
-        with open("etc/.datetime", "w") as file:
-            file.write(str(DT.datetime()) + "\n")
-    except Exception as e:
-        EXCEPTIONS.append((DT.datetime(), e))
-
-
-def saveConfig():
-    global CONFIG
-
-    try:
-        with open("etc/.config", "w") as file:
-            for key, value in CONFIG.items():
-                # Exclude transients
-                if key[0] != "_":
-                    if isinstance(value, str):
-                        file.write("{} = \"{}\"\n".format(key, value))
-                    else:
-                        file.write("{} = {}\n".format(key, value))
-    except Exception as e:
-        EXCEPTIONS.append((DT.datetime(), e))
-
-
-###########
+############
 ## IMPORTS
 
-import esp, network, gc, ujson, uos, usocket, webrepl
+exceptions = []
 
-from buzzer      import Buzzer
-from motor       import Motor
+try:
+    import network, gc, uos, usocket, webrepl
 
-from machine     import Pin, PWM, RTC, Timer, UART, WDT, reset
-from micropython import const
-from ubinascii   import hexlify
-from uio         import FileIO
-from utime       import sleep, sleep_ms, sleep_us
-from sys         import print_exception
+    from machine        import Pin, PWM
+    from sys            import print_exception
+    from ubinascii      import hexlify
+except Exception as e:
+    exceptions.append(e)
 
 
 try:
-    configException = ""
     import config
 except Exception as e:
-    configException = e
-
-try:
-    feedbackException = ""
-    from feedback import Feedback
-except Exception as e:
-    feedbackException = e
+    exceptions.append(e)
 
 
-###########
+
+############
+## METHODS
+
+def recursiveRmdir(dirName):
+
+    uos.chdir(dirName)
+
+    for file in uos.listdir():
+        type = "{0:07o}".format(uos.stat(file)[0])[:3]  # uos.stat(file)[0] -> ST_MODE
+
+        if type == "010":                               # S_IFREG    0100000   regular file
+            uos.remove(file)
+        elif type == "004":                             # S_IFDIR    0040000   directory
+            if len(uos.listdir(file)) == 0:
+                uos.rmdir(file)
+            else:
+                recursiveRmdir(file)
+
+    if dirName != "/":
+        uos.chdir("..")
+        uos.rmdir(dirName)
+
+
+
+############
 ## CONFIG
 
-DT = RTC()
-# fallback datetime
-DT.datetime((2020, 12, 31, 0, 0, 0, 0, 0))
+# Start feedbackLed
+try:
+    feedbackLed = PWM(Pin(2), 15, 1010)
+except Exception as e:
+    exceptions.append(e)
 
-EXCEPTIONS = []
-CONFIG     = {}
+# Enable automatic garbage collection.
+try:
+    gc.enable()
+except Exception as e:
+    exceptions.append(e)
+
 
 configDefaults = {
 
     # General settings, indicated in config.py too.
 
-    "essid"       : "",
-    "passw"       : "uBot_pwd",
+    "apEssid"         : "",
+    "apPassword"      : "uBot_pwd",
+    "replPassword"    : "uBot_REPL",
 
-    "uart"        : False,
-    "webRepl"     : False,
-    "webServer"   : True,
+    "uart"            : False,
+    "webRepl"         : False,
+    "webServer"       : True,
 
-    "turtleHat"   : True,
-    "beepMode"    : True,
-
-    "pressLength" : const(5),
-    "firstRepeat" : const(25),
+    "turtleHat"       : True,
+    "beepMode"        : True,
 
 
     # These can also be configured manually (in config.py).
     # (But almost never will be necessary to do that.)
 
-    "_apActive"  : True,
-    "_wdActive"  : False,
+    "_pressLength"     : 5,
+    "_firstRepeat"     : 25,
 
-    "_i2cActive" : True,
-    "_sda"       : const(0),
-    "_scl"       : const(2),
-    "_freq"      : const(400000)
+    "_initialDateTime" : ((2021, 1, 2), (0, 0)),
+
+    "_apActive"        : True,
+    "_wdActive"        : False,
+
+    "_i2cActive"       : True,
+    "_sda"             : 0,
+    "_scl"             : 2,
+    "_freq"            : 400000
 }
 
-CONN  = ""
-ADDR  = ""
 
-COUNTER_POS  = 0
-PRESSED_BTNS = []
-COMMANDS = []
-EVALS = []
-
-try:
-    CONFIG["_rootList"] = uos.listdir()
-except Exception as e:
-    EXCEPTIONS.append((DT.datetime(), e))
+"""
+#   Protected variable settings in config.py
+#
+#   You can modify these configuration setting too.
+#   But be aware, these are a bit more advanced than general ones.
+#   So you need some knowledge / time / patience / ... ;-)
 
 
-initDir("etc")
+#   Button press configuration
+#
+#   The amount of time in millisecond = variable * timer interval (20 ms)
+#   Note: The const() method accepts only integer numbers.
 
-if ".datetime" in CONFIG.get("_etcList"):
-    try:
-        with open("etc/.datetime") as file:
-            DT.datetime(eval(file.readline().strip()))
-    except Exception as e:
-        EXCEPTIONS.append((DT.datetime(), e))
-else:
-    initFile(".datetime", "etc", DT.datetime())
+_pressLength = const(5)  # The button press is recognized only if it takes 100 ms or longer time.
+_firstRepeat = const(25) # After the button press recognition this time (500 ms) must pass before you enter same command.
 
 
-if configException != "":
-    EXCEPTIONS.append((DT.datetime(), configException))
+#   Initial datetime configuration
 
-if feedbackException != "":
-    EXCEPTIONS.append((DT.datetime(), feedbackException))
+_initialDateTime = ((2021, 1, 2), (14, 30))     # Do not use leading zeros. Format: ((year, month, day), (hour, minute))
 
+
+"""
+
+
+## Config dictionary initialisation
+
+config = {}
 
 for key in configDefaults.keys():
     try:
-        CONFIG[key] = eval("config." + key)
+        config[key] = eval("config." + key)
     except Exception as e:
-        CONFIG[key] = configDefaults.get(key)
+        config[key] = configDefaults.get(key)
 
 
-if ".config" in CONFIG.get("_etcList"):
-    try:
-        with open("etc/.config") as file:
-            for line in file:
-                sep = line.find("=")
-                if -1 < sep:
-                    CONFIG[line[:sep].strip()] = eval(line[sep+1:].strip())
-    except Exception as e:
-        EXCEPTIONS.append((DT.datetime(), e))
-else:
-    initFile(".config", "etc")
+## Config dictionary validation
 
-if CONFIG.get("_i2cActive"):
-    try:
-        F = Feedback(CONFIG.get("_freq"), Pin(CONFIG.get("_sda")), Pin(CONFIG.get("_scl")))
-    except Exception as e:
-        EXCEPTIONS.append((DT.datetime(), e))
+# If apEssid is an empty string, generate the default: uBot__xx:xx:xx (MAC address' last 3 octets )
+if config.get("apEssid") == "":
+    config["apEssid"] = "uBot__" + hexlify(network.WLAN().config('mac'), ':').decode()[9:]
+
+# If apPassword is too short (less than 8 chars) or too long (more than 63 chars), set to default.
+length = len(config.get("apPassword"))
+if  length < 8 or 63 < length:
+    config["apPassword"] = configDefaults.get("apPassword")
+
+# If replPassword is too short (less than 4 chars) or too long (more than 9 chars), set to default.
+length = len(config.get("replPassword"))
+if  length < 4 or 9 < length:
+    config["replPassword"] = configDefaults.get("replPassword")
 
 
-initDir("code")
+## Filesystem initialisation
+
+# Erase everything
+try:
+    recursiveRmdir("/")
+except Exception as e:
+    exceptions.append(e)
 
 
-###########
-## GPIO
-
-BUZZ = Buzzer(Pin(15), 262, 0, CONFIG.get("beepMode"))
-
-
-if CONFIG.get("turtleHat"):
-    CLK = Pin(13, Pin.OUT)  # GPIO pin. It is connected to the counter (CD4017) if physical switch CLOCK is on.
-    INP = Pin(16, Pin.OUT)  # GPIO pin. Receives button presses from turtle HAT if physical switches: WAKE off, PULL down
-                            # FUTURE: INP = Pin(16, Pin.IN)
-    INP.off()               # DEPRECATED: New PCB design (2.1) will resolve this.
-    INP.init(Pin.IN)        # DEPRECATED: New PCB design (2.1) will resolve this.
-    CLK.off()
-else:
-    P13 = Pin(13, Pin.OUT)
-    P16 = Pin(16, Pin.IN)   # MicroPython can not handle the pull-down resistor of the GPIO16: Use PULL physical switch.
-    P13.off()
+# Build folder structure
+try:
+    uos.mkdir("etc")
+    uos.mkdir("home")
+    uos.mkdir("lib")
+    uos.mkdir("tmp")
+    uos.mkdir("etc/web")
+    uos.mkdir("home/programs")
+    uos.mkdir("tmp/programs")
+except Exception as e:
+    exceptions.append(e)
 
 
-P12 = Pin(12, Pin.OUT)              # GPIO pin. On turtle HAT it can drive a LED if you switch physical switch on.
-P14 = Pin(14, Pin.IN, Pin.PULL_UP)  # GPIO pin.
-P12.off()
+# Save WebREPL's password from config dictionary to separate file
+try:
+    with open("webrepl_cfg.py", "w") as file:
+        file.write("PASS = '{}'\n".format(configDefaults.get("replPassword")))
+except Exception as e:
+    exceptions.append(e)
 
 
-P4 = Pin(4, Pin.OUT)         #Connected to the 10th pin of the motor driver (SN754410). T1 terminal (M11, M14)
-P5 = Pin(5, Pin.OUT)         #Connected to the 15th pin of the motor driver (SN754410). T1 terminal (M11, M14)
-P4.off()
-P5.off()
+# Save datetime from config dictionary to separate file
+try:
+    initDT   = config.get("_initialDateTime")
+    datetime = (initDT[0][0], initDT[0][1], initDT[0][2], 0, initDT[1][0], initDT[1][1], 0, 0)
 
-motorPins = [[P4, P5], [P4, P5]]
-
-if not CONFIG.get("uart"):
-    motorPins[0][0] = P1 = Pin(1, Pin.OUT)     #Connected to the  2nd pin of the motor driver (SN754410). T0 terminal (M3, M6)
-    motorPins[0][1] = P3 = Pin(3, Pin.OUT)     #Connected to the  7th pin of the motor driver (SN754410). T0 terminal (M3, M6)
-    P1.off()
-    P3.off()
-
-MOT = Motor(motorPins[0][0], motorPins[0][1], motorPins[1][0], motorPins[1][1])
-
-if not CONFIG.get("_i2cActive"):
-    P0 = Pin(0, Pin.IN)
-    P2 = Pin(2, Pin.IN)
+    with open("etc/.datetime", "w") as file:
+        file.write(str(datetime) + "\n")
+except Exception as e:
+    exceptions.append(e)
 
 
-###########
+# Save config dictionary to file
+try:
+    with open("etc/.config", "w") as file:
+        for key, value in config.items():
+            # Exclude transients
+            if key[0] != "_":
+                if isinstance(value, str):
+                    file.write("{} = '{}'\n".format(key, value))
+                else:
+                    file.write("{} = {}\n".format(key, value))
+except Exception as e:
+    exceptions.append(e)
+
+
+# Save stylesheet
+try:
+    with open("etc/web/style.css", "w") as file:
+        file.write( """
+                    tr:nth-child(even) {background: #EEE}
+                    .exceptions col:nth-child(1) {width: 40px;}
+                    .exceptions col:nth-child(2) {width: 500px;}
+                    """)
+except Exception as e:
+    exceptions.append(e)
+
+
+
+############
 ## AP
 
 AP = network.WLAN(network.AP_IF)
 
-AP.active(CONFIG.get("_apActive"))
-AP.ifconfig(("192.168.11.1", "255.255.255.0", "192.168.11.1", "192.168.11.1"))
+AP.active(config.get("_apActive"))
+AP.ifconfig(("192.168.11.1", "255.255.255.0", "192.168.11.1", "8.8.8.8"))
 AP.config(authmode = network.AUTH_WPA_WPA2_PSK)
 
-# if ESSID is an empty string, generate the default: uBot__xx:xx:xx (MAC address' last 3 octets )
-if CONFIG.get("essid") == "":
-    CONFIG["essid"] = "uBot__" + hexlify(network.WLAN().config('mac'), ':').decode()[9:]
-
 try:
-    AP.config(essid = CONFIG.get("essid"))
-except Exception:
-    AP.config(essid = "uBot")
-
-
-# if password is too short (< 8 chars), set to default
-if len(CONFIG.get("passw")) < 8:
-    CONFIG["passw"] = configDefaults.get("passw")
-
-try:
-    AP.config(password = CONFIG.get("passw"))
-except Exception:
-    AP.config(password = "uBot_pwd")
-
-
-###########
-## SOCKET
-
-S = usocket.socket(usocket.AF_INET, usocket.SOCK_STREAM)
-S.bind(("", 80))
-S.listen(5)
-
-
-###########
-## GENERAL
-
-gc.enable()
-esp.osdebug(0)
-esp.sleep_type(esp.SLEEP_NONE)
-
-#TIMER = Timer(-1)
-
-
-if CONFIG.get("_wdActive"):
-    WD = WDT()
-
-
-# The REPL is attached by default, detach if not needed.
-if not CONFIG.get("uart"):
-    uos.dupterm(None, 1)
-
-if CONFIG.get("webRepl"):
     try:
-        webrepl.start()
-    except Exception as e:
-        EXCEPTIONS.append((DT.datetime(), e))
+        AP.config(essid = config.get("apEssid"))
+    except Exception:
+        AP.config(essid = configDefaults.get("apEssid"))
+except Exception as e:
+    exceptions.append(e)
+
+try:
+    try:
+        AP.config(password = config.get("apPassword"))
+    except Exception:
+        AP.config(password = configDefaults.get("apPassword"))
+except Exception as e:
+    exceptions.append(e)
+
+
+
+############
+## FEEDBACK
+
+# The setup process ignores:
+#                             - the value of config.get("webRepl") and starts the WebREPL.
+#                             - the value of config.get("webServer") and starts the webserver.
+#                             - the value of config.get("uart"), so REPL is available on UART0:
+#                                                                                                 TX: GPIO1, RX: GPIO3,
+#                                                                                                 baudrate: 115200
+# This is maybe helpful for the successful installing.
+
+try:
+    webrepl.start()
+except Exception as e:
+    exceptions.append(e)
+
+
+try:
+    socket = usocket.socket(usocket.AF_INET, usocket.SOCK_STREAM)
+    socket.bind(("", 80))
+    socket.listen(5)
+except Exception as e:
+    exceptions.append(e)
+
+try:
+    if len(exceptions) == 0:
+        feedbackLed.freq(1)
+        feedbackLed.duty(1022)
+    else:
+        feedbackLed.freq(4)
+        feedbackLed.duty(950)
+except Exception as e:
+    exceptions.append(e)
+
+
+# Feedback page template
+template =  """
+            <!DOCTYPE html>
+            <html>
+                <head>
+                    <title>
+                        μBot setup report
+                    </title>
+                    <link rel='stylesheet' href='/etc/web/style.css'>
+                </head>
+                <body>
+                    <h1>{}</h1>
+                    {}
+                </body>
+            </html>
+            """
+
+
+if len(exceptions) == 0:
+    title = "Successful installation"
+    exceptionList = ""
+else:
+    title = "Exceptions"
+    exceptionList = """
+                    <table class='exceptions'>
+                        <colgroup><col><col></colgroup>
+                        <tbody>
+                    """
+    index = 0
+
+    for e in exceptions:
+        exceptionList += """        <tr><td> {} </td><td> {} </td></tr>""".format(index, e)
+        index += 1
+
+    exceptionList += """
+                        </tbody>
+                    </table>
+                    """
+
+# Handle HTTP GET requests, serve the feedback page
+try:
+    while True:
+        connection, address = socket.accept()
+        response = template.format(title, exceptionList)
+
+        connection.send("HTTP/1.0 200 OK\r\nContent-type: text/html\r\n\r\n")
+        connection.send(response)
+        connection.close()
+except Exception as e:
+    exceptions.append(e)

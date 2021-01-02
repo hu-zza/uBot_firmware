@@ -1,5 +1,6 @@
-essid = ""  # Set the WiFi name in the quotation marks.     For example: essid = "uBot_01"
-passw = ""  # Set the WiFi password in the quotation marks. For example: passw = "uBot_01_pwd"
+apEssid      = ""  # Set the WiFi (access point) name.          For example: apEssid = "uBot_01"
+apPassword   = ""  # Set the WiFi (access point) password.      For example: apPassword = "uBot_pwd"      (8 - 63 chars)
+replPassword = ""  # Set the WebREPL password.                  For example: replPassword = "uBot_REPL"   (4 - 9  chars)
 
 ########################################################################################################################
 ########################################################################################################################
@@ -17,12 +18,3 @@ If it's False the feedback is a simple on-off cycle: The LED blinks normally, bu
 You can mute the μBot by the switch 'BUZZER' (on the main PCB) too. The two switches are independent from each other.
 """
 beepMode  = True
-
-
-"""
-The amount of time in millisecond = variable * timer interval (2) * channels count (10)
-
-Note: The const() method accepts only integer numbers.
-"""
-pressLength = const(5)  # The button press is recognized only if it takes 100 ms or longer time.
-firstRepeat = const(25) # After the button press recognition this time (500 ms) must pass before you enter same command.
