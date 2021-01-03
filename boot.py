@@ -102,27 +102,6 @@ try:
 except Exception as e:
     exceptions.append(e)
 
-# Copy the content of uBot driver files as raw
-# text from the end of this file to .setup
-"""
-try:
-    separatorCount = 0
-    copyToSetup    = False
-
-    with open("boot.py") as boot, open(".setup", "w") as setup:
-        for line in boot:
-            if line == "#" * 120 + "\n":
-                separatorCount += 1
-                if separatorCount == 2:
-                    copyToSetup = True
-            else:
-                separatorCount = 0
-
-            if copyToSetup:
-                setup.write(line)
-except Exception as e:
-    exceptions.append(e)
-"""
 
 configDefaults = {
 
@@ -257,21 +236,27 @@ except Exception as e:
 
 
 # Create uBot driver files from the raw content which was copied from the end of this file to .setup
-path   = ""
+header = []
 lines  = []
 
 try:
     with open(".setup") as setup:
         for line in setup:
-            if path != "":
-                if line.startswith('"""'):
-                    saveStringListToFile(path, lines)
-                    path = ""
-                    lines.clear()
+
+            if len(header) != 0:
+                if header[-1] == "^B":
+                    if line.startswith('#[FILE][^C]'):
+                        saveStringListToFile(header[1], lines)
+                        header.clear()
+                        lines.clear()
+                    else:
+                        lines.append(line)
+                elif line.startswith('#[FILE][^B]'):
+                    header.append("^B")
                 else:
-                    lines.append(line)
-            elif line.startswith('"""'):
-                path = line[3:].strip()
+                    header.append(line.strip())
+            elif line.startswith('#[FILE][^A]'):
+                header.append("^A")
 
     uos.remove(".setup")
 except Exception as e:

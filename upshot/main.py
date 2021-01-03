@@ -68,7 +68,7 @@ def getDebugTable(method, path, length = 0, type = "-", body = "-"):
 
     result = ""
 
-    with open("stats.html") as file:
+    with open("etc/web/stats.html") as file:
         for line in file:
             result += line
 

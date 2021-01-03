@@ -38,7 +38,7 @@ from sys         import print_exception
 
 try:
     feedbackException = ""
-    from lib.feedback import Feedback
+    from feedback import Feedback
 except Exception as e:
     feedbackException = e
 
