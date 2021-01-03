@@ -7,19 +7,18 @@ def saveDateTime():
 
 
 def saveConfig():
-    global CONFIG
-
     try:
         with open("etc/.config", "w") as file:
-            for key, value in CONFIG.items():
-                # Exclude transients
-                if key[0] != "_":
-                    if isinstance(value, str):
-                        file.write("{} = '{}'\n".format(key, value))
-                    else:
-                        file.write("{} = {}\n".format(key, value))
+
+            for key in sorted([k for k in CONFIG.keys()]):
+                value = CONFIG.get(key)
+                if isinstance(value, str):
+                    file.write("{} = '{}'\n".format(key, value))
+                else:
+                    file.write("{} = {}\n".format(key, value))
     except Exception as e:
-        EXCEPTIONS.append((DT.datetime(), e))
+        EXCEPTIONS.append(e)
+
 
 
 ###########
@@ -36,13 +35,6 @@ from ubinascii   import hexlify
 from uio         import FileIO
 from utime       import sleep, sleep_ms, sleep_us
 from sys         import print_exception
-
-
-try:
-    configException = ""
-    import config
-except Exception as e:
-    configException = e
 
 try:
     feedbackException = ""
@@ -68,51 +60,33 @@ COMMANDS     = []
 EVALS        = []
 
 
+try:
+    with open("etc/.datetime") as file:
+        DT.datetime(eval(file.readline().strip()))
+except Exception as e:
+    EXCEPTIONS.append((DT.datetime(), e))
 
-if ".datetime" in CONFIG.get("_etcList"):
-    try:
-        with open("etc/.datetime") as file:
-            DT.datetime(eval(file.readline().strip()))
-    except Exception as e:
-        EXCEPTIONS.append((DT.datetime(), e))
-else:
-    initFile(".datetime", "etc", DT.datetime())
-
-
-if configException != "":
-    EXCEPTIONS.append((DT.datetime(), configException))
+START_DT = DT.datetime()
 
 if feedbackException != "":
     EXCEPTIONS.append((DT.datetime(), feedbackException))
 
+try:
+    with open("etc/.config") as file:
+        for line in file:
+            sep = line.find("=")
+            if -1 < sep:
+                CONFIG[line[:sep].strip()] = eval(line[sep+1:].strip())
+except Exception as e:
+    EXCEPTIONS.append((DT.datetime(), e))
 
-for key in configDefaults.keys():
-    try:
-        CONFIG[key] = eval("config." + key)
-    except Exception as e:
-        CONFIG[key] = configDefaults.get(key)
 
-
-if ".config" in CONFIG.get("_etcList"):
-    try:
-        with open("etc/.config") as file:
-            for line in file:
-                sep = line.find("=")
-                if -1 < sep:
-                    CONFIG[line[:sep].strip()] = eval(line[sep+1:].strip())
-    except Exception as e:
-        EXCEPTIONS.append((DT.datetime(), e))
-else:
-    initFile(".config", "etc")
 
 if CONFIG.get("_i2cActive"):
     try:
         F = Feedback(CONFIG.get("_freq"), Pin(CONFIG.get("_sda")), Pin(CONFIG.get("_scl")))
     except Exception as e:
         EXCEPTIONS.append((DT.datetime(), e))
-
-
-initDir("code")
 
 
 ###########
@@ -139,16 +113,16 @@ P14 = Pin(14, Pin.IN, Pin.PULL_UP)  # GPIO pin.
 P12.off()
 
 
-P4 = Pin(4, Pin.OUT)         #Connected to the 10th pin of the motor driver (SN754410). T1 terminal (M11, M14)
-P5 = Pin(5, Pin.OUT)         #Connected to the 15th pin of the motor driver (SN754410). T1 terminal (M11, M14)
+P4 = Pin(4, Pin.OUT)        # Connected to the 10th pin of the motor driver (SN754410). T1 terminal (M11, M14)
+P5 = Pin(5, Pin.OUT)        # Connected to the 15th pin of the motor driver (SN754410). T1 terminal (M11, M14)
 P4.off()
 P5.off()
 
 motorPins = [[P4, P5], [P4, P5]]
 
 if not CONFIG.get("uart"):
-    motorPins[0][0] = P1 = Pin(1, Pin.OUT)     #Connected to the  2nd pin of the motor driver (SN754410). T0 terminal (M3, M6)
-    motorPins[0][1] = P3 = Pin(3, Pin.OUT)     #Connected to the  7th pin of the motor driver (SN754410). T0 terminal (M3, M6)
+    motorPins[0][0] = P1 = Pin(1, Pin.OUT) # Connected to the  2nd pin of the motor driver (SN754410). T0 terminal (M3, M6)
+    motorPins[0][1] = P3 = Pin(3, Pin.OUT) # Connected to the  7th pin of the motor driver (SN754410). T0 terminal (M3, M6)
     P1.off()
     P3.off()
 
@@ -165,27 +139,18 @@ if not CONFIG.get("_i2cActive"):
 AP = network.WLAN(network.AP_IF)
 
 AP.active(CONFIG.get("_apActive"))
-AP.ifconfig(("192.168.11.1", "255.255.255.0", "192.168.11.1", "192.168.11.1"))
+AP.ifconfig(("192.168.11.1", "255.255.255.0", "192.168.11.1", "8.8.8.8"))
 AP.config(authmode = network.AUTH_WPA_WPA2_PSK)
 
-# if ESSID is an empty string, generate the default: uBot__xx:xx:xx (MAC address' last 3 octets )
-if CONFIG.get("essid") == "":
-    CONFIG["essid"] = "uBot__" + hexlify(network.WLAN().config('mac'), ':').decode()[9:]
+try:
+    AP.config(essid = CONFIG.get("apEssid"))
+except Exception as e:
+    EXCEPTIONS.append((DT.datetime(), e))
 
 try:
-    AP.config(essid = CONFIG.get("essid"))
-except Exception:
-    AP.config(essid = "uBot")
-
-
-# if password is too short (< 8 chars), set to default
-if len(CONFIG.get("passw")) < 8:
-    CONFIG["passw"] = configDefaults.get("passw")
-
-try:
-    AP.config(password = CONFIG.get("passw"))
-except Exception:
-    AP.config(password = "uBot_pwd")
+    AP.config(password = CONFIG.get("apPassword"))
+except Exception as e:
+    EXCEPTIONS.append((DT.datetime(), e))
 
 
 ###########
