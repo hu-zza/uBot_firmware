@@ -95,8 +95,8 @@ def getDebugTable(method, path, length = 0, type = "-", body = "-"):
 
 
 def reply(returnFormat, httpCode, message, title = None):
-    # Try to reply with a text/html or application/json
-    # if the connection is alive, then closes it.
+    """ Try to reply with a text/html or application/json
+        if the connection is alive, then closes it. """
 
     try:
         CONN.send("HTTP/1.1 " + httpCode + "\r\n")
