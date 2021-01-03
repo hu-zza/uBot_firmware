@@ -2,7 +2,7 @@
 ## IMPORTS
 
 exceptions    = []
-exitNotes     = []
+notes         = []
 missingConfig = False
 
 try:
@@ -148,10 +148,9 @@ configDefaults = {
 #   Button press configuration
 #
 #   The amount of time in millisecond = variable * timer interval (20 ms)
-#   Note: The const() method accepts only integer numbers.
 
-_pressLength = const(5)  # The button press is recognized only if it takes 100 ms or longer time.
-_firstRepeat = const(25) # After the button press recognition this time (500 ms) must pass before you enter same command.
+_pressLength = 5  # The button press is recognized only if it takes 100 ms or longer time.
+_firstRepeat = 25 # After the button press recognition this time (500 ms) must pass before you enter same command.
 
 
 #   Initial datetime configuration
@@ -278,7 +277,7 @@ try:
         AP.config(essid = config.get("apEssid"))
     except Exception:
         AP.config(essid = configDefaults.get("apEssid"))
-        exitNotes.append(
+        notes.append(
             "An error occur during setting apEssid ('{}'). Fallback to the default: '{}'".format(
                 config.get("apEssid"), configDefaults.get("apEssid")
             )
@@ -291,7 +290,7 @@ try:
         AP.config(password = config.get("apPassword"))
     except Exception:
         AP.config(password = configDefaults.get("apPassword"))
-        exitNotes.append(
+        notes.append(
             "An error occur during setting apPassword ('{}'). Fallback to the default: '{}'".format(
                 config.get("apPassword"), configDefaults.get("apPassword")
             )
@@ -345,10 +344,10 @@ style =        ("tr:nth-child(even) {background: #EEE}"
                 ".exceptions col:nth-child(1) {width: 40px;}"
                 ".exceptions col:nth-child(2) {width: 500px;}")
 
-notes = "<ul>"
-for n in exitNotes:
-    message += "<li>{}</li>".format(n)
-notes += "</ul>"
+noteList = "<ul>"
+for n in notes:
+    noteList += "<li>{}</li>".format(n)
+noteList += "</ul>"
 
 if len(exceptions) == 0:
     title   = "Successful installation"
@@ -369,7 +368,7 @@ else:
 try:
     while True:
         connection, address = socket.accept()
-        response = template.format(style, title, message, notes)
+        response = template.format(style, title, message, noteList)
 
         connection.send("HTTP/1.0 200 OK\r\nContent-type: text/html\r\n\r\n")
         connection.write(response)

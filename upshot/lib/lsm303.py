@@ -32,6 +32,7 @@ SOFTWARE.
 #import struct
 from ustruct import unpack
 #import time
+from micropython import const
 
 # MODIFIED ALL: const()
 # MODIFIED: 0x19 -> 0x18 ... because of the non-genuine chip maybe

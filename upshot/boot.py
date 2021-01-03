@@ -30,7 +30,6 @@ from lib.buzzer  import Buzzer
 from lib.motor   import Motor
 
 from machine     import Pin, PWM, RTC, Timer, UART, WDT, reset
-from micropython import const
 from ubinascii   import hexlify
 from uio         import FileIO
 from utime       import sleep, sleep_ms, sleep_us
