@@ -39,7 +39,7 @@ def checkButtons():
     if 200 < len(PRESSED_BTNS):
         PRESSED_BTNS = PRESSED_BTNS[:20]
 
-    if CONFIG.get("_wdActive"):
+    if CONFIG.get("wdActive"):
         global WD
         WD.feed()
 
@@ -54,7 +54,7 @@ def tryCheckButtons():
 
 def tryCheckWebserver():
     try:
-        if CONFIG.get("_wdActive") and AP.active():             # TODO: Some more sophisticated checks needed.
+        if CONFIG.get("wdActive") and AP.active():             # TODO: Some more sophisticated checks needed.
             global WD
             WD.feed()
     except Exception as e:
@@ -66,11 +66,7 @@ def tryCheckWebserver():
 def getDebugTable(method, path, length = 0, type = "-", body = "-"):
     length = str(length)
 
-    result = ""
-
-    with open("etc/web/stats.html") as file:
-        for line in file:
-            result += line
+    result = webpage_template.getStats()
 
     allMem = gc.mem_free() + gc.mem_alloc()
     freePercent = gc.mem_free() * 100 // allMem
@@ -113,10 +109,7 @@ def reply(returnFormat, httpCode, message, title = None):
             if title == None:
                 title = httpCode
             str  = "<html><head><title>" + title + "</title><style>"
-            str += "tr:nth-child(even) {background: #EEE}"
-            str += ".exceptions col:nth-child(1) {width: 40px;}"
-            str += ".exceptions col:nth-child(2) {width: 250px;}"
-            str += ".exceptions col:nth-child(3) {width: 500px;}"
+            str += webpage_template.getStyle()
             str += "</style></head>"
             str += "<body><h1>" + httpCode + "</h1><p>" + message + "</p></body></html>\r\n\r\n"
         elif returnFormat == "JSON":
@@ -269,7 +262,7 @@ def startWebServer():
     if CONFIG.get("webServer"):
         try:
             AP.active(True)
-            CONFIG['_apActive'] = True
+            CONFIG['apActive'] = True
         except Exception as e:
             EXCEPTIONS.append((DT.datetime(), e))
 
@@ -287,18 +280,18 @@ def stopWebServer(message):
 
     try:
         CONFIG['webServer'] = False
-        CONFIG['_apActive'] = False
+        CONFIG['apActive'] = False
         reply("JSON", "200 OK", [message])
         AP.active(False)
     except Exception as e:
         EXCEPTIONS.append((DT.datetime(), e))
 
 
+def start():
+    if CONFIG.get("turtleHat"):
+        TIMER.init(period = 20, mode = Timer.PERIODIC, callback = lambda t:tryCheckButtons())
+    else:
+        TIMER.init(period = 1000, mode = Timer.PERIODIC, callback = lambda t:tryCheckWebserver())
 
-if CONFIG.get("turtleHat"):
-    TIMER.init(period = 20, mode = Timer.PERIODIC, callback = lambda t:tryCheckButtons())
-else:
-    TIMER.init(period = 1000, mode = Timer.PERIODIC, callback = lambda t:tryCheckWebserver())
 
-
-startWebServer()
+    startWebServer()

@@ -1,6 +1,6 @@
-from machine    import I2C
-from lib.smbus  import SMBus
-from lib.lsm303 import LSM303
+from machine import I2C
+from smbus   import SMBus
+from lsm303  import LSM303
 
 class Feedback():
 
