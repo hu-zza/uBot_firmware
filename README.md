@@ -20,12 +20,20 @@ The micropython driver files for ESP8266, which SoC is the heart of the μBot.
     
     - With the form (**Send a file**) upload the [files](#filesToUpload) one by one.
     
-    - Reboot the μBot by turning it off and on. 
+ 5. Reboot the μBot by turning it off and on. 
+    
+ 6. Setup begins with fast blinking.
+
+ 7. After it completes (ESP8266 blinks slowly), reboot again.
 
 
 ## Files to upload <a name="filesToUpload"></a>
-Every file (except README.md and folders of course) from the folder 'uBot_driver-main': boot.py, buzzer.py, config.py, ...
+Every file (except README.md and folders of course) from the folder 'uBot_driver-main':
+- boot.py
+- config.py (optional)
+- .setup
 
+You can customize the installation using the **config.py** file.
 
 ## Acknowledgements
 
