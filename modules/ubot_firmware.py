@@ -1,16 +1,15 @@
 ###########
 ## IMPORTS
 
-import esp, network, gc, ujson, uos, usocket, webpage_template, webrepl
+import esp, gc, network, ujson, uos, usocket, sys, webpage_template, webrepl
 
 from buzzer      import Buzzer
 from motor       import Motor
 from feedback    import Feedback
 
-from machine     import Pin, PWM, RTC, Timer, UART, WDT, reset
+from machine     import Pin, PWM, RTC, Timer, UART, WDT
 from ubinascii   import hexlify
-from utime       import sleep, sleep_ms, sleep_us
-from sys         import print_exception
+from utime       import sleep, sleep_ms
 
 
 # Import configuration files
@@ -38,18 +37,14 @@ except Exception as e:
     EXCEPTIONS.append(([], e))
 
 
-def logAndExit():
-    pass
-
-
 
 ###########
 ## GLOBALS
 
-DT    = RTC()
-TIMER = Timer(-1)
+DT = IDT = RTC()
+TIMER    = Timer(-1)
 
-CONFIG     = {}
+CONFIG = {}
 
 CONN  = ""
 ADDR  = ""
@@ -60,11 +55,24 @@ COMMANDS     = []
 EVALS        = []
 
 
+
+################################
+## METHODS (needed for init)
+
+# Adding datetime afterwards to exceptions
+def replaceNullDT():
+    global DT
+    global EXCEPTIONS
+    for i in range(len(EXCEPTIONS)):
+        if len(EXCEPTIONS[i][0]) == 0:                                 # If datetime is an empty collection
+            EXCEPTIONS[i] = (DT.datetime(), EXCEPTIONS[i][1])          # Reassign exception with datetime
+
+
 ################################
 ## INITIALISATION
 
 gc.enable()
-esp.osdebug(0)
+esp.osdebug(None)
 esp.sleep_type(esp.SLEEP_NONE)
 
 if datetimeLoaded:
@@ -79,7 +87,7 @@ if configLoaded or defaultsLoaded:
         conf = "config"
     else:
         conf = "defaults"
-        EXCEPTIONS.append((DT.datetime(), "Can not import configuration file, default values have been loaded."))
+        EXCEPTIONS.append(([], "Can not import configuration file, default values have been loaded."))
 
     # Fetch every variable from config.py / defaults.py
     for v in dir(eval(conf)):
@@ -90,16 +98,12 @@ if configLoaded or defaultsLoaded:
     if not datetimeLoaded:
         DT.datetime(CONFIG["initialDateTime"])
 
-    START_DT = DT.datetime()
+    IDT = DT.datetime()
 
-    # Adding datetime afterwards to exceptions
-    for i in range(len(EXCEPTIONS)):
-        if len(EXCEPTIONS[i][0]) == 0:                                 # If datetime is an empty collection
-            EXCEPTIONS[i] = (DT.datetime(), EXCEPTIONS[i][1])          # Reassign exception with datetime
+    replaceNullDT()
 else:
+    replaceNullDT()
     EXCEPTIONS.append((DT.datetime(), "Neither the configuration file, nor the default values can be loaded."))
-    logAndExit()
-
 
 if CONFIG.get("i2cActive"):
     try:
@@ -208,16 +212,33 @@ else:
 
 
 ################################
-## METHODS
+## METHODS (the rest of them)
 
-def saveDateTime():
+def showExceptions():
+    for i in range(len(EXCEPTIONS)):
+        print("{}\t{}\t{}".format(i, EXCEPTIONS[i][0], EXCEPTIONS[i][1]))
+
+
+def printException(nr):
+    if 0 <= nr and nr < len(EXCEPTIONS):
+        print(EXCEPTIONS[nr][0])
+        sys.print_exception(EXCEPTIONS[nr][1])
+    else:
+        print("List index ({}) is out of range ({}).".format(nr, len(EXCEPTIONS)))
+
+
+def saveToFile(fileName, content):
     global DT
     global EXCEPTIONS
     try:
-        with open("etc/.datetime", "w") as file:
-            file.write(str(DT.datetime()) + "\n")
+        with open(fileName, "w") as file:
+            file.write(content)
     except Exception as e:
         EXCEPTIONS.append((DT.datetime(), e))
+
+def saveDateTime():
+    global DT
+    saveToFile("etc/datetime.py", "DT = {}".format(DT.datetime()))
 
 
 def saveConfig():
