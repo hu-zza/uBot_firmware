@@ -5,17 +5,41 @@ import esp, network, gc, ujson, uos, usocket, webpage_template, webrepl
 
 from buzzer      import Buzzer
 from motor       import Motor
+from feedback    import Feedback
 
 from machine     import Pin, PWM, RTC, Timer, UART, WDT, reset
 from ubinascii   import hexlify
 from utime       import sleep, sleep_ms, sleep_us
 from sys         import print_exception
 
+
+# Import configuration files
+EXCEPTIONS     = []
+datetimeLoaded = True
+configLoaded   = True
+defaultsLoaded = True
+
 try:
-    feedbackException = ""
-    from feedback import Feedback
+    import etc.datetime as datetime
 except Exception as e:
-    feedbackException = e
+    datetimeLoaded = False
+    EXCEPTIONS.append(([], e))
+
+try:
+    import etc.config as config
+except Exception as e:
+    configLoaded = False
+    EXCEPTIONS.append(([], e))
+
+try:
+    import etc.defaults as defaults
+except Exception as e:
+    defaultsLoaded = False
+    EXCEPTIONS.append(([], e))
+
+
+def logAndExit():
+    pass
 
 
 
@@ -25,7 +49,6 @@ except Exception as e:
 DT    = RTC()
 TIMER = Timer(-1)
 
-EXCEPTIONS = []
 CONFIG     = {}
 
 CONN  = ""
@@ -44,26 +67,38 @@ gc.enable()
 esp.osdebug(0)
 esp.sleep_type(esp.SLEEP_NONE)
 
-try:
-    with open("etc/.datetime") as file:
-        DT.datetime(eval(file.readline().strip()))
-except Exception as e:
-    EXCEPTIONS.append((DT.datetime(), e))
+if datetimeLoaded:
+    try:
+        DT.datetime(datetime.DT)
+    except Exception as e:
+        EXCEPTIONS.append(([], e))
 
-START_DT = DT.datetime()
 
-if feedbackException != "":
-    EXCEPTIONS.append((DT.datetime(), feedbackException))
+if configLoaded or defaultsLoaded:
+    if configLoaded:
+        conf = "config"
+    else:
+        conf = "defaults"
+        EXCEPTIONS.append((DT.datetime(), "Can not import configuration file, default values have been loaded."))
 
-try:
-    with open("etc/.config") as file:
-        for line in file:
-            sep = line.find("=")
-            if -1 < sep:
-                CONFIG[line[:sep].strip()] = eval(line[sep+1:].strip())
-except Exception as e:
-    EXCEPTIONS.append((DT.datetime(), e))
+    # Fetch every variable from config.py / defaults.py
+    for v in dir(eval(conf)):
+        if v[0] != "_":
+            CONFIG[v] = eval("{}.{}".format(conf, v))
 
+    # If etc/datetime.py is not accessible, set the DT to 'initialDateTime'.
+    if not datetimeLoaded:
+        DT.datetime(CONFIG["initialDateTime"])
+
+    START_DT = DT.datetime()
+
+    # Adding datetime afterwards to exceptions
+    for i in range(len(EXCEPTIONS)):
+        if len(EXCEPTIONS[i][0]) == 0:                                 # If datetime is an empty collection
+            EXCEPTIONS[i] = (DT.datetime(), EXCEPTIONS[i][1])          # Reassign exception with datetime
+else:
+    EXCEPTIONS.append((DT.datetime(), "Neither the configuration file, nor the default values can be loaded."))
+    logAndExit()
 
 
 if CONFIG.get("i2cActive"):
@@ -190,7 +225,7 @@ def saveConfig():
     global DT
     global EXCEPTIONS
     try:
-        with open("etc/.config", "w") as file:
+        with open("etc/config.py", "w") as file:
 
             for key in sorted([k for k in CONFIG.keys()]):
                 value = CONFIG.get(key)

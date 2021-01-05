@@ -5,11 +5,10 @@ from ubinascii import hexlify
 
 ap = network.WLAN(network.AP_IF)
 
-initialDateTime = "(2021, 1, 4, 0, 20, 8, 0, 0)"
-
 # Config dictionary initialisation
 config = {
-    "version"         : "0.0.12",
+    "version"         : "0.0.15",
+    "initialDateTime" : (2021, 1, 5, 0, 1, 20, 0, 0),
 
     "apEssid"         : "uBot__" + hexlify(ap.config("mac"), ":").decode()[9:],
     "apPassword"      : "uBot_pwd",
@@ -72,10 +71,8 @@ programming).
         time.sleep(3)
 
 
-
-
 def saveDictionaryToFile(fileName, dictionary):
-    with open("etc/." + fileName, "w") as file:
+    with open(fileName, "w") as file:
         for key in sorted([k for k in dictionary.keys()]):
             value = dictionary.get(key)
             if isinstance(value, str):
@@ -106,7 +103,6 @@ def setup():
     with open("boot.py", "w") as f:
 
         f.write("# uBot firmware {}\n".format(config.get("version")))
-
         f.write((
             "import gc\n"
             "import ubot_firmware\n\n"
@@ -119,7 +115,6 @@ def setup():
     with open("main.py", "w") as f:
 
         f.write("# uBot firmware {}\n".format(config.get("version")))
-
         f.write((
             "import gc\n"
             "import webrepl\n"
@@ -129,10 +124,10 @@ def setup():
         ))
 
 
-    with open("etc/.datetime", "w") as f:
-        f.write(initialDateTime)
+    with open("etc/datetime.py", "w") as f:
+        f.write("DT = {}".format(config.get("initialDateTime")))
 
-    saveDictionaryToFile("config", config)
-    saveDictionaryToFile("defaults", config)
+    saveDictionaryToFile("etc/config.py", config)
+    saveDictionaryToFile("etc/defaults.py", config)
 
     return vfs
