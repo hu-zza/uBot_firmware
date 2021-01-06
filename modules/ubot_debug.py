@@ -61,7 +61,7 @@ except Exception as e:
 ################################
 ## METHODS
 
-def showExceptions():
+def listExceptions():
     for i in range(len(ex)):
         print("{}\t{}\t{}".format(i, ex[i][0], ex[i][1]))
 

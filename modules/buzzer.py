@@ -3,17 +3,17 @@ from utime   import sleep_ms, sleep_us
 
 class Buzzer(PWM):
 
-    def __init__(self, pin, freq, duty, beepMode):
+    def __init__(self, pin, freq, duty, buzzerActive):
         super().__init__(pin, freq, duty)
         self._pin = pin
-        self._beepMode = beepMode
+        self._buzzerActive = buzzerActive
 
     def beep(self, freq = 262, duration = 3, pause = 10, count = 1):
 
         for i in range(count):
             self._pin.off()
 
-            if self._beepMode:
+            if self._buzzerActive:
                 self.freq(freq)
                 self.duty(512)
 

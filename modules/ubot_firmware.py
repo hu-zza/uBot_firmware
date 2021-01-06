@@ -107,7 +107,7 @@ else:
 
 if CONFIG.get("i2cActive"):
     try:
-        F = Feedback(CONFIG.get("freq"), Pin(CONFIG.get("sda")), Pin(CONFIG.get("scl")))
+        F = Feedback(CONFIG.get("i2cFreq"), Pin(CONFIG.get("i2cSda")), Pin(CONFIG.get("i2cScl")))
     except Exception as e:
         EXCEPTIONS.append((DT.datetime(), e))
 
@@ -116,10 +116,10 @@ if CONFIG.get("i2cActive"):
 ###########
 ## GPIO
 
-BUZZ = Buzzer(Pin(15), 262, 0, CONFIG.get("beepMode"))
+BUZZ = Buzzer(Pin(15), 262, 0, CONFIG.get("buzzerActive"))
 
 
-if CONFIG.get("turtleHat"):
+if CONFIG.get("turtleHatActive"):
     CLK = Pin(13, Pin.OUT)  # GPIO pin. It is connected to the counter (CD4017) if physical switch CLOCK is on.
     INP = Pin(16, Pin.OUT)  # GPIO pin. Receives button presses from turtle HAT if physical switches: WAKE off, PULL down
                             # FUTURE: INP = Pin(16, Pin.IN)
@@ -144,7 +144,7 @@ P5.off()
 
 motorPins = [[P4, P5], [P4, P5]]
 
-if not CONFIG.get("uart"):
+if not CONFIG.get("uartActive"):
     motorPins[0][0] = P1 = Pin(1, Pin.OUT) # Connected to the  2nd pin of the motor driver (SN754410). T0 terminal (M3, M6)
     motorPins[0][1] = P3 = Pin(3, Pin.OUT) # Connected to the  7th pin of the motor driver (SN754410). T0 terminal (M3, M6)
     P1.off()
@@ -191,20 +191,20 @@ S.listen(5)
 ###########
 ## GENERAL
 
-if CONFIG.get("wdActive"):
+if CONFIG.get("watchdogActive"):
     WD = WDT()
 
 # The REPL is attached by default to UART0, detach if not needed.
-if not CONFIG.get("uart"):
+if not CONFIG.get("uartActive"):
     uos.dupterm(None, 1)
 
-if CONFIG.get("webRepl"):
+if CONFIG.get("webReplActive"):
     try:
         webrepl.start()
     except Exception as e:
         EXCEPTIONS.append((DT.datetime(), e))
 
-if CONFIG.get("turtleHat"):
+if CONFIG.get("turtleHatActive"):
     TIMER.init(period = 20, mode = Timer.PERIODIC, callback = lambda t:tryCheckButtons())
 else:
     TIMER.init(period = 1000, mode = Timer.PERIODIC, callback = lambda t:tryCheckWebserver())
@@ -214,7 +214,7 @@ else:
 ################################
 ## METHODS (the rest of them)
 
-def showExceptions():
+def listExceptions():
     for i in range(len(EXCEPTIONS)):
         print("{}\t{}\t{}".format(i, EXCEPTIONS[i][0], EXCEPTIONS[i][1]))
 
@@ -302,7 +302,7 @@ def checkButtons():
     if 200 < len(PRESSED_BTNS):
         PRESSED_BTNS = PRESSED_BTNS[:20]
 
-    if CONFIG.get("wdActive"):
+    if CONFIG.get("watchdogActive"):
         global WD
         WD.feed()
 
@@ -322,7 +322,7 @@ def tryCheckWebserver():
     global DT
     global EXCEPTIONS
     try:
-        if CONFIG.get("wdActive") and AP.active():             # TODO: Some more sophisticated checks needed.
+        if CONFIG.get("watchdogActive") and AP.active():             # TODO: Some more sophisticated checks needed.
             global WD
             WD.feed()
     except Exception as e:
@@ -416,34 +416,39 @@ def processJson(json):
         for command in json.get("commandList"):
             if command[0:5] == "SLEEP":
                 sleep_ms(int(command[5:].strip()))
+                results.append("'{}' executed successfully.".format(command))
             elif command[0:5] == "BEEP_":
                 BUZZ.beep(int(command[5:].strip()), 2, 4)
+                results.append("'{}' executed successfully.".format(command))
             elif command[0:5] == "MIDI_":
                 BUZZ.midiBeep(int(command[5:].strip()), 2, 4)
+                results.append("'{}' executed successfully.".format(command))
             elif command[0:5] == "EXEC_": ##############################################################################
                 exec(command[5:])
+                results.append("'{}' executed successfully.".format(command))
             elif command[0:5] == "EVAL_": ##############################################################################
-                EVALS.append(eval(command[5:]))
-
+                r = eval(command[5:])
+                EVALS.append(r)
+                results.append("'{}' executed successfully, the result is: '{}'".format(command, r))
 
     if json.get("service") != None:
             for command in json.get("service"):
                 if command == "START UART":
                     uart = UART(0, 115200)
                     uos.dupterm(uart, 1)
-                    CONFIG['uart'] = True
+                    CONFIG['uartActive'] = True
                     results.append("UART has started.")
                 elif command == "STOP UART":
                     uos.dupterm(None, 1)
-                    CONFIG['uart'] = False
+                    CONFIG['uartActive'] = False
                     results.append("UART has stopped.")
                 elif command == "START WEBREPL":
                     webrepl.start()
-                    CONFIG['webRepl'] = True
+                    CONFIG['webReplActive'] = True
                     results.append("WebREPL has started.")
                 elif command == "STOP WEBREPL":
                     webrepl.stop()
-                    CONFIG['webRepl'] = False
+                    CONFIG['webReplActive'] = False
                     results.append("WebREPL has stopped.")
                 elif command == "STOP WEBSERVER":
                     stopWebServer("WebServer has stopped.")
@@ -532,19 +537,11 @@ def processSockets():
 
 def startWebServer():
     global CONFIG
-    global AP
     global DT
     global EXCEPTIONS
 
-    if CONFIG.get("webServer"):
-        try:
-            AP.active(True)
-            CONFIG['apActive'] = True
-        except Exception as e:
-            EXCEPTIONS.append((DT.datetime(), e))
-
-
-        while CONFIG.get("webServer"):
+    if CONFIG.get("webServerActive") and CONFIG.get("apActive"):
+        while CONFIG.get("webServerActive"):
             try:
                 processSockets()
             except Exception as e:
@@ -553,14 +550,12 @@ def startWebServer():
 
 def stopWebServer(message):
     global CONFIG
-    global AP
     global DT
     global EXCEPTIONS
 
-    try:
-        CONFIG['webServer'] = False
-        CONFIG['apActive'] = False
-        reply("JSON", "200 OK", [message])
-        AP.active(False)
-    except Exception as e:
-        EXCEPTIONS.append((DT.datetime(), e))
+    if CONFIG.get("webServerActive"):
+        try:
+            reply("JSON", "200 OK", [message])
+            CONFIG['webServerActive'] = False
+        except Exception as e:
+            EXCEPTIONS.append((DT.datetime(), e))

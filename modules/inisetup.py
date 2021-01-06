@@ -7,30 +7,33 @@ ap = network.WLAN(network.AP_IF)
 
 # Config dictionary initialisation
 config = {
-    "version"         : "0.0.18",
-    "initialDateTime" : (2021, 1, 6, 0, 0, 15, 0, 0),
+    "firmwareVersion"   : "0.0.20",
+    "initialDateTime"   : (2021, 1, 6, 0, 19, 15, 0, 0),
 
-    "apEssid"         : "uBot__" + hexlify(ap.config("mac"), ":").decode()[9:],
-    "apPassword"      : "uBot_pwd",
-    "replPassword"    : "uBot_REPL",
+    "apActive"          : True,
+    "apEssid"           : "uBot__" + hexlify(ap.config("mac"), ":").decode()[9:],
+    "apPassword"        : "uBot_pwd",
 
-    "uart"            : False,
-    "webRepl"         : False,
-    "webServer"       : True,
+    "webServerActive"   : True,
 
-    "turtleHat"       : True,
-    "beepMode"        : True,
+    "webReplActive"     : False,
+    "webReplPassword"   : "uBot_REPL",
 
-    "pressLength"     : 5,
-    "firstRepeat"     : 25,
+    "uartActive"        : False,
+    "watchdogActive"    : False,
 
-    "apActive"        : True,
-    "wdActive"        : False,
+    "i2cActive"         : True,
+    "i2cSda"            : 0,
+    "i2cScl"            : 2,
+    "i2cFreq"           : 400000,
 
-    "i2cActive"       : True,
-    "sda"             : 0,
-    "scl"             : 2,
-    "freq"            : 400000
+    "buzzerActive"      : True,
+
+    "turtleHatActive"   : True,
+    "turtlePressLength" : 5,
+    "turtleFirstRepeat" : 25,
+    "turtleMaxError"    : 1
+
 }
 
 
@@ -97,12 +100,12 @@ def setup():
 
 
     with open("webrepl_cfg.py", "w") as f:
-        f.write("PASS = '{}'".format(config.get("replPassword")))
+        f.write("PASS = '{}'".format(config.get("webReplPassword")))
 
 
     with open("boot.py", "w") as f:
 
-        f.write("# uBot firmware {}\n".format(config.get("version")))
+        f.write("# uBot firmware {}\n".format(config.get("firmwareVersion")))
         f.write((
             "import gc\n"
             "import ubot_firmware\n\n"
@@ -114,11 +117,11 @@ def setup():
 
     with open("main.py", "w") as f:
 
-        f.write("# uBot firmware {}\n".format(config.get("version")))
+        f.write("# uBot firmware {}\n".format(config.get("firmwareVersion")))
         f.write((
             "import gc\n"
             "import ubot_debug\n"
-            "from ubot_debug import showExceptions, printException\n\n"
+            "from ubot_debug import listExceptions, printException\n\n"
 
             "gc.enable()\n"
         ))
