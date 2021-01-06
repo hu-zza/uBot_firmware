@@ -1,15 +1,18 @@
 ###########
 ## IMPORTS
 
-import esp, gc, network, ujson, uos, usocket, sys, webpage_template, webrepl
-
-from buzzer      import Buzzer
-from motor       import Motor
-from feedback    import Feedback
+import esp, gc, network, ujson, uos, usocket, sys, webrepl
 
 from machine     import Pin, PWM, RTC, Timer, UART, WDT
 from ubinascii   import hexlify
 from utime       import sleep, sleep_ms
+
+
+import ubot_webpage_template
+
+from ubot_buzzer     import Buzzer
+from ubot_motor      import Motor
+from ubot_feedback   import Feedback
 
 
 # Import configuration files
@@ -42,7 +45,9 @@ except Exception as e:
 ## GLOBALS
 
 DT = IDT = RTC()
-TIMER    = Timer(-1)
+
+TIMER_SERVER = Timer(-1)
+TIMER_TURTLE = Timer(-1)
 
 CONFIG = {}
 
@@ -57,7 +62,7 @@ EVALS        = []
 
 
 ################################
-## METHODS (needed for init)
+## METHODS
 
 # Adding datetime afterwards to exceptions
 def replaceNullDT():
@@ -66,153 +71,6 @@ def replaceNullDT():
     for i in range(len(EXCEPTIONS)):
         if len(EXCEPTIONS[i][0]) == 0:                                 # If datetime is an empty collection
             EXCEPTIONS[i] = (DT.datetime(), EXCEPTIONS[i][1])          # Reassign exception with datetime
-
-
-################################
-## INITIALISATION
-
-gc.enable()
-esp.osdebug(None)
-esp.sleep_type(esp.SLEEP_NONE)
-
-if datetimeLoaded:
-    try:
-        DT.datetime(datetime.DT)
-    except Exception as e:
-        EXCEPTIONS.append(([], e))
-
-
-if configLoaded or defaultsLoaded:
-    if configLoaded:
-        conf = "config"
-    else:
-        conf = "defaults"
-        EXCEPTIONS.append(([], "Can not import configuration file, default values have been loaded."))
-
-    # Fetch every variable from config.py / defaults.py
-    for v in dir(eval(conf)):
-        if v[0] != "_":
-            CONFIG[v] = eval("{}.{}".format(conf, v))
-
-    # If etc/datetime.py is not accessible, set the DT to 'initialDateTime'.
-    if not datetimeLoaded:
-        DT.datetime(CONFIG["initialDateTime"])
-
-    IDT = DT.datetime()
-
-    replaceNullDT()
-else:
-    replaceNullDT()
-    EXCEPTIONS.append((DT.datetime(), "Neither the configuration file, nor the default values can be loaded."))
-
-if CONFIG.get("i2cActive"):
-    try:
-        F = Feedback(CONFIG.get("i2cFreq"), Pin(CONFIG.get("i2cSda")), Pin(CONFIG.get("i2cScl")))
-    except Exception as e:
-        EXCEPTIONS.append((DT.datetime(), e))
-
-
-
-###########
-## GPIO
-
-BUZZ = Buzzer(Pin(15), 262, 0, CONFIG.get("buzzerActive"))
-
-
-if CONFIG.get("turtleHatActive"):
-    CLK = Pin(13, Pin.OUT)  # GPIO pin. It is connected to the counter (CD4017) if physical switch CLOCK is on.
-    INP = Pin(16, Pin.OUT)  # GPIO pin. Receives button presses from turtle HAT if physical switches: WAKE off, PULL down
-                            # FUTURE: INP = Pin(16, Pin.IN)
-    INP.off()               # DEPRECATED: New PCB design (2.1) will resolve this.
-    INP.init(Pin.IN)        # DEPRECATED: New PCB design (2.1) will resolve this.
-    CLK.off()
-else:
-    P13 = Pin(13, Pin.OUT)
-    P16 = Pin(16, Pin.IN)   # MicroPython can not handle the pull-down resistor of the GPIO16: Use PULL physical switch.
-    P13.off()
-
-
-P12 = Pin(12, Pin.OUT)              # GPIO pin. On turtle HAT it can drive a LED if you switch physical switch on.
-P14 = Pin(14, Pin.IN, Pin.PULL_UP)  # GPIO pin.
-P12.off()
-
-
-P4 = Pin(4, Pin.OUT)        # Connected to the 10th pin of the motor driver (SN754410). T1 terminal (M11, M14)
-P5 = Pin(5, Pin.OUT)        # Connected to the 15th pin of the motor driver (SN754410). T1 terminal (M11, M14)
-P4.off()
-P5.off()
-
-motorPins = [[P4, P5], [P4, P5]]
-
-if not CONFIG.get("uartActive"):
-    motorPins[0][0] = P1 = Pin(1, Pin.OUT) # Connected to the  2nd pin of the motor driver (SN754410). T0 terminal (M3, M6)
-    motorPins[0][1] = P3 = Pin(3, Pin.OUT) # Connected to the  7th pin of the motor driver (SN754410). T0 terminal (M3, M6)
-    P1.off()
-    P3.off()
-
-MOT = Motor(motorPins[0][0], motorPins[0][1], motorPins[1][0], motorPins[1][1])
-
-if not CONFIG.get("i2cActive"):
-    P0 = Pin(0, Pin.IN)
-    P2 = Pin(2, Pin.IN)
-
-
-
-###########
-## AP
-
-AP = network.WLAN(network.AP_IF)
-
-AP.active(CONFIG.get("apActive"))
-AP.ifconfig(("192.168.11.1", "255.255.255.0", "192.168.11.1", "8.8.8.8"))
-AP.config(authmode = network.AUTH_WPA_WPA2_PSK)
-
-try:
-    AP.config(essid = CONFIG.get("apEssid"))
-except Exception as e:
-    EXCEPTIONS.append((DT.datetime(), e))
-
-try:
-    AP.config(password = CONFIG.get("apPassword"))
-except Exception as e:
-    EXCEPTIONS.append((DT.datetime(), e))
-
-
-
-###########
-## SOCKET
-
-S = usocket.socket(usocket.AF_INET, usocket.SOCK_STREAM)
-S.bind(("", 80))
-S.listen(5)
-
-
-
-###########
-## GENERAL
-
-if CONFIG.get("watchdogActive"):
-    WD = WDT()
-
-# The REPL is attached by default to UART0, detach if not needed.
-if not CONFIG.get("uartActive"):
-    uos.dupterm(None, 1)
-
-if CONFIG.get("webReplActive"):
-    try:
-        webrepl.start()
-    except Exception as e:
-        EXCEPTIONS.append((DT.datetime(), e))
-
-if CONFIG.get("turtleHatActive"):
-    TIMER.init(period = 20, mode = Timer.PERIODIC, callback = lambda t:tryCheckButtons())
-else:
-    TIMER.init(period = 1000, mode = Timer.PERIODIC, callback = lambda t:tryCheckWebserver())
-
-
-
-################################
-## METHODS (the rest of them)
 
 def listExceptions():
     for i in range(len(EXCEPTIONS)):
@@ -337,7 +195,7 @@ def getDebugTable(method, path, length = 0, type = "-", body = "-"):
 
     length = str(length)
 
-    result = webpage_template.getStats()
+    result = ubot_webpage_template.getStats()
 
     allMem = gc.mem_free() + gc.mem_alloc()
     freePercent = gc.mem_free() * 100 // allMem
@@ -382,7 +240,7 @@ def reply(returnFormat, httpCode, message, title = None):
             if title == None:
                 title = httpCode
             str  = "<html><head><title>" + title + "</title><style>"
-            str += webpage_template.getStyle()
+            str += ubot_webpage_template.getStyle()
             str += "</style></head>"
             str += "<body><h1>" + httpCode + "</h1><p>" + message + "</p></body></html>\r\n\r\n"
         elif returnFormat == "JSON":
@@ -540,10 +398,12 @@ def startWebServer():
     global DT
     global EXCEPTIONS
 
-    if CONFIG.get("webServerActive") and CONFIG.get("apActive"):
+    CONFIG['webServerActive'] = True
+
+    if CONFIG.get("apActive"):
         while CONFIG.get("webServerActive"):
             try:
-                processSockets()
+                processSockets()                        #TODO: uselect, poll, etc
             except Exception as e:
                 EXCEPTIONS.append((DT.datetime(), e))
 
@@ -559,3 +419,150 @@ def stopWebServer(message):
             CONFIG['webServerActive'] = False
         except Exception as e:
             EXCEPTIONS.append((DT.datetime(), e))
+
+
+
+################################
+## INITIALISATION
+
+gc.enable()
+esp.osdebug(None)
+esp.sleep_type(esp.SLEEP_NONE)
+
+if datetimeLoaded:
+    try:
+        DT.datetime(datetime.DT)
+    except Exception as e:
+        EXCEPTIONS.append(([], e))
+
+
+if configLoaded or defaultsLoaded:
+    if configLoaded:
+        conf = "config"
+    else:
+        conf = "defaults"
+        EXCEPTIONS.append(([], "Can not import configuration file, default values have been loaded."))
+
+    # Fetch every variable from config.py / defaults.py
+    for v in dir(eval(conf)):
+        if v[0] != "_":
+            CONFIG[v] = eval("{}.{}".format(conf, v))
+
+    # If etc/datetime.py is not accessible, set the DT to 'initialDateTime'.
+    if not datetimeLoaded:
+        DT.datetime(CONFIG["initialDateTime"])
+
+    IDT = DT.datetime()
+
+    replaceNullDT()
+else:
+    replaceNullDT()
+    EXCEPTIONS.append((DT.datetime(), "Neither the configuration file, nor the default values can be loaded."))
+
+if CONFIG.get("i2cActive"):
+    try:
+        F = Feedback(CONFIG.get("i2cFreq"), Pin(CONFIG.get("i2cSda")), Pin(CONFIG.get("i2cScl")))
+    except Exception as e:
+        EXCEPTIONS.append((DT.datetime(), e))
+
+
+
+###########
+## GPIO
+
+BUZZ = Buzzer(Pin(15), 262, 0, CONFIG.get("buzzerActive"))
+
+
+if CONFIG.get("turtleHatActive"):
+    CLK = Pin(13, Pin.OUT)  # GPIO pin. It is connected to the counter (CD4017) if physical switch CLOCK is on.
+    INP = Pin(16, Pin.OUT)  # GPIO pin. Receives button presses from turtle HAT if physical switches: WAKE off, PULL down
+                            # FUTURE: INP = Pin(16, Pin.IN)
+    INP.off()               # DEPRECATED: New PCB design (2.1) will resolve this.
+    INP.init(Pin.IN)        # DEPRECATED: New PCB design (2.1) will resolve this.
+    CLK.off()
+else:
+    P13 = Pin(13, Pin.OUT)
+    P16 = Pin(16, Pin.IN)   # MicroPython can not handle the pull-down resistor of the GPIO16: Use PULL physical switch.
+    P13.off()
+
+
+P12 = Pin(12, Pin.OUT)              # GPIO pin. On turtle HAT it can drive a LED if you switch physical switch on.
+P14 = Pin(14, Pin.IN, Pin.PULL_UP)  # GPIO pin.
+P12.off()
+
+
+P4 = Pin(4, Pin.OUT)        # Connected to the 10th pin of the motor driver (SN754410). T1 terminal (M11, M14)
+P5 = Pin(5, Pin.OUT)        # Connected to the 15th pin of the motor driver (SN754410). T1 terminal (M11, M14)
+P4.off()
+P5.off()
+
+motorPins = [[P4, P5], [P4, P5]]
+
+if not CONFIG.get("uartActive"):
+    motorPins[0][0] = P1 = Pin(1, Pin.OUT) # Connected to the  2nd pin of the motor driver (SN754410). T0 terminal (M3, M6)
+    motorPins[0][1] = P3 = Pin(3, Pin.OUT) # Connected to the  7th pin of the motor driver (SN754410). T0 terminal (M3, M6)
+    P1.off()
+    P3.off()
+
+MOT = Motor(motorPins[0][0], motorPins[0][1], motorPins[1][0], motorPins[1][1])
+
+if not CONFIG.get("i2cActive"):
+    P0 = Pin(0, Pin.IN)
+    P2 = Pin(2, Pin.IN)
+
+
+
+###########
+## AP
+
+AP = network.WLAN(network.AP_IF)
+
+AP.active(CONFIG.get("apActive"))
+AP.ifconfig(("192.168.11.1", "255.255.255.0", "192.168.11.1", "8.8.8.8"))
+AP.config(authmode = network.AUTH_WPA_WPA2_PSK)
+
+try:
+    AP.config(essid = CONFIG.get("apEssid"))
+except Exception as e:
+    EXCEPTIONS.append((DT.datetime(), e))
+
+try:
+    AP.config(password = CONFIG.get("apPassword"))
+except Exception as e:
+    EXCEPTIONS.append((DT.datetime(), e))
+
+
+
+###########
+## SOCKET
+
+S = usocket.socket(usocket.AF_INET, usocket.SOCK_STREAM)
+S.bind(("", 80))
+S.listen(5)
+
+
+
+###########
+## GENERAL
+
+if CONFIG.get("watchdogActive"):
+    WD = WDT()
+
+# The REPL is attached by default to UART0, detach if not needed.
+if not CONFIG.get("uartActive"):
+    uos.dupterm(None, 1)
+
+if CONFIG.get("webReplActive"):
+    try:
+        webrepl.start()
+    except Exception as e:
+        EXCEPTIONS.append((DT.datetime(), e))
+
+
+if CONFIG.get("webServerActive"):
+    startWebServer()
+    TIMER_SERVER.init(period = 1000, mode = Timer.PERIODIC, callback = lambda t:tryCheckWebserver())
+
+
+if CONFIG.get("turtleHatActive"):
+    TIMER_TURTLE.init(period = 20, mode = Timer.PERIODIC, callback = lambda t:tryCheckButtons())

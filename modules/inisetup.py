@@ -7,8 +7,8 @@ ap = network.WLAN(network.AP_IF)
 
 # Config dictionary initialisation
 config = {
-    "firmwareVersion"   : "0.0.20",
-    "initialDateTime"   : (2021, 1, 6, 0, 19, 15, 0, 0),
+    "firmwareVersion"   : "0.0.24",
+    "initialDateTime"   : (2021, 1, 6, 0, 20, 45, 0, 0),
 
     "apActive"          : True,
     "apEssid"           : "uBot__" + hexlify(ap.config("mac"), ":").decode()[9:],
@@ -108,10 +108,9 @@ def setup():
         f.write("# uBot firmware {}\n".format(config.get("firmwareVersion")))
         f.write((
             "import gc\n"
-            "import ubot_firmware\n\n"
+            "gc.enable()\n\n"
 
-            "gc.enable()\n"
-            "ubot_firmware.startWebServer()\n"
+            "import ubot_core\n\n"
         ))
 
 
@@ -120,10 +119,10 @@ def setup():
         f.write("# uBot firmware {}\n".format(config.get("firmwareVersion")))
         f.write((
             "import gc\n"
+            "gc.enable()\n\n"
+
             "import ubot_debug\n"
             "from ubot_debug import listExceptions, printException\n\n"
-
-            "gc.enable()\n"
         ))
 
 
