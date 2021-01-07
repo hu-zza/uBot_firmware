@@ -39,8 +39,12 @@ class TurtleHAT():
             if self._inputPin.value() == 1:
                 pressed += pow(2, self._counterPosition)
 
-            self._advanceCounter()                  # regular shift in the loop
-        self._advanceCounter()                      # shift "resting position"
+            self._advanceCounter()
+
+        # shift counter's "resting position" to the closest pressed button to eliminate BTN LED flashing
+        if 0 < pressed:
+            while bin(1024 + pressed)[12 - self._counterPosition] != "1":
+                self._advanceCounter()
 
         if self._repeatPrevention:
             self._noRepeatIncrement()
