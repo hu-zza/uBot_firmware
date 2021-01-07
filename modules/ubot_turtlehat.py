@@ -3,18 +3,6 @@ from ubot_buzzer import Buzzer
 
 class TurtleHAT():
 
-    def _noRepeatIncrement(self):
-        length = len(self._noRepeatElapsed)
-
-        for i in range(length):
-            reversedIndex = length - 1 - i;
-            self._noRepeatElapsed[reversedIndex] += 1
-
-            if self._firstRepeat <= self._noRepeatElapsed[reversedIndex]:
-                del self._noRepeatButtons[reversedIndex]
-                del self._noRepeatElapsed[reversedIndex]
-
-
     def _advanceCounter(self):
         self._clockPin.on()
 
@@ -46,9 +34,6 @@ class TurtleHAT():
             while bin(1024 + pressed)[12 - self._counterPosition] != "1":
                 self._advanceCounter()
 
-        if self._repeatPrevention:
-            self._noRepeatIncrement()
-
         self._pressedList[self._pressedListIndex] = pressed
         self._pressedListIndex += 1
         if len(self._pressedList) <= self._pressedListIndex:
@@ -70,14 +55,15 @@ class TurtleHAT():
     def _saveCommand(self):
         try:
             pressed = self._getPressedButton()
-            if 0 < pressed and not pressed in self._noRepeatButtons:
+
+            if pressed == self._lastPressed[0]:
+                self._lastPressed[1] += 1
+            else:
+                self._lastPressed = [pressed, 1]
+
+            if 0 < pressed and (self._lastPressed[1] == 1 or self._firstRepeat < self._lastPressed[1]):
                 self._commandList.append(pressed)
-
-                if self._repeatPrevention:
-                    self._noRepeatButtons.append(pressed)
-                    self._noRepeatElapsed.append(0)
-
-                self._pressedList = [0] * (self._pressLength + self._maxError)
+                self._lastPressed[1] = 1
         except Exception as e:
             print(e)
 
@@ -94,10 +80,8 @@ class TurtleHAT():
         self._pressLength      = config.get("turtlePressLength")
         self._maxError         = config.get("turtleMaxError")
 
+        self._lastPressed      = [0, 0]                             # [pressed button, elapsed (button check) cycles]
         self._firstRepeat      = config.get("turtleFirstRepeat")
-        self._repeatPrevention = 0 < self._firstRepeat
-        self._noRepeatButtons  = []
-        self._noRepeatElapsed  = []
 
         self._timer             = Timer(-1)
         self._pressedListIndex  = 0
