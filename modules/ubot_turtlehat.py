@@ -4,11 +4,15 @@ from ubot_buzzer import Buzzer
 class TurtleHAT():
 
     def _noRepeatIncrement(self):
-        for i in range(len(self._noRepeatElapsed)):
-            self._noRepeatElapsed[i] += 1
-            if self._firstRepeat <= self._noRepeatElapsed[i]:
-                del self._noRepeatButtons[i]
-                del self._noRepeatElapsed[i]
+        length = len(self._noRepeatElapsed)
+
+        for i in range(length):
+            reversedIndex = length - 1 - i;
+            self._noRepeatElapsed[reversedIndex] += 1
+
+            if self._firstRepeat <= self._noRepeatElapsed[reversedIndex]:
+                del self._noRepeatButtons[reversedIndex]
+                del self._noRepeatElapsed[reversedIndex]
 
 
     def _advanceCounter(self):
@@ -23,7 +27,7 @@ class TurtleHAT():
 
 
     def _getPressedButton(self):
-        pressed = -1
+        pressed = 0
 
         for i in range(10):
             # pseudo pull-down                      # DEPRECATED: New PCB design (2.1) will resolve this.
@@ -33,14 +37,10 @@ class TurtleHAT():
                 self._inputPin.init(Pin.IN)         # DEPRECATED: New PCB design (2.1) will resolve this.
 
             if self._inputPin.value() == 1:
-                if pressed == -1:
-                    pressed = self._counterPosition
-                else:
-                    pressed += 7 + self._counterPosition
+                pressed += pow(2, self._counterPosition)
 
-            self._advanceCounter()
-
-        self._advanceCounter()                # shift "resting position"
+            self._advanceCounter()                  # regular shift in the loop
+        self._advanceCounter()                      # shift "resting position"
 
         if self._repeatPrevention:
             self._noRepeatIncrement()
@@ -60,29 +60,25 @@ class TurtleHAT():
 
             errorCount += count
             if self._maxError < errorCount:
-                return -1
+                return 0
 
 
     def _saveCommand(self):
         try:
             pressed = self._getPressedButton()
-            if pressed != -1 and not pressed in self._noRepeatButtons:
+            if 0 < pressed and not pressed in self._noRepeatButtons:
                 self._commandList.append(pressed)
 
                 if self._repeatPrevention:
                     self._noRepeatButtons.append(pressed)
                     self._noRepeatElapsed.append(0)
 
-                self._pressedList = [-1] * (self._pressLength + self._maxError)
+                self._pressedList = [0] * (self._pressLength + self._maxError)
         except Exception as e:
             print(e)
 
 
-    def peekCommands(self):
-        return self._commandList
-
-
-    def __init__(self, config):
+    def __init__(self, config, commandList):
         self._clockPin = Pin(config.get("turtleClockPin"), Pin.OUT)
         self._clockPin.off()
 
@@ -101,7 +97,7 @@ class TurtleHAT():
 
         self._timer             = Timer(-1)
         self._pressedListIndex  = 0
-        self._pressedList       = [-1] * (self._pressLength + self._maxError)
-        self._commandList       = []
+        self._pressedList       = [0] * (self._pressLength + self._maxError)
+        self._commandList       = commandList
 
-        self._timer.init(period = 20, mode = Timer.PERIODIC, callback = lambda t:self._saveCommand())
+        self._timer.init(period = config.get("turtleCheckPeriod"), mode = Timer.PERIODIC, callback = lambda t:self._saveCommand())

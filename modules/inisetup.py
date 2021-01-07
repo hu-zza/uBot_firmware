@@ -7,8 +7,8 @@ ap = network.WLAN(network.AP_IF)
 
 # Config dictionary initialisation
 config = {
-    "firmwareVersion"   : "0.0.34",
-    "initialDateTime"   : (2021, 1, 7, 0, 1, 45, 0, 0),
+    "firmwareVersion"   : "0.0.38",
+    "initialDateTime"   : (2021, 1, 7, 0, 17, 25, 0, 0),
 
     "apActive"          : True,
     "apEssid"           : "uBot__" + hexlify(ap.config("mac"), ":").decode()[9:],
@@ -33,6 +33,7 @@ config = {
     "turtleClockPin"    : 13,
     "turtleInputPin"    : 16,
     "turtleCounterPos"  : 0,
+    "turtleCheckPeriod" : 20,
     "turtlePressLength" : 5,
     "turtleMaxError"    : 1,
     "turtleFirstRepeat" : 25

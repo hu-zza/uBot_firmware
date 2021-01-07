@@ -54,7 +54,6 @@ CONN  = ""
 ADDR  = ""
 
 COUNTER_POS  = 0
-PRESSED_BTNS = []
 COMMAND_LIST = []
 EVALS        = []
 
@@ -167,7 +166,7 @@ def getDebugTable(method, path, length = 0, type = "-", body = "-"):
     return result.format(
         method = method, path = path, length = length, type = type, body = body,
         freePercent = freePercent, freeMem = gc.mem_free(), allMem = allMem,
-        pressed = PRESSED_BTNS, commands = COMMAND_LIST, evals = EVALS, exceptions = exceptionList
+        commands = COMMAND_LIST, evals = EVALS, exceptions = exceptionList
     )
 
 
@@ -426,7 +425,7 @@ BUZZ = Buzzer(Pin(15), 262, 0, CONFIG.get("buzzerActive"))
 
 
 if CONFIG.get("turtleHatActive"):
-    TURTLE_HAT = TurtleHAT(CONFIG)
+    TURTLE_HAT = TurtleHAT(CONFIG, COMMAND_LIST)
 else:
     P13 = Pin(13, Pin.OUT)
     P16 = Pin(16, Pin.IN)   # MicroPython can not handle the pull-down resistor of the GPIO16: Use PULL physical switch.
