@@ -13,7 +13,7 @@ import ubot_webpage_template
 from ubot_buzzer     import Buzzer
 from ubot_motor      import Motor
 from ubot_feedback   import Feedback
-
+from ubot_turtlehat  import TurtleHAT
 
 # Import configuration files
 EXCEPTIONS     = []
@@ -47,7 +47,6 @@ except Exception as e:
 DT = IDT = RTC()
 
 TIMER_SERVER = Timer(-1)
-TIMER_TURTLE = Timer(-1)
 
 CONFIG = {}
 
@@ -56,7 +55,7 @@ ADDR  = ""
 
 COUNTER_POS  = 0
 PRESSED_BTNS = []
-COMMANDS     = []
+COMMAND_LIST = []
 EVALS        = []
 
 
@@ -116,53 +115,6 @@ def saveConfig():
         EXCEPTIONS.append(e)
 
 
-def advanceCounter():
-    global CLK
-    global COUNTER_POS
-
-    CLK.on()
-    COUNTER_POS += 1
-
-    if 9 < COUNTER_POS:
-        COUNTER_POS = 0
-
-    CLK.off()
-
-
-def checkButtons():
-    global INP
-    global CONFIG
-    global COUNTER_POS
-    global PRESSED_BTNS
-    pressed = -1
-
-    for i in range(10):
-
-        # pseudo pull-down
-        if INP.value() == 1:        # DEPRECATED: New PCB design (2.1) will resolve this.
-            INP.init(Pin.OUT)       # DEPRECATED: New PCB design (2.1) will resolve this.
-            INP.off()               # DEPRECATED: New PCB design (2.1) will resolve this.
-            INP.init(Pin.IN)        # DEPRECATED: New PCB design (2.1) will resolve this.
-
-
-        if INP.value() == 1:
-            if pressed == -1:
-                pressed = COUNTER_POS
-            else:
-                pressed += 7 + COUNTER_POS
-
-        advanceCounter()
-
-    PRESSED_BTNS.append(pressed)
-    advanceCounter()                # shift "resting position"
-
-    # safety belt XD
-    if 200 < len(PRESSED_BTNS):
-        PRESSED_BTNS = PRESSED_BTNS[:20]
-
-    if CONFIG.get("watchdogActive"):
-        global WD
-        WD.feed()
 
 
 def tryCheckButtons():
@@ -215,7 +167,7 @@ def getDebugTable(method, path, length = 0, type = "-", body = "-"):
     return result.format(
         method = method, path = path, length = length, type = type, body = body,
         freePercent = freePercent, freeMem = gc.mem_free(), allMem = allMem,
-        pressed = PRESSED_BTNS, commands = COMMANDS, evals = EVALS, exceptions = exceptionList
+        pressed = PRESSED_BTNS, commands = COMMAND_LIST, evals = EVALS, exceptions = exceptionList
     )
 
 
@@ -474,12 +426,7 @@ BUZZ = Buzzer(Pin(15), 262, 0, CONFIG.get("buzzerActive"))
 
 
 if CONFIG.get("turtleHatActive"):
-    CLK = Pin(13, Pin.OUT)  # GPIO pin. It is connected to the counter (CD4017) if physical switch CLOCK is on.
-    INP = Pin(16, Pin.OUT)  # GPIO pin. Receives button presses from turtle HAT if physical switches: WAKE off, PULL down
-                            # FUTURE: INP = Pin(16, Pin.IN)
-    INP.off()               # DEPRECATED: New PCB design (2.1) will resolve this.
-    INP.init(Pin.IN)        # DEPRECATED: New PCB design (2.1) will resolve this.
-    CLK.off()
+    TURTLE_HAT = TurtleHAT(CONFIG)
 else:
     P13 = Pin(13, Pin.OUT)
     P16 = Pin(16, Pin.IN)   # MicroPython can not handle the pull-down resistor of the GPIO16: Use PULL physical switch.
@@ -560,9 +507,5 @@ if CONFIG.get("webReplActive"):
 
 
 if CONFIG.get("webServerActive"):
-    startWebServer()
     TIMER_SERVER.init(period = 1000, mode = Timer.PERIODIC, callback = lambda t:tryCheckWebserver())
-
-
-if CONFIG.get("turtleHatActive"):
-    TIMER_TURTLE.init(period = 20, mode = Timer.PERIODIC, callback = lambda t:tryCheckButtons())
+    startWebServer()

@@ -7,8 +7,8 @@ ap = network.WLAN(network.AP_IF)
 
 # Config dictionary initialisation
 config = {
-    "firmwareVersion"   : "0.0.24",
-    "initialDateTime"   : (2021, 1, 6, 0, 20, 45, 0, 0),
+    "firmwareVersion"   : "0.0.34",
+    "initialDateTime"   : (2021, 1, 7, 0, 1, 45, 0, 0),
 
     "apActive"          : True,
     "apEssid"           : "uBot__" + hexlify(ap.config("mac"), ":").decode()[9:],
@@ -16,10 +16,10 @@ config = {
 
     "webServerActive"   : True,
 
-    "webReplActive"     : False,
+    "webReplActive"     : True,
     "webReplPassword"   : "uBot_REPL",
 
-    "uartActive"        : False,
+    "uartActive"        : True,
     "watchdogActive"    : False,
 
     "i2cActive"         : True,
@@ -30,10 +30,12 @@ config = {
     "buzzerActive"      : True,
 
     "turtleHatActive"   : True,
+    "turtleClockPin"    : 13,
+    "turtleInputPin"    : 16,
+    "turtleCounterPos"  : 0,
     "turtlePressLength" : 5,
-    "turtleFirstRepeat" : 25,
-    "turtleMaxError"    : 1
-
+    "turtleMaxError"    : 1,
+    "turtleFirstRepeat" : 25
 }
 
 
