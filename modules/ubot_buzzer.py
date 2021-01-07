@@ -8,27 +8,24 @@ class Buzzer(PWM):
         self._pin = pin
         self._buzzerActive = buzzerActive
 
-    def beep(self, freq = 262, duration = 3, pause = 10, count = 1):
+    def beep(self, freq = 440.0, duration = 100, pause = 100, count = 1):
 
         for i in range(count):
             self._pin.off()
 
             if self._buzzerActive:
-                self.freq(freq)
+                self.freq(round(freq))
                 self.duty(512)
-
-                rest = round((1000000 / freq) * (freq * duration / 10 ))
-                sleep_us(rest)
-
+                sleep_us(round((1000000 / freq) * (freq * duration / 1000 )))
                 self.duty(0)
             else:
                 self._pin.on()
-                sleep_ms(duration * 100)
+                sleep_ms(duration)
                 self._pin.off()
 
-            sleep_ms(pause * 10)
+            sleep_ms(pause)
 
 
-    def midiBeep(self, noteOn = 60, duration = 3, pause = 10, count = 1):
-        f = round(440 * pow(2, (noteOn - 69) / 12))
+    def midiBeep(self, noteOn = 69, duration = 100, pause = 100, count = 1):
+        f = 440 * pow(2, (noteOn - 69) / 12)
         self.beep(f, duration, pause, count)

@@ -7,8 +7,8 @@ ap = network.WLAN(network.AP_IF)
 
 # Config dictionary initialisation
 config = {
-    "firmwareVersion"   : "0.0.43",
-    "initialDateTime"   : (2021, 1, 7, 0, 20, 35, 0, 0),
+    "firmwareVersion"   : "0.0.45",
+    "initialDateTime"   : (2021, 1, 7, 0, 22, 20, 0, 0),
 
     "apActive"          : True,
     "apEssid"           : "uBot__" + hexlify(ap.config("mac"), ":").decode()[9:],

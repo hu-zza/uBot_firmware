@@ -425,7 +425,7 @@ BUZZ = Buzzer(Pin(15), 262, 0, CONFIG.get("buzzerActive"))
 
 
 if CONFIG.get("turtleHatActive"):
-    TURTLE_HAT = TurtleHAT(CONFIG, COMMAND_LIST)
+    TURTLE_HAT = TurtleHAT(CONFIG, COMMAND_LIST, BUZZ)
 else:
     P13 = Pin(13, Pin.OUT)
     P16 = Pin(16, Pin.IN)   # MicroPython can not handle the pull-down resistor of the GPIO16: Use PULL physical switch.
