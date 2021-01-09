@@ -29,6 +29,8 @@ config = {
 
     "buzzerActive"      : True,
 
+    "motorConfig"       : (0.0, 10, 5, 1000, 333),
+
     "turtleHatActive"   : True,
     "turtleClockPin"    : 13,
     "turtleInputPin"    : 16,
