@@ -23,15 +23,15 @@ except Exception as e:
     ex.append((dt.datetime(), e))
 
 try:
-    P1 = Pin(1, Pin.OUT)        # Connected to the  2nd pin of the motor driver (SN754410). T0 terminal (M3, M6)
-    P3 = Pin(3, Pin.OUT)        # Connected to the  7th pin of the motor driver (SN754410). T0 terminal (M3, M6)
-    P4 = Pin(4, Pin.OUT)        # Connected to the 10th pin of the motor driver (SN754410). T1 terminal (M11, M14)
-    P5 = Pin(5, Pin.OUT)        # Connected to the 15th pin of the motor driver (SN754410). T1 terminal (M11, M14)
+    P1 = Pin(1, Pin.OUT)    # UART0 + Connected to the  2nd pin of the motor driver (SN754410). T0 terminal (M3, M6)
+    P3 = Pin(3, Pin.OUT)    # UART0 + Connected to the  7th pin of the motor driver (SN754410). T0 terminal (M3, M6)
+    P4 = Pin(4, Pin.OUT)    #         Connected to the 10th pin of the motor driver (SN754410). T1 terminal (M11, M14)
+    P5 = Pin(5, Pin.OUT)    #         Connected to the 15th pin of the motor driver (SN754410). T1 terminal (M11, M14)
     P1.off()
     P3.off()
     P4.off()
     P5.off()
-    
+
     motorPins = [[P1, P3], [P4, P5]]
 except Exception as e:
     ex.append((dt.datetime(), e))
@@ -83,5 +83,14 @@ def printException(nr):
 def startUart():                                                                            # Deactivate the motor first
     try:
         uart = UART(0, baudrate = 115200)
+        uos.dupterm(uart, 1)
+    except Exception as e:
+        ex.append((dt.datetime(), e))
+
+def stopUart():
+    try:
+        uos.dupterm(None, 1)
+        P1.off()
+        P3.off()
     except Exception as e:
         ex.append((dt.datetime(), e))
