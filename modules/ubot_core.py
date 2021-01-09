@@ -57,7 +57,7 @@ COUNTER_POS  = 0
 COMMAND_LIST = []
 EVALS        = []
 
-
+LSM303_LOG = ""
 
 ################################
 ## METHODS
@@ -83,18 +83,18 @@ def printException(nr):
         print("List index ({}) is out of range ({}).".format(nr, len(EXCEPTIONS)))
 
 
-def saveToFile(fileName, content):
+def saveToFile(fileName, mode, content):
     global DT
     global EXCEPTIONS
     try:
-        with open(fileName, "w") as file:
+        with open(fileName, mode) as file:
             file.write(content)
     except Exception as e:
         EXCEPTIONS.append((DT.datetime(), e))
 
 def saveDateTime():
     global DT
-    saveToFile("etc/datetime.py", "DT = {}".format(DT.datetime()))
+    saveToFile("etc/datetime.py", "w", "DT = {}".format(DT.datetime()))
 
 
 def saveConfig():
@@ -114,16 +114,18 @@ def saveConfig():
         EXCEPTIONS.append(e)
 
 
+def startLsmTest():
+    global TEST_LSM
+    LSM303_LOG = "etc/LSM303__" + str(DT.datetime()).replace(", ", "_")
 
+    while LSM303_LOG != "":
+        result = F._test()
+        saveToFile(LSM303_LOG, "a+", str(result)+"\n")
+        print(result)
+        sleep_ms(100)
 
-def tryCheckButtons():
-    global DT
-    global EXCEPTIONS
-    try:
-        checkButtons()
-    except Exception as e:
-        if len(EXCEPTIONS) < 20:
-            EXCEPTIONS.append((DT.datetime(), e))
+def stopLsmTest():
+    LSM303_LOG = ""
 
 
 def tryCheckWebserver():

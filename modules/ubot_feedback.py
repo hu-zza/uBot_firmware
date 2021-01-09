@@ -1,6 +1,7 @@
 from machine import I2C
 from smbus   import SMBus
 from lsm303  import LSM303
+from utime   import sleep_ms
 
 class Feedback():
 
@@ -13,11 +14,19 @@ class Feedback():
 
     def _test(self):
         if 0 < len(self._MAP):
+            acc_data = self._LSM303.read_accel()
+            mag_data = self._LSM303.read_mag()
+            return ((acc_data[0], acc_data[1], acc_data[2]),
+                    (mag_data[0], mag_data[1], mag_data[2]))
+
+
+    def _testLoop(self):
+        if 0 < len(self._MAP):
             while True:
-                accel_data = self._LSM303.read_accel()
-                mag_data   = self._LSM303.read_mag()
+                acc_data = self._LSM303.read_accel()
+                mag_data = self._LSM303.read_mag()
                 print(
-                    [round(v, 2) for v in accel_data],
+                    [round(v, 2) for v in acc_data],
                     [round(v, 2) for v in mag_data]
                 )
                 sleep_ms(100)
