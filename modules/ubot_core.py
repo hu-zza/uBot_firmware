@@ -8,11 +8,11 @@ from ubinascii   import hexlify
 from utime       import sleep, sleep_ms
 
 import ubot_feedback  as feedback
+import ubot_turtlehat as turtlehat
 import ubot_webserver as webserver
 
 from ubot_buzzer     import Buzzer
 from ubot_motor      import Motor
-from ubot_turtlehat  import TurtleHAT
 
 
 # Import configuration files
@@ -251,7 +251,7 @@ BUZZ = Buzzer(Pin(15), 262, 0, CONFIG.get("buzzerActive"))
 
 
 if CONFIG.get("turtleHatActive"):
-    TURTLE_HAT = TurtleHAT(CONFIG, PRESSED_BUTTONS, BUZZ)
+    turtlehat.config(CONFIG, PRESSED_BUTTONS, BUZZ)
 else:
     P13 = Pin(13, Pin.OUT)
     P16 = Pin(16, Pin.IN)   # MicroPython can not handle the pull-down resistor of the GPIO16: Use PULL physical switch.
@@ -279,7 +279,7 @@ motorPins  = (
     (4, 5)
 )
 
-MOTOR_DRIVER = Motor(motorConfig, motorPins)
+MOT = Motor(motorConfig, motorPins)
 
 
 

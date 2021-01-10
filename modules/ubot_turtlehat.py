@@ -1,94 +1,130 @@
 from machine import Pin, Timer
 from ubot_buzzer import Buzzer
 
-class TurtleHAT():
+_clockPin         = 0
+_inputPin         = 0
+_counterPosition  = 0
+_pressLength      = 0
+_maxError         = 0
 
-    def _advanceCounter(self):
-        self._clockPin.on()
+_lastPressed      = 0
+_firstRepeat      = 0
 
-        if 9 <= self._counterPosition:
-            self._counterPosition = 0
+_pressedListIndex = 0
+_pressedList      = 0
+_pressedButtons   = 0
+
+_timer            = 0
+_buzzer           = 0
+
+
+def _advanceCounter():
+    global _counterPosition
+
+    _clockPin.on()
+
+    if 9 <= _counterPosition:
+        _counterPosition = 0
+    else:
+        _counterPosition += 1
+
+    _clockPin.off()
+
+
+def _getPressedButton():
+    global _pressedList
+    global _pressedListIndex
+
+    pressed = 0
+
+    for i in range(10):
+        # pseudo pull-down                 # DEPRECATED: New PCB design (2.1) will resolve this.
+        if _inputPin.value() == 1:         # DEPRECATED: New PCB design (2.1) will resolve this.
+            _inputPin.init(Pin.OUT)        # DEPRECATED: New PCB design (2.1) will resolve this.
+            _inputPin.off()                # DEPRECATED: New PCB design (2.1) will resolve this.
+            _inputPin.init(Pin.IN)         # DEPRECATED: New PCB design (2.1) will resolve this.
+
+        if _inputPin.value() == 1:
+            pressed += pow(2, _counterPosition)
+
+        _advanceCounter()
+
+    # shift counter's "resting position" to the closest pressed button to eliminate BTN LED flashing
+    if 0 < pressed:
+        while bin(1024 + pressed)[12 - _counterPosition] != "1":
+            _advanceCounter()
+
+    _pressedList[_pressedListIndex] = pressed
+    _pressedListIndex += 1
+    if len(_pressedList) <= _pressedListIndex:
+            _pressedListIndex = 0
+
+    errorCount = 0
+
+    for i in range(len(_pressedList)):
+        count = _pressedList.count(_pressedList[i])
+
+        if _pressLength <= count:
+            return _pressedList[i]
+
+        errorCount += count
+        if _maxError < errorCount:
+            return 0
+
+
+def _saveCommand():
+    global _lastPressed
+
+    try:
+        pressed = _getPressedButton()
+
+        if pressed == _lastPressed[0]:
+            _lastPressed[1] += 1
         else:
-            self._counterPosition += 1
+            _lastPressed = [pressed, 1]
 
-        self._clockPin.off()
-
-
-    def _getPressedButton(self):
-        pressed = 0
-
-        for i in range(10):
-            # pseudo pull-down                      # DEPRECATED: New PCB design (2.1) will resolve this.
-            if self._inputPin.value() == 1:         # DEPRECATED: New PCB design (2.1) will resolve this.
-                self._inputPin.init(Pin.OUT)        # DEPRECATED: New PCB design (2.1) will resolve this.
-                self._inputPin.off()                # DEPRECATED: New PCB design (2.1) will resolve this.
-                self._inputPin.init(Pin.IN)         # DEPRECATED: New PCB design (2.1) will resolve this.
-
-            if self._inputPin.value() == 1:
-                pressed += pow(2, self._counterPosition)
-
-            self._advanceCounter()
-
-        # shift counter's "resting position" to the closest pressed button to eliminate BTN LED flashing
-        if 0 < pressed:
-            while bin(1024 + pressed)[12 - self._counterPosition] != "1":
-                self._advanceCounter()
-
-        self._pressedList[self._pressedListIndex] = pressed
-        self._pressedListIndex += 1
-        if len(self._pressedList) <= self._pressedListIndex:
-                self._pressedListIndex = 0
-
-        errorCount = 0
-
-        for i in range(len(self._pressedList)):
-            count = self._pressedList.count(self._pressedList[i])
-
-            if self._pressLength <= count:
-                return self._pressedList[i]
-
-            errorCount += count
-            if self._maxError < errorCount:
-                return 0
+        if 0 < pressed and (_lastPressed[1] == 1 or _firstRepeat < _lastPressed[1]):
+            _pressedButtons.append(pressed)
+            _lastPressed[1] = 1
+            _buzzer.midiBeep(64)
+    except Exception as e:
+        print(e)
 
 
-    def _saveCommand(self):
-        try:
-            pressed = self._getPressedButton()
+def config(config, pressedButtons, buzzer):
 
-            if pressed == self._lastPressed[0]:
-                self._lastPressed[1] += 1
-            else:
-                self._lastPressed = [pressed, 1]
+    global _clockPin
+    global _inputPin
+    global _counterPosition
+    global _pressLength
+    global _maxError
+    global _lastPressed
+    global _firstRepeat
+    global _pressedListIndex
+    global _pressedList
+    global _pressedButtons
+    global _timer
+    global _buzzer          
 
-            if 0 < pressed and (self._lastPressed[1] == 1 or self._firstRepeat < self._lastPressed[1]):
-                self._pressedButtons.append(pressed)
-                self._lastPressed[1] = 1
-                self._buzzer.midiBeep(64)
-        except Exception as e:
-            print(e)
+    _clockPin = Pin(config.get("turtleClockPin"), Pin.OUT)
+    _clockPin.off()
 
+    _inputPin = Pin(config.get("turtleInputPin"), Pin.OUT) # FUTURE: Pin(16, Pin.IN)
+    _inputPin.off()                                        # DEPRECATED: New PCB design (2.1) will resolve this.
+    _inputPin.init(Pin.IN)                                 # DEPRECATED: New PCB design (2.1) will resolve this.
 
-    def __init__(self, config, pressedButtons, buzzer):
-        self._clockPin = Pin(config.get("turtleClockPin"), Pin.OUT)
-        self._clockPin.off()
+    _counterPosition  = config.get("turtleCounterPos")
+    _pressLength      = config.get("turtlePressLength")
+    _maxError         = config.get("turtleMaxError")
 
-        self._inputPin = Pin(config.get("turtleInputPin"), Pin.OUT) # FUTURE: Pin(16, Pin.IN)
-        self._inputPin.off()                                        # DEPRECATED: New PCB design (2.1) will resolve this.
-        self._inputPin.init(Pin.IN)                                 # DEPRECATED: New PCB design (2.1) will resolve this.
+    _lastPressed      = [0, 0]                             # [pressed button, elapsed (button check) cycles]
+    _firstRepeat      = config.get("turtleFirstRepeat")
 
-        self._counterPosition  = config.get("turtleCounterPos")
-        self._pressLength      = config.get("turtlePressLength")
-        self._maxError         = config.get("turtleMaxError")
+    _pressedListIndex = 0
+    _pressedList      = [0] * (_pressLength + _maxError)
+    _pressedButtons   = pressedButtons
 
-        self._lastPressed      = [0, 0]                             # [pressed button, elapsed (button check) cycles]
-        self._firstRepeat      = config.get("turtleFirstRepeat")
+    _timer            = Timer(-1)
+    _buzzer           = buzzer
 
-        self._pressedListIndex = 0
-        self._pressedList      = [0] * (self._pressLength + self._maxError)
-        self._pressedButtons   = pressedButtons
-
-        self._timer            = Timer(-1)
-        self._buzzer           = buzzer
-
-        self._timer.init(period = config.get("turtleCheckPeriod"), mode = Timer.PERIODIC, callback = lambda t:self._saveCommand())
+    _timer.init(period = config.get("turtleCheckPeriod"), mode = Timer.PERIODIC, callback = lambda t:_saveCommand())
