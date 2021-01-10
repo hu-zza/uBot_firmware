@@ -7,12 +7,11 @@ from machine     import Pin, PWM, RTC, Timer, UART, WDT
 from ubinascii   import hexlify
 from utime       import sleep, sleep_ms
 
-
+import ubot_feedback  as feedback
 import ubot_webserver as webserver
 
 from ubot_buzzer     import Buzzer
 from ubot_motor      import Motor
-from ubot_feedback   import Feedback
 from ubot_turtlehat  import TurtleHAT
 
 
@@ -177,7 +176,7 @@ def startLsmTest():
     LSM303_LOG = "etc/LSM303__" + str(DT.datetime()).replace(", ", "_")
 
     while LSM303_LOG != "":
-        result = F._test()
+        result = feedback._test()
         saveToFile(LSM303_LOG, "a+", str(result)+"\n")
         print(result)
         sleep_ms(100)
@@ -239,7 +238,7 @@ else:
 
 if CONFIG.get("i2cActive"):
     try:
-        F = Feedback(CONFIG.get("i2cFreq"), Pin(CONFIG.get("i2cSda")), Pin(CONFIG.get("i2cScl")))
+        feedback.config(CONFIG.get("i2cFreq"), Pin(CONFIG.get("i2cSda")), Pin(CONFIG.get("i2cScl")))
     except Exception as e:
         EXCEPTIONS.append((DT.datetime(), e))
 

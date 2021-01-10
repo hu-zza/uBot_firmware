@@ -1,6 +1,3 @@
-###########
-## IMPORTS
-
 import gc, ujson
 
 from machine import RTC
