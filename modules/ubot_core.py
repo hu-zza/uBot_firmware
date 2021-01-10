@@ -439,22 +439,19 @@ P14 = Pin(14, Pin.IN, Pin.PULL_UP)  # GPIO pin.
 P12.off()
 
 
-#P4 = Pin(4, Pin.OUT)        # Connected to the 10th pin of the motor driver (SN754410). T1 terminal (M11, M14)
-#P5 = Pin(5, Pin.OUT)        # Connected to the 15th pin of the motor driver (SN754410). T1 terminal (M11, M14)
-#P4.off()
-#P5.off()
-
 motorPins = [[0, 0], [4, 5]]
 
 if not CONFIG.get("uartActive"):
     motorPins[0][0] = 1
     motorPins[0][1] = 3
-    #motorPins[0][0] = P1 = Pin(1, Pin.OUT) # Connected to the  2nd pin of the motor driver (SN754410). T0 terminal (M3, M6)
-    #motorPins[0][1] = P3 = Pin(3, Pin.OUT) # Connected to the  7th pin of the motor driver (SN754410). T0 terminal (M3, M6)
-    #P1.off()
-    #P3.off()
 
-MOT = Motor(CONFIG.get("motorConfig"), motorPins[0][0], motorPins[0][1], motorPins[1][0], motorPins[1][1])
+motorConfig = (
+    (CONFIG.get("motorT0Period"),     CONFIG.get("motorT0Sleep")),
+    (CONFIG.get("motorT1Frequency"),  CONFIG.get("motorT1Duty")),
+    (CONFIG.get("motorT1DutyFactor"), CONFIG.get("motorT1MinDuty"), CONFIG.get("motorT1MaxDuty"))
+)
+
+MOT = Motor(motorConfig, motorPins[0][0], motorPins[0][1], motorPins[1][0], motorPins[1][1])
 
 if not CONFIG.get("i2cActive"):
     P0 = Pin(0, Pin.IN)

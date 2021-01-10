@@ -7,8 +7,8 @@ ap = network.WLAN(network.AP_IF)
 
 # Config dictionary initialisation
 config = {
-    "firmwareVersion"   : "0.0.55",
-    "initialDateTime"   : (2021, 1, 9, 0, 22, 0, 0, 0),
+    "firmwareVersion"   : "0.0.56",
+    "initialDateTime"   : (2021, 1, 10, 0, 13, 30, 0, 0),
 
     "apActive"          : True,
     "apEssid"           : "uBot__" + hexlify(ap.config("mac"), ":").decode()[9:],
@@ -29,9 +29,17 @@ config = {
 
     "buzzerActive"      : True,
 
-    "motorConfig"       : ((1.0, 500, 1023), (1000, 750), (10, 6)),
+    "motorT0Period"     : 10,
+    "motorT0Sleep"      : 6,
+    "motorT1Frequency"  : 1000,
+    "motorT1Duty"       : 750,
+    "motorT1DutyFactor" : 1.0,
+    "motorT1MinDuty"    : 500,
+    "motorT1MaxDuty"    : 1023,
 
     "turtleHatActive"   : True,
+    "turtleMoveLength"  : 500,
+    "turtleTurnLength"  : 400,
     "turtleClockPin"    : 13,
     "turtleInputPin"    : 16,
     "turtleCounterPos"  : 0,

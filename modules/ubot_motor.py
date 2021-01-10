@@ -3,23 +3,23 @@ from utime   import sleep_ms
 
 class Motor():
     def _config(self, motorConfig):
-        #                LEFT MOTOR - PWM (and finetuning)        |   RIGHT MOTOR
-        #           Fine tuning settings       | PWM init setting | Timer based ctrl
-        #                                      |                  | (~freq, ~duty)
-        # ((min. duty factor, max. duty factor), (freq, init duty), (timer, sleep))
-        self._cfg = ((motorConfig[0][1] / motorConfig[1][1], motorConfig[0][2] / motorConfig[1][1]),
+        # T0 - RIGHT MOTOR |        LEFT MOTOR - PWM (and finetuning)         |
+        # Timer based ctrl | PWM setting |          Fine tuning settings      |
+        #   (~freq, ~duty) |             |                                    |
+        # ((period, sleep), (freq, duty), (min. duty factor, max. duty factor))
+        self._cfg = (motorConfig[0],
                      motorConfig[1],
-                     motorConfig[2])
+                     (motorConfig[2][1] / motorConfig[1][1], motorConfig[2][2] / motorConfig[1][1]))
 
         # Extracted duty factor
-        self._fac = motorConfig[0][0]
+        self._fac = motorConfig[2][0]
 
-        # Parameter motorConfig consists of three tuples: duty factor and borders, pwm setting, timer setting.
+        # Parameter motorConfig consists of three tuples: timer setting, pwm setting, duty factor and borders.
         #
-        # The first of the three tuple is modified:
-        #   - Duty factor extracted into a "dedicated" variable.
-        #   - From the given minimum duty and initial duty calculates the minimum duty factor (self._cfg[0][1]).
-        #   - From the given maximum duty and initial duty calculates the maximum duty factor (self._cfg[0][2]).
+        # The third of the three tuple is modified:
+        #   - Duty factor extracted into a "dedicated" variable (self._fac).
+        #   - From the given minimum duty and initial duty calculates the minimum duty factor (self._cfg[2][0]).
+        #   - From the given maximum duty and initial duty calculates the maximum duty factor (self._cfg[2][1]).
 
     def __init__(self, motorConfig, m3, m6, m11, m14):
         self._mot = [[Pin(m3,  Pin.OUT), Pin(m6,  Pin.OUT)],
@@ -62,12 +62,12 @@ class Motor():
     def _useMotor(self, motor = 0, mode = 0):
         if mode != 0:
             self._setMotor(motor, mode)
-            sleep_ms(self._cfg[2][1])
+            sleep_ms(self._cfg[0][1])
         self._setMotor(motor, 0)
 
 
-    def _setController(self, modeLeft = 0, modeRight = 0):
-        if modeLeft == 0:
+    def _setController(self, modeLeft = 0, modeRight = 0): # (self, T1, T0)
+        if modeLeft == 0:                                  # T1 - LEFT MOTOR
             self._pwm[0].duty(0)
             self._pwm[1].duty(0)
             self._useMotor(1, 0)
@@ -76,11 +76,11 @@ class Motor():
             self._pwm[modeLeft - 1].freq(self._cfg[1][0])
             self._pwm[modeLeft - 1].duty(duty)
 
-        if modeRight == 0:
+        if modeRight == 0:                                  # T0 - RIGHT MOTOR
             self._t0.deinit()
             self._useMotor(0, 0)
         else:
-            self._t0.init(period = self._cfg[2][0], mode = Timer.PERIODIC, callback = lambda t:self._useMotor(0, modeRight))
+            self._t0.init(period = self._cfg[0][0], mode = Timer.PERIODIC, callback = lambda t:self._useMotor(0, modeRight))
 
 
 
@@ -95,19 +95,19 @@ class Motor():
         elif direction == 4:            # BACKWARD
             self._setController(2, 2)
 
-        if direction == 0:
+        if direction == 0:              # STOP : immediately / after movement
             self._setController(0, 0)
         else:
             self._t1.init(period = duration, mode = Timer.ONE_SHOT, callback = lambda t:self._setController(0, 0))
 
 
     def setDutyFactor(self, dutyFactor):
-        if dutyFactor < self._cfg[0][0]:            # If parameter is less than the minimum duty factor:
-            self._fac = self._cfg[0][0]             #   - set the minimum duty f. as current duty f.
-            return self._cfg[0][0] - dutyFactor     #   - return the difference (as a negative number)
-        elif self._cfg[0][1] < dutyFactor:          # If the parameter is more than the maximum duty factor:
-            self._fac = self._cfg[0][1]             #   - set the maximum duty f. as current duty f.
-            return dutyFactor - self._cfg[0][1]     #   - return the difference (as a positive number)
+        if dutyFactor < self._cfg[2][0]:            # If parameter is less than the minimum duty factor:
+            self._fac = self._cfg[2][0]             #   - set the minimum duty f. as current duty f.
+            return self._cfg[2][0] - dutyFactor     #   - return the difference (as a negative number)
+        elif self._cfg[2][1] < dutyFactor:          # If the parameter is more than the maximum duty factor:
+            self._fac = self._cfg[2][1]             #   - set the maximum duty f. as current duty f.
+            return dutyFactor - self._cfg[2][1]     #   - return the difference (as a positive number)
         else:
             self._fac = dutyFactor
             return 0
