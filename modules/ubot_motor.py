@@ -3,10 +3,22 @@ from utime   import sleep_ms
 
 class Motor():
     def _config(self, motorConfig):
-        # T0 - RIGHT MOTOR |     T1 - LEFT MOTOR - PWM (and finetuning)       |
-        # Timer based ctrl | PWM setting |          Fine tuning settings      |
-        #   (~freq, ~duty) |             |                                    |
-        # ((period, sleep), (freq, duty), (min. duty factor, max. duty factor))
+        """
+        Parameter motorConfig consists of three tuples: T0 timer setting, T1 pwm setting, T1 duty factor and borders.
+
+        The third of the three tuple is modified:
+            - Duty factor extracted into a "dedicated" variable (self._factor).
+            - From the given minimum duty and initial duty calculates the minimum duty factor (self._config[2][0]).
+            - From the given maximum duty and initial duty calculates the maximum duty factor (self._config[2][1]).
+
+
+        _config tuple:
+
+            T0 - RIGHT MOTOR |     T1 - LEFT MOTOR - PWM (and finetuning)       |
+            Timer based ctrl | PWM setting |          Fine tuning settings      |
+              (~freq, ~duty) |             |                                    |
+            ((period, sleep), (freq, duty), (min. duty factor, max. duty factor))
+        """
         self._config = (
             motorConfig[0],
             motorConfig[1],
@@ -16,12 +28,6 @@ class Motor():
         # Extracted duty factor
         self._factor = motorConfig[2][0]
 
-        # Parameter motorConfig consists of three tuples: T0 timer setting, T1 pwm setting, T1 duty factor and borders.
-        #
-        # The third of the three tuple is modified:
-        #   - Duty factor extracted into a "dedicated" variable (self._factor).
-        #   - From the given minimum duty and initial duty calculates the minimum duty factor (self._config[2][0]).
-        #   - From the given maximum duty and initial duty calculates the maximum duty factor (self._config[2][1]).
 
 
     def __init__(self, motorConfig, motorPins):
@@ -39,12 +45,11 @@ class Motor():
         if self._active[1]:
             self._pin[1][0].off()
             self._pin[1][1].off()
-
             self._timerT1 = Timer(-1)
-            self._pwm = (PWM(Pin(motorPins[1][0])), PWM(Pin(motorPins[1][1])))
+            self._pwm     = (PWM(Pin(motorPins[1][0])), PWM(Pin(motorPins[1][1])))
 
-        self._timer  = Timer(-1)
 
+        self._timer      = Timer(-1)
         self._processing = False
         self._moveList   = []
 
@@ -53,7 +58,7 @@ class Motor():
 
     def _driveMotor(self, motor = 0, mode = 0, sleep = 0):
         """
-        Low-level motor setter
+        Low-level motor (temporary) setter
 
         motor : integer parameter
         0     : (M3, M6)   T0 terminal / RIGHT MOTOR
@@ -63,6 +68,8 @@ class Motor():
         0     : (off, off)  -> STOP
         1     : (on,  off)  -> FORWARD
         2     : (off,  on)  -> BACKWARD
+
+        sleep : integer parameter (makes this setter temporary)
         """
         if mode != 0:
             self._pin[motor][1 - mode].on()
@@ -74,7 +81,12 @@ class Motor():
 
 
     def _setController(self, modeLeft = 0, modeRight = 0):          # (self, T1 mode, T0 mode)
-        if self._active[1]:                                         # T1 - LEFT MOTOR
+        """
+        Sets both motor in one go. (If both are active.)
+        This setter is permanent,
+        its only responsibility to handle PWM.
+        """
+        if self._active[1]:                                         # T1 - LEFT MOTOR - PWM
             if modeLeft == 0:
                 self._pwm[0].duty(0)
                 self._pwm[1].duty(0)
@@ -83,7 +95,7 @@ class Motor():
                 self._pwm[modeLeft - 1].freq(self._config[1][0])
                 self._pwm[modeLeft - 1].duty(duty)
 
-        if self._active[0]:                                         # T0 - RIGHT MOTOR
+        if self._active[0]:                                         # T0 - RIGHT MOTOR - Timer "PWM"
             if modeRight == 0:
                 self._timerT1.deinit()
                 self._driveMotor(0, 0)
@@ -96,6 +108,12 @@ class Motor():
 
 
     def _stopAndNext(self):
+        """
+        Part of a recursive loop: _stopAndNext() - _processMove(move) - _stopAndNext() - ...
+
+        Stops the current, done task (movement) and checks if there is any task waiting for processing.
+        If it finds task(s), pops the first and call _processMove(move). If not, loop stops.
+        """
         self._setController(0, 0)
         self._processing = False
 
@@ -105,7 +123,12 @@ class Motor():
 
 
     def _processMove(self, move):       # (self, (direction, duration))
+        """
+        Part of a recursive loop: _stopAndNext() - _processMove(move) - _stopAndNext() - ...
 
+        Sets the motors by _setController() according to the 'move' tuple: (direction, duration)
+        After that it initialise a timer to terminate this move, and to continue processing _moveList.
+        """
         if move[0] == 1:                # FORWARD
             self._setController(1, 1)
         elif move[0] == 2:              # LEFT
@@ -124,12 +147,21 @@ class Motor():
 
 
     def move(self, direction = 0, duration = 500):
+        """
+        Public function which books a move tuple (direction, duration)
+        on _moveList for the indirect, future processing.
+        """
         self._moveList.append((direction, duration))
         if 1 == len(self._moveList) and not self._processing:
             self._stopAndNext()
 
 
     def setDutyFactor(self, dutyFactor):
+        """
+        Public function which set the dutyFactor (self._factor).
+        This affects the left motor (T1) directly as you can see in _setController().
+        The purpose of this funtion the on-the-fly correction.
+        """
         if dutyFactor < self._config[2][0]:         # If parameter is less than the minimum duty factor:
             self._factor = self._config[2][0]       #   - set the minimum duty f. as current duty f.
             return self._config[2][0] - dutyFactor  #   - return the difference (as a negative number)
