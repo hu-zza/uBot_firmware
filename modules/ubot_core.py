@@ -439,11 +439,10 @@ P14 = Pin(14, Pin.IN, Pin.PULL_UP)  # GPIO pin.
 P12.off()
 
 
-motorPins = [[0, 0], [4, 5]]
+if not CONFIG.get("i2cActive"):
+    P0 = Pin(0, Pin.IN)
+    P2 = Pin(2, Pin.IN)
 
-if not CONFIG.get("uartActive"):
-    motorPins[0][0] = 1
-    motorPins[0][1] = 3
 
 motorConfig = (
     (CONFIG.get("motorT0Period"),     CONFIG.get("motorT0Sleep")),
@@ -451,11 +450,12 @@ motorConfig = (
     (CONFIG.get("motorT1DutyFactor"), CONFIG.get("motorT1MinDuty"), CONFIG.get("motorT1MaxDuty"))
 )
 
-MOT = Motor(motorConfig, motorPins[0][0], motorPins[0][1], motorPins[1][0], motorPins[1][1])
+motorPins  = (
+    (0, 0) if CONFIG.get("uartActive") else (1, 3),
+    (4, 5)
+)
 
-if not CONFIG.get("i2cActive"):
-    P0 = Pin(0, Pin.IN)
-    P2 = Pin(2, Pin.IN)
+MOT = Motor(motorConfig, motorPins)
 
 
 
