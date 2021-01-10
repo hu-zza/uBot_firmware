@@ -8,12 +8,13 @@ from ubinascii   import hexlify
 from utime       import sleep, sleep_ms
 
 
-import ubot_webpage_template
+import ubot_webserver as webserver
 
 from ubot_buzzer     import Buzzer
 from ubot_motor      import Motor
 from ubot_feedback   import Feedback
 from ubot_turtlehat  import TurtleHAT
+
 
 # Import configuration files
 EXCEPTIONS     = []
@@ -53,14 +54,71 @@ CONFIG = {}
 CONN  = ""
 ADDR  = ""
 
-COUNTER_POS  = 0
-COMMAND_LIST = []
-EVALS        = []
+PRESSED_BUTTONS = []
 
 LSM303_LOG = ""
 
 ################################
 ## METHODS
+
+def executeJson(json):
+    global MOT
+    results = []
+
+    if json.get("dateTime") != None:
+        DT.datetime(eval(json.get("dateTime")))
+        saveDateTime()
+        results.append("New dateTime has been set.")
+
+    if json.get("commandList") != None:
+        for command in json.get("commandList"):
+            if command[0:5] == "SLEEP":
+                sleep_ms(int(command[5:].strip()))
+                results.append("'{}' executed successfully.".format(command))
+            elif command[0:5] == "BEEP_":
+                BUZZ.beep(int(command[5:].strip()), 2, 4)
+                results.append("'{}' executed successfully.".format(command))
+            elif command[0:5] == "MIDI_":
+                BUZZ.midiBeep(int(command[5:].strip()), 2, 4)
+                results.append("'{}' executed successfully.".format(command))
+            elif command[0:5] == "EXEC_": ##############################################################################
+                exec(command[5:])
+                results.append("'{}' executed successfully.".format(command))
+            elif command[0:5] == "EVAL_": ##############################################################################
+                results.append("'{}' executed successfully, the result is: '{}'".format(command, eval(command[5:])))
+
+    if json.get("service") != None:
+            for command in json.get("service"):
+                if command == "START UART":
+                    uart = UART(0, 115200)
+                    uos.dupterm(uart, 1)
+                    CONFIG['uartActive'] = True
+                    results.append("UART has started.")
+                elif command == "STOP UART":
+                    uos.dupterm(None, 1)
+                    CONFIG['uartActive'] = False
+                    results.append("UART has stopped.")
+                elif command == "START WEBREPL":
+                    webrepl.start()
+                    CONFIG['webReplActive'] = True
+                    results.append("WebREPL has started.")
+                elif command == "STOP WEBREPL":
+                    webrepl.stop()
+                    CONFIG['webReplActive'] = False
+                    results.append("WebREPL has stopped.")
+                elif command == "STOP WEBSERVER":
+                    stopWebServer("WebServer has stopped.")
+                elif command == "CHECK DATETIME":
+                    results.append(str(DT.datetime()))
+                elif command == "SAVE CONFIG":
+                    saveConfig()
+                    results.append("Configuration has saved.")
+
+    if len(results) == 0:
+        results = ["Processing has completed without any result."]
+
+    return results
+
 
 # Adding datetime afterwards to exceptions
 def replaceNullDT():
@@ -142,239 +200,6 @@ def tryCheckWebserver():
 
 
 
-def getDebugTable(method, path, length = 0, type = "-", body = "-"):
-    global DT
-    global EXCEPTIONS
-
-    length = str(length)
-
-    result = ubot_webpage_template.getStats()
-
-    allMem = gc.mem_free() + gc.mem_alloc()
-    freePercent = gc.mem_free() * 100 // allMem
-
-
-    exceptionList = "<table class=\"exceptions\"><colgroup><col><col><col></colgroup><tbody>"
-    index = 0
-
-    for (dt, exception) in EXCEPTIONS:
-        exceptionList += "<tr><td> {} </td><td> {}. {}. {}. {}:{}:{}.{} </td><td> {} </td></tr>".format(
-            index, dt[0], dt[1], dt[2], dt[4], dt[5], dt[6], dt[7], exception
-        )
-        index += 1
-
-    exceptionList += "</tbody></table>"
-
-    return result.format(
-        method = method, path = path, length = length, type = type, body = body,
-        freePercent = freePercent, freeMem = gc.mem_free(), allMem = allMem,
-        commands = COMMAND_LIST, evals = EVALS, exceptions = exceptionList
-    )
-
-
-def reply(returnFormat, httpCode, message, title = None):
-    """ Try to reply with a text/html or application/json
-        if the connection is alive, then closes it. """
-
-    global CONN
-
-    try:
-        CONN.send("HTTP/1.1 " + httpCode + "\r\n")
-
-        if returnFormat == "HTML":
-            str = "text/html"
-        elif returnFormat == "JSON":
-            str = "application/json"
-
-        CONN.send("Content-Type: " + str + "\r\n")
-        CONN.send("Connection: close\r\n\r\n")
-
-        if returnFormat == "HTML":
-            if title == None:
-                title = httpCode
-            str  = "<html><head><title>" + title + "</title><style>"
-            str += ubot_webpage_template.getStyle()
-            str += "</style></head>"
-            str += "<body><h1>" + httpCode + "</h1><p>" + message + "</p></body></html>\r\n\r\n"
-        elif returnFormat == "JSON":
-            str = ujson.dumps({"code" : httpCode, "message" : message})
-
-        CONN.sendall(str)
-    except Exception:
-        print("The connection has been closed.")
-    finally:
-        CONN.close()
-
-
-def togglePin(pin):
-    pin.value(1 - pin.value())
-
-
-def processJson(json):
-    global CONFIG
-    global DT
-    global BUZZ
-    global MOT
-    global EVALS
-    results = []
-
-    if json.get("dateTime") != None:
-        DT.datetime(eval(json.get("dateTime")))
-        saveDateTime()
-        results.append("New dateTime has been set.")
-
-    if json.get("commandList") != None:
-        for command in json.get("commandList"):
-            if command[0:5] == "SLEEP":
-                sleep_ms(int(command[5:].strip()))
-                results.append("'{}' executed successfully.".format(command))
-            elif command[0:5] == "BEEP_":
-                BUZZ.beep(int(command[5:].strip()), 2, 4)
-                results.append("'{}' executed successfully.".format(command))
-            elif command[0:5] == "MIDI_":
-                BUZZ.midiBeep(int(command[5:].strip()), 2, 4)
-                results.append("'{}' executed successfully.".format(command))
-            elif command[0:5] == "EXEC_": ##############################################################################
-                exec(command[5:])
-                results.append("'{}' executed successfully.".format(command))
-            elif command[0:5] == "EVAL_": ##############################################################################
-                r = eval(command[5:])
-                EVALS.append(r)
-                results.append("'{}' executed successfully, the result is: '{}'".format(command, r))
-
-    if json.get("service") != None:
-            for command in json.get("service"):
-                if command == "START UART":
-                    uart = UART(0, 115200)
-                    uos.dupterm(uart, 1)
-                    CONFIG['uartActive'] = True
-                    results.append("UART has started.")
-                elif command == "STOP UART":
-                    uos.dupterm(None, 1)
-                    CONFIG['uartActive'] = False
-                    results.append("UART has stopped.")
-                elif command == "START WEBREPL":
-                    webrepl.start()
-                    CONFIG['webReplActive'] = True
-                    results.append("WebREPL has started.")
-                elif command == "STOP WEBREPL":
-                    webrepl.stop()
-                    CONFIG['webReplActive'] = False
-                    results.append("WebREPL has stopped.")
-                elif command == "STOP WEBSERVER":
-                    stopWebServer("WebServer has stopped.")
-                elif command == "CHECK DATETIME":
-                    results.append(str(DT.datetime()))
-                elif command == "SAVE CONFIG":
-                    saveConfig()
-                    results.append("Configuration has saved.")
-
-    if len(results) == 0:
-        results = ["Processing has completed without any result."]
-
-    reply("JSON", "200 OK", results)
-
-
-def processGetQuery(path):
-    reply("HTML", "200 OK", getDebugTable("GET", path), "uBot Debug Page")
-
-
-def processPostQuery(body):
-    global DT
-    global EXCEPTIONS
-    try:
-        json = ujson.loads(body)
-
-        if json.get("execute") == True:
-            reply("JSON", "200 OK", "JSON parsed, execution in progress.")
-
-        processJson(json)
-    except Exception as e:
-        EXCEPTIONS.append((DT.datetime(), e))
-        reply("JSON", "400 Bad Request", "The request body could not be parsed and processed.")
-
-
-def processSockets():
-    global CONN
-    global ADDR
-
-    method = ""
-    path = ""
-    contentLength = 0
-    contentType = ""
-    body = ""
-
-    CONN, ADDR  = S.accept()
-    requestFile = CONN.makefile("rwb", 0)
-
-    try:
-        while True:
-            line = requestFile.readline()
-
-            if not line:
-                break
-            elif line == b"\r\n":
-                if 0 < contentLength:
-                    body = str(requestFile.read(contentLength), "utf-8")
-                break
-
-            line = str(line, "utf-8")
-
-            if method == "":
-                firstSpace = line.find(" ")
-                pathEnd    = line.find(" HTTP")
-
-                method = line[0:firstSpace]
-                path   = line[firstSpace+1:pathEnd]
-
-            if 0 <= line.lower().find("content-length:"):
-                contentLength = int(line[15:].strip())
-
-            if 0 <= line.lower().find("content-type:"):
-                contentType = line[13:].strip()
-
-        if method == "GET":
-            processGetQuery(path)
-        elif method == "POST":
-            if contentType == "application/json":
-                processPostQuery(body)
-            else:
-                reply("HTML", "400 Bad Request", "'Content-Type' should be 'application/json'.")
-        else:
-            reply("HTML", "405 Method Not Allowed", "Only two HTTP request methods (GET and PUT) are allowed.")
-    finally:
-        CONN.close()
-
-
-def startWebServer():
-    global CONFIG
-    global DT
-    global EXCEPTIONS
-
-    CONFIG['webServerActive'] = True
-
-    if CONFIG.get("apActive"):
-        while CONFIG.get("webServerActive"):
-            try:
-                processSockets()                        #TODO: uselect, poll, etc
-            except Exception as e:
-                EXCEPTIONS.append((DT.datetime(), e))
-
-
-def stopWebServer(message):
-    global CONFIG
-    global DT
-    global EXCEPTIONS
-
-    if CONFIG.get("webServerActive"):
-        try:
-            reply("JSON", "200 OK", [message])
-            CONFIG['webServerActive'] = False
-        except Exception as e:
-            EXCEPTIONS.append((DT.datetime(), e))
-
-
-
 ################################
 ## INITIALISATION
 
@@ -427,7 +252,7 @@ BUZZ = Buzzer(Pin(15), 262, 0, CONFIG.get("buzzerActive"))
 
 
 if CONFIG.get("turtleHatActive"):
-    TURTLE_HAT = TurtleHAT(CONFIG, COMMAND_LIST, BUZZ)
+    TURTLE_HAT = TurtleHAT(CONFIG, PRESSED_BUTTONS, BUZZ)
 else:
     P13 = Pin(13, Pin.OUT)
     P16 = Pin(16, Pin.IN)   # MicroPython can not handle the pull-down resistor of the GPIO16: Use PULL physical switch.
@@ -455,7 +280,7 @@ motorPins  = (
     (4, 5)
 )
 
-MOT = Motor(motorConfig, motorPins)
+MOTOR_DRIVER = Motor(motorConfig, motorPins)
 
 
 
@@ -483,10 +308,11 @@ except Exception as e:
 ###########
 ## SOCKET
 
-S = usocket.socket(usocket.AF_INET, usocket.SOCK_STREAM)
-S.bind(("", 80))
-S.listen(5)
+socket = usocket.socket(usocket.AF_INET, usocket.SOCK_STREAM)
+socket.bind(("", 80))
+socket.listen(5)
 
+webserver.config(socket, DT, CONFIG, EXCEPTIONS, executeJson)
 
 
 ###########
@@ -507,5 +333,5 @@ if CONFIG.get("webReplActive"):
 
 
 if CONFIG.get("webServerActive"):
-    TIMER_SERVER.init(period = 1000, mode = Timer.PERIODIC, callback = lambda t:tryCheckWebserver())
-    startWebServer()
+    #TIMER_SERVER.init(period = 1000, mode = Timer.PERIODIC, callback = lambda t:tryCheckWebserver())
+    webserver.start()

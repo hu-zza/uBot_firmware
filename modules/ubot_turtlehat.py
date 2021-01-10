@@ -62,14 +62,14 @@ class TurtleHAT():
                 self._lastPressed = [pressed, 1]
 
             if 0 < pressed and (self._lastPressed[1] == 1 or self._firstRepeat < self._lastPressed[1]):
-                self._commandList.append(pressed)
+                self._pressedButtons.append(pressed)
                 self._lastPressed[1] = 1
                 self._buzzer.midiBeep(64)
         except Exception as e:
             print(e)
 
 
-    def __init__(self, config, commandList, buzzer):
+    def __init__(self, config, pressedButtons, buzzer):
         self._clockPin = Pin(config.get("turtleClockPin"), Pin.OUT)
         self._clockPin.off()
 
@@ -86,7 +86,7 @@ class TurtleHAT():
 
         self._pressedListIndex = 0
         self._pressedList      = [0] * (self._pressLength + self._maxError)
-        self._commandList      = commandList
+        self._pressedButtons   = pressedButtons
 
         self._timer            = Timer(-1)
         self._buzzer           = buzzer

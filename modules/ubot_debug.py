@@ -13,12 +13,17 @@ dt = RTC()
 ex = []
 
 try:
-    dt = sys.modules.get("ubot_core").DT
+    core = sys.modules.get("ubot_core")
 except Exception as e:
     ex.append((dt.datetime(), e))
 
 try:
-    ex =  sys.modules.get("ubot_core").EXCEPTIONS + ex
+    dt = core.DT
+except Exception as e:
+    ex.append((dt.datetime(), e))
+
+try:
+    ex =  core.EXCEPTIONS + ex
 except Exception as e:
     ex.append((dt.datetime(), e))
 
