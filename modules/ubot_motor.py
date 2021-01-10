@@ -33,6 +33,9 @@ class Motor():
         self._t0  = Timer(-1)
         self._t1  = Timer(-1)
 
+        self._processing = False
+        self._moveList   = []
+
         self._config(motorConfig)
 
 
@@ -59,7 +62,7 @@ class Motor():
             self._mot[motor][abs(mode - 2)].off()
 
 
-    def _useMotor(self, motor = 0, mode = 0):
+    def _driveMotor(self, motor = 0, mode = 0, sleep = 0):
         if mode != 0:
             self._setMotor(motor, mode)
             sleep_ms(self._cfg[0][1])
@@ -70,7 +73,7 @@ class Motor():
         if modeLeft == 0:                                  # T1 - LEFT MOTOR
             self._pwm[0].duty(0)
             self._pwm[1].duty(0)
-            self._useMotor(1, 0)
+            self._driveMotor(1, 0)
         else:
             duty = round(self._fac * self._cfg[1][1])       # Duty factor * initial duty
             self._pwm[modeLeft - 1].freq(self._cfg[1][0])
@@ -78,27 +81,47 @@ class Motor():
 
         if modeRight == 0:                                  # T0 - RIGHT MOTOR
             self._t0.deinit()
-            self._useMotor(0, 0)
+            self._driveMotor(0, 0)
         else:
-            self._t0.init(period = self._cfg[0][0], mode = Timer.PERIODIC, callback = lambda t:self._useMotor(0, modeRight))
+            self._t0.init(
+                period = self._cfg[0][0],
+                mode = Timer.PERIODIC,
+                callback = lambda t:self._driveMotor(0, modeRight, self._cfg[0][1])
+            )
 
+
+    def _stopAndNext(self):
+        self._setController(0, 0)
+        self._processing = False
+
+        if 0 < len(self._moveList):
+            self._processing = True
+            self._processMove(self._moveList.pop(0))
+
+
+    def _processMove(self, move):       # (self, (direction, duration))
+
+        if move[0] == 1:                # FORWARD
+            self._setController(1, 1)
+        elif move[0] == 2:              # LEFT
+            self._setController(2, 1)
+        elif move[0] == 3:              # RIGHT
+            self._setController(1, 2)
+        elif move[0] == 4:              # BACKWARD
+            self._setController(2, 2)
+
+        # STOP
+        self._t1.init(
+            period = 0 if move[0] == 0 else move[1],    # immediately / after movement duration (move[1])
+            mode = Timer.ONE_SHOT,
+            callback = lambda t:self._stopAndNext()
+        )
 
 
     def move(self, direction = 0, duration = 500):
-
-        if direction == 1:              # FORWARD
-            self._setController(1, 1)
-        elif direction == 2:            # LEFT
-            self._setController(2, 1)
-        elif direction == 3:            # RIGHT
-            self._setController(1, 2)
-        elif direction == 4:            # BACKWARD
-            self._setController(2, 2)
-
-        if direction == 0:              # STOP : immediately / after movement
-            self._setController(0, 0)
-        else:
-            self._t1.init(period = duration, mode = Timer.ONE_SHOT, callback = lambda t:self._setController(0, 0))
+        self._moveList.append((direction, duration))
+        if 1 == len(self._moveList) and not self._processing:
+            self._stopAndNext()
 
 
     def setDutyFactor(self, dutyFactor):
