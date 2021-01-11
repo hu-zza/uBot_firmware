@@ -78,6 +78,7 @@ def listExceptions():
     for i in range(len(ex)):
         print("{}\t{}\t{}".format(i, ex[i][0], ex[i][1]))
 
+
 def printException(nr):
     if 0 <= nr and nr < len(ex):
         print(ex[nr][0])
@@ -85,12 +86,15 @@ def printException(nr):
     else:
         print("List index ({}) is out of range ({}).".format(nr, len(ex)))
 
-def startUart():                                                                            # Deactivate the motor first
+
+def startUart():
+    """ You should deactivate the motor first. """
     try:
         uart = UART(0, baudrate = 115200)
         uos.dupterm(uart, 1)
     except Exception as e:
         ex.append((dt.datetime(), e))
+
 
 def stopUart():
     try:

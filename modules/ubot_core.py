@@ -8,11 +8,11 @@ from ubinascii   import hexlify
 from utime       import sleep, sleep_ms
 
 import ubot_feedback  as feedback
+import ubot_motor     as motor
 import ubot_turtlehat as turtlehat
 import ubot_webserver as webserver
 
 from ubot_buzzer     import Buzzer
-from ubot_motor      import Motor
 
 
 # Import configuration files
@@ -40,28 +40,78 @@ except Exception as e:
     EXCEPTIONS.append(([], e))
 
 
-
 ###########
 ## GLOBALS
 
 DT = IDT = RTC()
-
-TIMER_SERVER = Timer(-1)
-
-CONFIG = {}
-
-CONN  = ""
-ADDR  = ""
+CONFIG   = {}
 
 PRESSED_BUTTONS = []
 
-LSM303_LOG = ""
 
 ################################
 ## METHODS
 
+def listExceptions():
+    for i in range(len(EXCEPTIONS)):
+        print("{}\t{}\t{}".format(i, EXCEPTIONS[i][0], EXCEPTIONS[i][1]))
+
+
+def printException(nr):
+    if 0 <= nr and nr < len(EXCEPTIONS):
+        print(EXCEPTIONS[nr][0])
+        sys.print_exception(EXCEPTIONS[nr][1])
+    else:
+        print("List index ({}) is out of range ({}).".format(nr, len(EXCEPTIONS)))
+
+
+# Adding datetime afterwards to exceptions
+def replaceNullDT():
+    global EXCEPTIONS
+
+    for i in range(len(EXCEPTIONS)):
+        if len(EXCEPTIONS[i][0]) == 0:                                 # If datetime is an empty collection
+            EXCEPTIONS[i] = (DT.datetime(), EXCEPTIONS[i][1])          # Reassign exception with datetime
+
+
+def saveToFile(fileName, mode, content):
+    try:
+        with open(fileName, mode) as file:
+            file.write(content)
+    except Exception as e:
+        EXCEPTIONS.append((DT.datetime(), e))
+
+
+def saveDateTime():
+    saveToFile("etc/datetime.py", "w", "DT = {}".format(DT.datetime()))
+
+
+def saveConfig():
+    try:
+        with open("etc/config.py", "w") as file:
+
+            for key in sorted([k for k in CONFIG.keys()]):
+                value = CONFIG.get(key)
+                if isinstance(value, str):
+                    file.write("{} = '{}'\n".format(key, value))
+                else:
+                    file.write("{} = {}\n".format(key, value))
+    except Exception as e:
+        EXCEPTIONS.append(e)
+
+
+def startLsmTest():
+    LSM303_LOG = "etc/LSM303__" + str(DT.datetime()).replace(", ", "_")
+
+    for i in range(600):
+        result = feedback._test()
+        saveToFile(LSM303_LOG, "a+", str(result)+"\n")
+        print(result)
+        sleep_ms(100)
+
+
 def executeJson(json):
-    global MOT
+    global CONFIG
     results = []
 
     if json.get("dateTime") != None:
@@ -71,14 +121,19 @@ def executeJson(json):
 
     if json.get("commandList") != None:
         for command in json.get("commandList"):
-            if command[0:5] == "SLEEP":
-                sleep_ms(int(command[5:].strip()))
+            if command[0:6] == "SLEEP_":
+                sleep_ms(int(command[6:].strip()))
                 results.append("'{}' executed successfully.".format(command))
             elif command[0:5] == "BEEP_":
-                BUZZ.beep(int(command[5:].strip()), 2, 4)
+                beepArray = command[5:].strip().split(":")
+                BUZZ.beep(int(beepArray[0]), int(beepArray[1]), int(beepArray[2]))
                 results.append("'{}' executed successfully.".format(command))
             elif command[0:5] == "MIDI_":
-                BUZZ.midiBeep(int(command[5:].strip()), 2, 4)
+                beepArray = command[5:].strip().split(":")
+                BUZZ.midiBeep(int(beepArray[0]), int(beepArray[1]), int(beepArray[2]))
+                results.append("'{}' executed successfully.".format(command))
+            elif command[0:4] == "MOT_":
+                motor.move(int(command[4]), int(command[6:].strip()))
                 results.append("'{}' executed successfully.".format(command))
             elif command[0:5] == "EXEC_": ##############################################################################
                 exec(command[5:])
@@ -106,7 +161,7 @@ def executeJson(json):
                     CONFIG['webReplActive'] = False
                     results.append("WebREPL has stopped.")
                 elif command == "STOP WEBSERVER":
-                    stopWebServer("WebServer has stopped.")
+                    webserver.stop("WebServer has stopped.")
                 elif command == "CHECK DATETIME":
                     results.append(str(DT.datetime()))
                 elif command == "SAVE CONFIG":
@@ -117,86 +172,6 @@ def executeJson(json):
         results = ["Processing has completed without any result."]
 
     return results
-
-
-# Adding datetime afterwards to exceptions
-def replaceNullDT():
-    global DT
-    global EXCEPTIONS
-    for i in range(len(EXCEPTIONS)):
-        if len(EXCEPTIONS[i][0]) == 0:                                 # If datetime is an empty collection
-            EXCEPTIONS[i] = (DT.datetime(), EXCEPTIONS[i][1])          # Reassign exception with datetime
-
-def listExceptions():
-    for i in range(len(EXCEPTIONS)):
-        print("{}\t{}\t{}".format(i, EXCEPTIONS[i][0], EXCEPTIONS[i][1]))
-
-
-def printException(nr):
-    if 0 <= nr and nr < len(EXCEPTIONS):
-        print(EXCEPTIONS[nr][0])
-        sys.print_exception(EXCEPTIONS[nr][1])
-    else:
-        print("List index ({}) is out of range ({}).".format(nr, len(EXCEPTIONS)))
-
-
-def saveToFile(fileName, mode, content):
-    global DT
-    global EXCEPTIONS
-    try:
-        with open(fileName, mode) as file:
-            file.write(content)
-    except Exception as e:
-        EXCEPTIONS.append((DT.datetime(), e))
-
-def saveDateTime():
-    global DT
-    saveToFile("etc/datetime.py", "w", "DT = {}".format(DT.datetime()))
-
-
-def saveConfig():
-    global CONFIG
-    global DT
-    global EXCEPTIONS
-    try:
-        with open("etc/config.py", "w") as file:
-
-            for key in sorted([k for k in CONFIG.keys()]):
-                value = CONFIG.get(key)
-                if isinstance(value, str):
-                    file.write("{} = '{}'\n".format(key, value))
-                else:
-                    file.write("{} = {}\n".format(key, value))
-    except Exception as e:
-        EXCEPTIONS.append(e)
-
-
-def startLsmTest():
-    global TEST_LSM
-    LSM303_LOG = "etc/LSM303__" + str(DT.datetime()).replace(", ", "_")
-
-    while LSM303_LOG != "":
-        result = feedback._test()
-        saveToFile(LSM303_LOG, "a+", str(result)+"\n")
-        print(result)
-        sleep_ms(100)
-
-def stopLsmTest():
-    LSM303_LOG = ""
-
-
-def tryCheckWebserver():
-    global CONFIG
-    global DT
-    global EXCEPTIONS
-    try:
-        if CONFIG.get("watchdogActive") and AP.active():             # TODO: Some more sophisticated checks needed.
-            global WD
-            WD.feed()
-    except Exception as e:
-        if len(EXCEPTIONS) < 20:
-            EXCEPTIONS.append((DT.datetime(), e))
-
 
 
 ################################
@@ -243,7 +218,6 @@ if CONFIG.get("i2cActive"):
         EXCEPTIONS.append((DT.datetime(), e))
 
 
-
 ###########
 ## GPIO
 
@@ -268,19 +242,17 @@ if not CONFIG.get("i2cActive"):
     P2 = Pin(2, Pin.IN)
 
 
-motorConfig = (
-    (CONFIG.get("motorT0Period"),     CONFIG.get("motorT0Sleep")),
-    (CONFIG.get("motorT1Frequency"),  CONFIG.get("motorT1Duty")),
-    (CONFIG.get("motorT1DutyFactor"), CONFIG.get("motorT1MinDuty"), CONFIG.get("motorT1MaxDuty"))
+motor.config(
+    (
+        (CONFIG.get("motorT0Period"),     CONFIG.get("motorT0Sleep")),
+        (CONFIG.get("motorT1Frequency"),  CONFIG.get("motorT1Duty")),
+        (CONFIG.get("motorT1DutyFactor"), CONFIG.get("motorT1MinDuty"), CONFIG.get("motorT1MaxDuty"))
+    ),
+    (
+        (0, 0) if CONFIG.get("uartActive") else (1, 3),
+        (4, 5)
+    )
 )
-
-motorPins  = (
-    (0, 0) if CONFIG.get("uartActive") else (1, 3),
-    (4, 5)
-)
-
-MOT = Motor(motorConfig, motorPins)
-
 
 
 ###########
@@ -303,17 +275,6 @@ except Exception as e:
     EXCEPTIONS.append((DT.datetime(), e))
 
 
-
-###########
-## SOCKET
-
-socket = usocket.socket(usocket.AF_INET, usocket.SOCK_STREAM)
-socket.bind(("", 80))
-socket.listen(5)
-
-webserver.config(socket, DT, CONFIG, EXCEPTIONS, executeJson)
-
-
 ###########
 ## GENERAL
 
@@ -332,5 +293,12 @@ if CONFIG.get("webReplActive"):
 
 
 if CONFIG.get("webServerActive"):
-    #TIMER_SERVER.init(period = 1000, mode = Timer.PERIODIC, callback = lambda t:tryCheckWebserver())
-    webserver.start()
+    try:
+        socket = usocket.socket(usocket.AF_INET, usocket.SOCK_STREAM)
+        socket.bind(("", 80))
+        socket.listen(5)
+
+        webserver.config(socket, DT, CONFIG, EXCEPTIONS, executeJson)
+        webserver.start()
+    except Exception as e:
+        EXCEPTIONS.append((DT.datetime(), e))
