@@ -10,6 +10,7 @@ _maxError         = 0           # [need config()]
 
 _lastPressed      = [0, 0]      #                 Inside: [last pressed button, elapsed (button check) cycles]
 _firstRepeat      = 0           # [need config()]
+_loopChecking     = 0           # [need config()]
 
 _pressedListIndex = 0
 _pressedList      = 0           # [need config()] Low-level:  The last N (_pressLength + _maxError) buttoncheck results.
@@ -138,16 +139,17 @@ def _modifyLoopCounter(value = 1):
 
     if _loopCounter + value < 1:                    # Checks lower boundary.
         _loopCounter = 1
-        _buzzer.midiBeep(60, 400, 100, 3)
+        _buzzer.midiBeep(60, 500, 150, 3)
     elif 255 < _loopCounter + value:                # Checks upper boundary.
         _loopCounter = 255
-        _buzzer.midiBeep(60, 400, 100, 3)
+        _buzzer.midiBeep(60, 500, 150, 3)
     elif value == 0:                                # Reset the counter. Use case: forget the exact count and press 'X'.
         _loopCounter = 1
-        _buzzer.midiBeep(71, 100, 50, 3)
-        _buzzer.midiBeep(60, 400, 100, 1)
+        _buzzer.midiBeep(71, 100, 25, 3)
+        _buzzer.midiBeep(60, 500, 100, 1)
     else:                                           # General modification.
         _loopCounter += value
+        _buzzer.midiBeep(71, 100, 0, 1)
 
 
 def _checkLoopCounter():
@@ -155,11 +157,11 @@ def _checkLoopCounter():
 
     if _loopChecking == 1:
         if _loopCounter <= 20:
-            _buzzer.midiBeep(64, 200, 500, _loopCounter)
+            _buzzer.midiBeep(64, 100, 400, _loopCounter)
         else:
-            _buzzer.midiBeep(71, 100, 50, 3)
+            _buzzer.midiBeep(64, 1500, 100, 2)
     elif _loopChecking == 2:
-        _buzzer.midiBeep(64, 200, 500, _loopCounter)
+        _buzzer.midiBeep(64, 100, 400, _loopCounter)
 
 
 def _processingLoopInput(pressed):
@@ -171,6 +173,7 @@ def _processingLoopInput(pressed):
             _loopInputMode    = False
             _loopCounterInput = False
             _buzzer.setDefaultState(0)
+            _buzzer.midiBeep(60, 100, 50, 2)
             return 12
         elif pressed == 1:              # FORWARD
             _modifyLoopCounter(1)
@@ -187,6 +190,7 @@ def _processingLoopInput(pressed):
         return 0
     elif pressed == 4:                  # REPEAT
         _loopCounterInput = True
+        _buzzer.midiBeep(71, 100, 50, 2)
         return 11
     else:
         return _processingGeneralInput(pressed)
@@ -222,7 +226,7 @@ def _saveCommand():
 
         if result != 0:
             _commandList.append(result)
-            _buzzer.midiBeep(64)
+            _buzzer.midiBeep(64, 100, 0, 1)
     except Exception as e:
         sys.print_exception(e)
 
@@ -234,6 +238,7 @@ def config(config, buzzer, commandList, programList):
     global _pressLength
     global _maxError
     global _firstRepeat
+    global _loopChecking
     global _pressedList
     global _commandList
     global _programList
@@ -249,7 +254,6 @@ def config(config, buzzer, commandList, programList):
     _pressLength  = config.get("turtlePressLength")
     _maxError     = config.get("turtleMaxError")
     _firstRepeat  = config.get("turtleFirstRepeat")
-
     _loopChecking = config.get("turtleLoopChecking")
 
     _pressedList  = [0] * (_pressLength + _maxError)
