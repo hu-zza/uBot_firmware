@@ -24,7 +24,6 @@ _midiInputMode    = False       #                 Special input mode for declari
 
 _timer            = Timer(-1)   #                 Executes the repeated button checks.
 _buzzer           = 0           # [need config()] Buzzer object for feedback.
-_pin              = Pin(15)     #                 For continuous light in special modes: loopInput, midiInput, etc.
 
 def _advanceCounter():
     global _counterPosition
@@ -94,21 +93,19 @@ def _getValidatedPressedButton():
         _lastPressed[1] = 1                                       # In this case the returning value is 0.
         return pressed
     else:
-        return -1                                                 # If validation is in progress, returns -1.
+        return 0                                                 # If validation is in progress, returns 0.
 
 
 def _processingGeneralInput(pressed):
     global _loopInputMode
 
-    if pressed < 1:                 # LACK OF INPUT
-        return 0
-    elif pressed == 1:              # FORWARD
+    if pressed == 1:                # FORWARD
         return 1
     elif pressed == 2:              # PAUSE
         return 9
     elif pressed == 4:              # REPEAT
         _loopInputMode = True
-        _pin.on()
+        _buzzer.setDefaultState(1)
         return 10
     elif pressed == 6:              # F1
         return 0
@@ -119,7 +116,7 @@ def _processingGeneralInput(pressed):
     elif pressed == 12:             # F3
         return 0
     elif pressed == 16:             # RIGHT
-        return 0
+        return 4
     elif pressed == 32:             # BACKWARD
         return 2
     elif pressed == 64:             # START / STOP
@@ -154,6 +151,8 @@ def _modifyLoopCounter(value = 1):
 
 
 def _checkLoopCounter():
+    global _loopChecking
+
     if _loopChecking == 1:
         if _loopCounter <= 20:
             _buzzer.midiBeep(64, 200, 500, _loopCounter)
@@ -171,7 +170,7 @@ def _processingLoopInput(pressed):
         if pressed == 4:                # REPEAT
             _loopInputMode    = False
             _loopCounterInput = False
-            _pin.off()
+            _buzzer.setDefaultState(0)
             return 12
         elif pressed == 1:              # FORWARD
             _modifyLoopCounter(1)
@@ -190,7 +189,7 @@ def _processingLoopInput(pressed):
         _loopCounterInput = True
         return 11
     else:
-        _processingGeneralInput(pressed)
+        return _processingGeneralInput(pressed)
 
 
 def _processingMidiInput(pressed):
@@ -199,20 +198,26 @@ def _processingMidiInput(pressed):
 
 
 def _saveCommand():
+    global _loopCounter
+
     try:
-        result = 0
+        pressed = _getValidatedPressedButton()
 
-        if _loopInputMode:
-            result = _processingLoopInput(_getValidatedPressedButton())
-
-            if result == 12:                              # If the loop has closed, insert counter before end sign (12).
-                _commandList.append(_getValidatedPressedButton())
-
-        elif _midiInputMode:
-            result = _processingMidiInput(_getValidatedPressedButton())
-
+        if pressed == 0:
+            result = 0                                         # Zero means, there is nothing to append to _commandList.
         else:
-            result = _processingGeneralInput(_getValidatedPressedButton())
+            if _loopInputMode:
+                result = _processingLoopInput(pressed)
+
+                if result == 12:                          # If the loop has closed, insert counter before end sign (12).
+                    _commandList.append(_loopCounter)
+                    _loopCounter = 0
+
+            elif _midiInputMode:
+                result = _processingMidiInput(pressed)
+
+            else:
+                result = _processingGeneralInput(pressed)
 
 
         if result != 0:

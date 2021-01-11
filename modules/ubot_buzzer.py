@@ -5,15 +5,21 @@ class Buzzer(PWM):                                                              
 
     def __init__(self, pin, freq, duty, buzzerActive):
         super().__init__(pin, freq, duty)
-        self._pin = pin
-        self._initialPin = pin.value()
+        self._defaultState = 0
         self._buzzerActive = buzzerActive
 
-    def beep(self, freq = 440.0, duration = 100, restAround = 100, count = 1):
-        self._initialPin = self._pin.value()
 
+    def setDefaultState(self, value = 0):
+        self._defaultState = value
+        if value == 0:
+            self.duty(0)
+        else:
+            self.duty(1023)            
+
+
+    def beep(self, freq = 440.0, duration = 100, restAround = 100, count = 1):
         for i in range(count):
-            self._pin.off()
+            self.duty(0)
             sleep_ms(restAround)
 
             if self._buzzerActive:
@@ -22,13 +28,14 @@ class Buzzer(PWM):                                                              
                 sleep_us(round((1000000 / freq) * (freq * duration / 1000 )))
                 self.duty(0)
             else:
-                self._pin.on()
+                self.duty(1023)
                 sleep_ms(duration)
-                self._pin.off()
+                self.duty(0)
 
             sleep_ms(restAround)
 
-        self._pin.value(self._initialPin)
+        if self._defaultState == 1:
+            self.duty(1023)
 
 
     def midiBeep(self, noteOn = 69, duration = 100, restAround = 100, count = 1):
@@ -37,5 +44,5 @@ class Buzzer(PWM):                                                              
 
 
     def rest(self, duration = 100):
-        self._pin.off()
+        self.duty(0)
         sleep_ms(duration)
