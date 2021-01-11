@@ -1,22 +1,30 @@
+import sys
 from machine import Pin, Timer
 from ubot_buzzer import Buzzer
 
-_clockPin         = 0
-_inputPin         = 0
-_counterPosition  = 0
-_pressLength      = 0
-_maxError         = 0
+_clockPin         = 0           # [need config()] Advances the decade counter (U3).
+_inputPin         = 0           # [need config()] Checks the returning signal from turtle HAT.
+_counterPosition  = 0           #                 The position of the decade counter (U3).
+_pressLength      = 0           # [need config()]
+_maxError         = 0           # [need config()]
 
-_lastPressed      = 0
-_firstRepeat      = 0
+_lastPressed      = [0, 0]      #                 Inside: [last pressed button, elapsed (button check) cycles]
+_firstRepeat      = 0           # [need config()]
 
 _pressedListIndex = 0
-_pressedList      = 0
-_pressedButtons   = 0
+_pressedList      = 0           # [need config()] Low-level:  The last N (_pressLength + _maxError) buttoncheck results.
+_commandList      = 0           # [need config()] High-level: Abstract commands, result of processed button presses.
+_programList      = 0           # [need config()] High-level: Result of one or more added _commandList.
 
-_timer            = 0
-_buzzer           = 0
+_loopInputMode    = False       #                 Special input mode for declaring a loop.
+_loopCounterInput = False       #                 Special input mode for declaring the counter of the loop.
+_loopCounter      = 0
 
+_midiInputMode    = False       #                 Special input mode for declaring a MIDI tune.
+
+_timer            = Timer(-1)   #                 Executes the repeated button checks.
+_buzzer           = 0           # [need config()] Buzzer object for feedback.
+_pin              = Pin(15)     #                 For continuous light in special modes: loopInput, midiInput, etc.
 
 def _advanceCounter():
     global _counterPosition
@@ -72,39 +80,159 @@ def _getPressedButton():
             return 0
 
 
-def _saveCommand():
+def _getValidatedPressedButton():
     global _lastPressed
 
-    try:
-        pressed = _getPressedButton()
+    pressed = _getPressedButton()
 
-        if pressed == _lastPressed[0]:
-            _lastPressed[1] += 1
+    if pressed == _lastPressed[0]:
+        _lastPressed[1] += 1
+    else:
+        _lastPressed = [pressed, 1]
+
+    if _lastPressed[1] == 1 or _firstRepeat < _lastPressed[1]:    # Lack of pressing returns same like a button press.
+        _lastPressed[1] = 1                                       # In this case the returning value is 0.
+        return pressed
+    else:
+        return -1                                                 # If validation is in progress, returns -1.
+
+
+def _processingGeneralInput(pressed):
+    global _loopInputMode
+
+    if pressed < 1:                 # LACK OF INPUT
+        return 0
+    elif pressed == 1:              # FORWARD
+        return 1
+    elif pressed == 2:              # PAUSE
+        return 9
+    elif pressed == 4:              # REPEAT
+        _loopInputMode = True
+        _pin.on()
+        return 10
+    elif pressed == 6:              # F1
+        return 0
+    elif pressed == 8:              # ADD
+        return 0
+    elif pressed == 10:             # F2
+        return 0
+    elif pressed == 12:             # F3
+        return 0
+    elif pressed == 16:             # RIGHT
+        return 0
+    elif pressed == 32:             # BACKWARD
+        return 2
+    elif pressed == 64:             # START / STOP
+        return 0
+    elif pressed == 128:            # LEFT
+        return 3
+    elif pressed == 256:            # UNDO
+        return 0
+    elif pressed == 512:            # DELETE a.k.a. 'X'
+        return 0
+    elif pressed == 1023:           # USER                                              CAUSE OF THE HEAT?! TEST NEEDED!
+        return 0
+    else:
+        return 0
+
+
+def _modifyLoopCounter(value = 1):
+    global _loopCounter
+
+    if _loopCounter + value < 1:                    # Checks lower boundary.
+        _loopCounter = 1
+        _buzzer.midiBeep(60, 400, 100, 3)
+    elif 255 < _loopCounter + value:                # Checks upper boundary.
+        _loopCounter = 255
+        _buzzer.midiBeep(60, 400, 100, 3)
+    elif value == 0:                                # Reset the counter. Use case: forget the exact count and press 'X'.
+        _loopCounter = 1
+        _buzzer.midiBeep(71, 100, 50, 3)
+        _buzzer.midiBeep(60, 400, 100, 1)
+    else:                                           # General modification.
+        _loopCounter += value
+
+
+def _checkLoopCounter():
+    if _loopChecking == 1:
+        if _loopCounter <= 20:
+            _buzzer.midiBeep(64, 200, 500, _loopCounter)
         else:
-            _lastPressed = [pressed, 1]
+            _buzzer.midiBeep(71, 100, 50, 3)
+    elif _loopChecking == 2:
+        _buzzer.midiBeep(64, 200, 500, _loopCounter)
 
-        if 0 < pressed and (_lastPressed[1] == 1 or _firstRepeat < _lastPressed[1]):
-            _pressedButtons.append(pressed)
-            _lastPressed[1] = 1
+
+def _processingLoopInput(pressed):
+    global _loopInputMode
+    global _loopCounterInput
+
+    if _loopCounterInput:
+        if pressed == 4:                # REPEAT
+            _loopInputMode    = False
+            _loopCounterInput = False
+            _pin.off()
+            return 12
+        elif pressed == 1:              # FORWARD
+            _modifyLoopCounter(1)
+        elif pressed == 16:             # RIGHT
+            _modifyLoopCounter(1)
+        elif pressed == 32:             # BACKWARD
+            _modifyLoopCounter(-1)
+        elif pressed == 128:            # LEFT
+            _modifyLoopCounter(-1)
+        elif pressed == 512:            # DELETE a.k.a. 'X'
+            _modifyLoopCounter(0)
+        else:
+            _checkLoopCounter()
+        return 0
+    elif pressed == 4:                  # REPEAT
+        _loopCounterInput = True
+        return 11
+    else:
+        _processingGeneralInput(pressed)
+
+
+def _processingMidiInput(pressed):
+    return 0
+
+
+
+def _saveCommand():
+    try:
+        result = 0
+
+        if _loopInputMode:
+            result = _processingLoopInput(_getValidatedPressedButton())
+
+            if result == 12:                              # If the loop has closed, insert counter before end sign (12).
+                _commandList.append(_getValidatedPressedButton())
+
+        elif _midiInputMode:
+            result = _processingMidiInput(_getValidatedPressedButton())
+
+        else:
+            result = _processingGeneralInput(_getValidatedPressedButton())
+
+
+        if result != 0:
+            _commandList.append(result)
             _buzzer.midiBeep(64)
     except Exception as e:
-        print(e)
+        sys.print_exception(e)
 
 
-def config(config, pressedButtons, buzzer):
+def config(config, buzzer, commandList, programList):
 
     global _clockPin
     global _inputPin
-    global _counterPosition
     global _pressLength
     global _maxError
-    global _lastPressed
     global _firstRepeat
-    global _pressedListIndex
     global _pressedList
-    global _pressedButtons
-    global _timer
-    global _buzzer          
+    global _commandList
+    global _programList
+    global _buzzer
 
     _clockPin = Pin(config.get("turtleClockPin"), Pin.OUT)
     _clockPin.off()
@@ -113,18 +241,15 @@ def config(config, pressedButtons, buzzer):
     _inputPin.off()                                        # DEPRECATED: New PCB design (2.1) will resolve this.
     _inputPin.init(Pin.IN)                                 # DEPRECATED: New PCB design (2.1) will resolve this.
 
-    _counterPosition  = config.get("turtleCounterPos")
-    _pressLength      = config.get("turtlePressLength")
-    _maxError         = config.get("turtleMaxError")
+    _pressLength  = config.get("turtlePressLength")
+    _maxError     = config.get("turtleMaxError")
+    _firstRepeat  = config.get("turtleFirstRepeat")
 
-    _lastPressed      = [0, 0]                             # [pressed button, elapsed (button check) cycles]
-    _firstRepeat      = config.get("turtleFirstRepeat")
+    _loopChecking = config.get("turtleLoopChecking")
 
-    _pressedListIndex = 0
-    _pressedList      = [0] * (_pressLength + _maxError)
-    _pressedButtons   = pressedButtons
-
-    _timer            = Timer(-1)
-    _buzzer           = buzzer
+    _pressedList  = [0] * (_pressLength + _maxError)
+    _commandList  = commandList
+    _programList  = programList
+    _buzzer       = buzzer
 
     _timer.init(period = config.get("turtleCheckPeriod"), mode = Timer.PERIODIC, callback = lambda t:_saveCommand())

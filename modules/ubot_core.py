@@ -46,8 +46,8 @@ except Exception as e:
 DT = IDT = RTC()
 CONFIG   = {}
 
-PRESSED_BUTTONS = []
-
+COMMAND_LIST = bytearray()
+PROGRAM_LIST = bytearray()
 
 ################################
 ## METHODS
@@ -123,6 +123,9 @@ def executeJson(json):
         for command in json.get("commandList"):
             if command[0:6] == "SLEEP_":
                 sleep_ms(int(command[6:].strip()))
+                results.append("'{}' executed successfully.".format(command))
+            elif command[0:5] == "REST_":
+                BUZZ.rest(int(command[5:].strip()))
                 results.append("'{}' executed successfully.".format(command))
             elif command[0:5] == "BEEP_":
                 beepArray = command[5:].strip().split(":")
@@ -225,7 +228,7 @@ BUZZ = Buzzer(Pin(15), 262, 0, CONFIG.get("buzzerActive"))
 
 
 if CONFIG.get("turtleHatActive"):
-    turtlehat.config(CONFIG, PRESSED_BUTTONS, BUZZ)
+    turtlehat.config(CONFIG, BUZZ, COMMAND_LIST, PROGRAM_LIST)
 else:
     P13 = Pin(13, Pin.OUT)
     P16 = Pin(16, Pin.IN)   # MicroPython can not handle the pull-down resistor of the GPIO16: Use PULL physical switch.

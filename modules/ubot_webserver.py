@@ -1,4 +1,4 @@
-import gc, ujson
+import gc, ujson, usocket
 
 from machine import RTC
 
