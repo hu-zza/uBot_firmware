@@ -1,6 +1,6 @@
 import sys
 from machine import Pin, Timer
-from ubot_buzzer import Buzzer
+import ubot_buzzer as buzzer
 
 _clockPin         = 0           # [need config()] Advances the decade counter (U3).
 _inputPin         = 0           # [need config()] Checks the returning signal from turtle HAT.
@@ -27,7 +27,6 @@ _loopCounter      = 0
 _midiInputMode    = False       #                 Special input mode for declaring a MIDI tune.
 
 _timer            = Timer(-1)   #                 Executes the repeated button checks.
-_buzzer           = 0           # [need config()] Buzzer object for feedback.
 
 
 def _addToCommandArray(command):
@@ -51,10 +50,10 @@ def _undoCommand():
     else:
         if 0 < _programPointer:
             for i in range(12):
-                _buzzer.midiBeep(60 + i, 100, 0, 1)
+                buzzer.midiBeep(60 + i, 100, 0, 1)
             pass  # Move last added _commandArray from _programArray to _commandArray variable, etc...
         else:
-            _buzzer.midiBeep(60, 500, 150, 3)
+            buzzer.midiBeep(60, 500, 150, 3)
 
 
 
@@ -138,7 +137,7 @@ def _processingGeneralInput(pressed):
         return 9
     elif pressed == 4:              # REPEAT
         _loopInputMode = True
-        _buzzer.setDefaultState(1)
+        buzzer.setDefaultState(1)
         return 10
     elif pressed == 6:              # F1
         return 0
@@ -161,11 +160,11 @@ def _processingGeneralInput(pressed):
             _undoCommand()
             if _commandArray[_commandPointer] == 10:
                 _loopInputMode = False
-                _buzzer.setDefaultState(0)
-                _buzzer.midiBeep(71, 100, 25, 3)
-                _buzzer.midiBeep(60, 500, 100, 1)
+                buzzer.setDefaultState(0)
+                buzzer.midiBeep(71, 100, 25, 3)
+                buzzer.midiBeep(60, 500, 100, 1)
             else:
-                _buzzer.midiBeep(71, 100, 25, 2)
+                buzzer.midiBeep(71, 100, 25, 2)
         return 0
     elif pressed == 512:            # DELETE a.k.a. 'X'
         return 0
@@ -180,17 +179,17 @@ def _modifyLoopCounter(value = 1):
 
     if _loopCounter + value < 1:                    # Checks lower boundary.
         _loopCounter = 1
-        _buzzer.midiBeep(60, 500, 150, 3)
+        buzzer.midiBeep(60, 500, 150, 3)
     elif 255 < _loopCounter + value:                # Checks upper boundary.
         _loopCounter = 255
-        _buzzer.midiBeep(60, 500, 150, 3)
+        buzzer.midiBeep(60, 500, 150, 3)
     elif value == 0:                                # Reset the counter. Use case: forget the exact count and press 'X'.
         _loopCounter = 0
-        _buzzer.midiBeep(71, 100, 25, 3)
-        _buzzer.midiBeep(60, 500, 100, 1)
+        buzzer.midiBeep(71, 100, 25, 3)
+        buzzer.midiBeep(60, 500, 100, 1)
     else:                                           # General modification.
         _loopCounter += value
-        _buzzer.midiBeep(71, 100, 0, 1)
+        buzzer.midiBeep(71, 100, 0, 1)
 
 
 def _checkLoopCounter():
@@ -198,11 +197,11 @@ def _checkLoopCounter():
 
     if _loopChecking == 1:
         if _loopCounter <= 20:
-            _buzzer.midiBeep(64, 100, 400, _loopCounter)
+            buzzer.midiBeep(64, 100, 400, _loopCounter)
         else:
-            _buzzer.midiBeep(64, 1500, 100, 2)
+            buzzer.midiBeep(64, 1500, 100, 2)
     elif _loopChecking == 2:
-        _buzzer.midiBeep(64, 100, 400, _loopCounter)
+        buzzer.midiBeep(64, 100, 400, _loopCounter)
 
 
 def _processingLoopInput(pressed):
@@ -213,7 +212,7 @@ def _processingLoopInput(pressed):
         if pressed == 4:                # REPEAT
             _loopInputMode    = False
             _loopCounterInput = False
-            _buzzer.setDefaultState(0)
+            buzzer.setDefaultState(0)
             return 12
         elif pressed == 1:              # FORWARD
             _modifyLoopCounter(1)
@@ -230,7 +229,7 @@ def _processingLoopInput(pressed):
         return 0
     elif pressed == 4:                  # REPEAT
         _loopCounterInput = True
-        _buzzer.midiBeep(71, 100, 50, 2)
+        buzzer.midiBeep(71, 100, 50, 2)
         return 11
     else:
         return _processingGeneralInput(pressed)
@@ -257,13 +256,13 @@ def _addCommand():
                     if _loopCounter == 0:                     # Loop created accidentally, loop is no more needed, etc.
                         while _commandArray[_commandPointer] == 10:                  # Purge unnecessary half-baked loop
                             _undoCommand()
-                        _buzzer.midiBeep(71, 100, 25, 3)
-                        _buzzer.midiBeep(60, 500, 100, 1)
+                        buzzer.midiBeep(71, 100, 25, 3)
+                        buzzer.midiBeep(60, 500, 100, 1)
                         result = 0
                     else:                                                                    # Successful loop creating.
                         _addToCommandArray(_loopCounter)
                         _loopCounter = 0
-                        _buzzer.midiBeep(60, 100, 50, 2)
+                        buzzer.midiBeep(60, 100, 50, 2)
 
             elif _midiInputMode:
                 result = _processingMidiInput(pressed)
@@ -274,13 +273,12 @@ def _addCommand():
 
         if result != 0:
             _addToCommandArray(result)
-            _buzzer.midiBeep(64, 100, 0, 1)
+            buzzer.midiBeep(64, 100, 0, 1)
     except Exception as e:
         sys.print_exception(e)
 
 
-def config(config, buzzer):
-
+def config(config):
     global _clockPin
     global _inputPin
     global _pressLength
@@ -288,7 +286,6 @@ def config(config, buzzer):
     global _firstRepeat
     global _loopChecking
     global _pressedList
-    global _buzzer
 
     _clockPin = Pin(config.get("turtleClockPin"), Pin.OUT)
     _clockPin.off()
@@ -303,6 +300,5 @@ def config(config, buzzer):
     _loopChecking = config.get("turtleLoopChecking")
 
     _pressedList  = [0] * (_pressLength + _maxError)
-    _buzzer       = buzzer
 
     _timer.init(period = config.get("turtleCheckPeriod"), mode = Timer.PERIODIC, callback = lambda t:_addCommand())

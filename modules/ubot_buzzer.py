@@ -1,48 +1,58 @@
 from machine import Pin, PWM
 from utime   import sleep_ms, sleep_us
 
-class Buzzer(PWM):                                                              # TODO: task list?
-
-    def __init__(self, pin, freq, duty, buzzerActive):
-        super().__init__(pin, freq, duty)
-        self._defaultState = 0
-        self._buzzerActive = buzzerActive
+_pwm          = 0
+_buzzerActive = 0
+_defaultState = 0
 
 
-    def setDefaultState(self, value = 0):
-        self._defaultState = value
-        if value == 0:
-            self.duty(0)
+def config(config):
+    global _pwm
+    global _buzzerActive
+    global _defaultState
+
+    _pwm          = PWM(Pin(config.get("buzzerPin")), 0, 0)
+    _buzzerActive = config.get("buzzerActive")
+    _defaultState = 0
+
+
+def setDefaultState(value = 0):
+    global _defaultState
+
+    _defaultState = value
+    if value == 0:
+        _pwm.duty(0)
+    else:
+        _pwm.duty(1023)
+
+
+def beep(freq = 440.0, duration = 100, restAround = 100, count = 1):
+    for i in range(count):
+        rest(restAround)
+
+        if _buzzerActive:
+            _pwmBeep(freq, duration)
         else:
-            self.duty(1023)            
+            _pwm.duty(1023)
+            sleep_ms(duration)
+
+        rest(restAround)
+
+    if _defaultState == 1:
+        _pwm.duty(1023)
 
 
-    def beep(self, freq = 440.0, duration = 100, restAround = 100, count = 1):
-        for i in range(count):
-            self.duty(0)
-            sleep_ms(restAround)
-
-            if self._buzzerActive:
-                self.freq(round(freq))
-                self.duty(512)
-                sleep_us(round((1000000 / freq) * (freq * duration / 1000 )))
-                self.duty(0)
-            else:
-                self.duty(1023)
-                sleep_ms(duration)
-                self.duty(0)
-
-            sleep_ms(restAround)
-
-        if self._defaultState == 1:
-            self.duty(1023)
+def midiBeep(noteOn = 69, duration = 100, restAround = 100, count = 1):
+    freq = 440 * pow(2, (noteOn - 69) / 12)
+    beep(freq, duration, restAround, count)
 
 
-    def midiBeep(self, noteOn = 69, duration = 100, restAround = 100, count = 1):
-        f = 440 * pow(2, (noteOn - 69) / 12)
-        self.beep(f, duration, restAround, count)
+def rest(duration = 100):
+    _pwm.duty(0)
+    sleep_ms(duration)
 
 
-    def rest(self, duration = 100):
-        self.duty(0)
-        sleep_ms(duration)
+def _pwmBeep(freq = 440.0, duration = 100):
+    _pwm.freq(round(freq))
+    _pwm.duty(512)
+    sleep_ms(duration)

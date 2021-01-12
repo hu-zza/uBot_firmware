@@ -7,12 +7,11 @@ from machine     import Pin, PWM, RTC, Timer, UART, WDT
 from ubinascii   import hexlify
 from utime       import sleep, sleep_ms
 
+import ubot_buzzer    as buzzer
 import ubot_feedback  as feedback
 import ubot_motor     as motor
 import ubot_turtlehat as turtlehat
 import ubot_webserver as webserver
-
-from ubot_buzzer     import Buzzer
 
 
 # Import configuration files
@@ -123,15 +122,15 @@ def executeJson(json):
                 sleep_ms(int(command[6:].strip()))
                 results.append("'{}' executed successfully.".format(command))
             elif command[0:5] == "REST_":
-                BUZZ.rest(int(command[5:].strip()))
+                buzzer.rest(int(command[5:].strip()))
                 results.append("'{}' executed successfully.".format(command))
             elif command[0:5] == "BEEP_":
                 beepArray = command[5:].strip().split(":")
-                BUZZ.beep(int(beepArray[0]), int(beepArray[1]), int(beepArray[2]))
+                buzzer.beep(int(beepArray[0]), int(beepArray[1]), int(beepArray[2]))
                 results.append("'{}' executed successfully.".format(command))
             elif command[0:5] == "MIDI_":
                 beepArray = command[5:].strip().split(":")
-                BUZZ.midiBeep(int(beepArray[0]), int(beepArray[1]), int(beepArray[2]))
+                buzzer.midiBeep(int(beepArray[0]), int(beepArray[1]), int(beepArray[2]))
                 results.append("'{}' executed successfully.".format(command))
             elif command[0:4] == "MOT_":
                 motor.move(int(command[4]), int(command[6:].strip()))
@@ -222,11 +221,11 @@ if CONFIG.get("i2cActive"):
 ###########
 ## GPIO
 
-BUZZ = Buzzer(Pin(15), 262, 0, CONFIG.get("buzzerActive"))
+buzzer.config(CONFIG)
 
 
 if CONFIG.get("turtleHatActive"):
-    turtlehat.config(CONFIG, BUZZ)
+    turtlehat.config(CONFIG)
 else:
     P13 = Pin(13, Pin.OUT)
     P16 = Pin(16, Pin.IN)   # MicroPython can not handle the pull-down resistor of the GPIO16: Use PULL physical switch.
