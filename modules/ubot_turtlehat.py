@@ -49,11 +49,10 @@ def _undoCommand():
         _commandPointer -= 1
     else:
         if 0 < _programPointer:
-            for i in range(12):
-                buzzer.midiBeep(60 + i, 100, 0, 1)
+            buzzer.keyBeep("beepGeneralOk")
             pass  # Move last added _commandArray from _programArray to _commandArray variable, etc...
         else:
-            buzzer.midiBeep(60, 500, 150, 3)
+            buzzer.keyBeep("beepBoundary")
 
 
 
@@ -161,10 +160,9 @@ def _processingGeneralInput(pressed):
             if _commandArray[_commandPointer] == 10:
                 _loopInputMode = False
                 buzzer.setDefaultState(0)
-                buzzer.midiBeep(71, 100, 25, 3)
-                buzzer.midiBeep(60, 500, 100, 1)
+                buzzer.keyBeep("beepDeleted")
             else:
-                buzzer.midiBeep(71, 100, 25, 2)
+                buzzer.keyBeep("beepUndone")
         return 0
     elif pressed == 512:            # DELETE a.k.a. 'X'
         return 0
@@ -179,17 +177,16 @@ def _modifyLoopCounter(value = 1):
 
     if _loopCounter + value < 1:                    # Checks lower boundary.
         _loopCounter = 1
-        buzzer.midiBeep(60, 500, 150, 3)
+        buzzer.keyBeep("beepBoundary")
     elif 255 < _loopCounter + value:                # Checks upper boundary.
         _loopCounter = 255
-        buzzer.midiBeep(60, 500, 150, 3)
+        buzzer.keyBeep("beepBoundary")
     elif value == 0:                                # Reset the counter. Use case: forget the exact count and press 'X'.
         _loopCounter = 0
-        buzzer.midiBeep(71, 100, 25, 3)
-        buzzer.midiBeep(60, 500, 100, 1)
+        buzzer.keyBeep("beepDeleted")
     else:                                           # General modification.
         _loopCounter += value
-        buzzer.midiBeep(71, 100, 0, 1)
+        buzzer.keyBeep("beepInAndDecrease")
 
 
 def _checkLoopCounter():
@@ -199,7 +196,7 @@ def _checkLoopCounter():
         if _loopCounter <= 20:
             buzzer.midiBeep(64, 100, 400, _loopCounter)
         else:
-            buzzer.midiBeep(64, 1500, 100, 2)
+            buzzer.keyBeep("beepTooLong")
     elif _loopChecking == 2:
         buzzer.midiBeep(64, 100, 400, _loopCounter)
 
@@ -229,7 +226,7 @@ def _processingLoopInput(pressed):
         return 0
     elif pressed == 4:                  # REPEAT
         _loopCounterInput = True
-        buzzer.midiBeep(71, 100, 50, 2)
+        buzzer.keyBeep("beepInputNeeded")
         return 11
     else:
         return _processingGeneralInput(pressed)
@@ -256,13 +253,12 @@ def _addCommand():
                     if _loopCounter == 0:                     # Loop created accidentally, loop is no more needed, etc.
                         while _commandArray[_commandPointer] == 10:                  # Purge unnecessary half-baked loop
                             _undoCommand()
-                        buzzer.midiBeep(71, 100, 25, 3)
-                        buzzer.midiBeep(60, 500, 100, 1)
+                        buzzer.keyBeep("beepDeleted")
                         result = 0
                     else:                                                                    # Successful loop creating.
                         _addToCommandArray(_loopCounter)
                         _loopCounter = 0
-                        buzzer.midiBeep(60, 100, 50, 2)
+                        buzzer.keyBeep("beepCompleted")
 
             elif _midiInputMode:
                 result = _processingMidiInput(pressed)
@@ -273,7 +269,7 @@ def _addCommand():
 
         if result != 0:
             _addToCommandArray(result)
-            buzzer.midiBeep(64, 100, 0, 1)
+            buzzer.keyBeep("beepProcessed")
     except Exception as e:
         sys.print_exception(e)
 
