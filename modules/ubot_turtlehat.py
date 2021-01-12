@@ -14,8 +14,11 @@ _loopChecking     = 0           # [need config()]
 
 _pressedListIndex = 0
 _pressedList      = 0           # [need config()] Low-level:  The last N (_pressLength + _maxError) buttoncheck results.
-_commandList      = 0           # [need config()] High-level: Abstract commands, result of processed button presses.
-_programList      = 0           # [need config()] High-level: Result of one or more added _commandList.
+_commandArray     = bytearray() #                 High-level: Abstract commands, result of processed button presses.
+_commandPointer   = 0           #                 Pointer for _commandArray.
+_programArray     = bytearray() #                 High-level: Result of one or more added _commandArray.
+_programPointer   = 0           #                 Pointer for _programArray.
+_programParts     = bytearray() #                 Positions by which _programArray can be split into _commandArray(s).
 
 _loopInputMode    = False       #                 Special input mode for declaring a loop.
 _loopCounterInput = False       #                 Special input mode for declaring the counter of the loop.
@@ -25,6 +28,35 @@ _midiInputMode    = False       #                 Special input mode for declari
 
 _timer            = Timer(-1)   #                 Executes the repeated button checks.
 _buzzer           = 0           # [need config()] Buzzer object for feedback.
+
+
+def _addToCommandArray(command):
+    global _commandArray
+    global _commandPointer
+
+    if _commandPointer < len(_commandArray):
+        _commandArray[_commandPointer] = command
+    else:
+        _commandArray.append(command)
+
+    _commandPointer += 1
+
+
+def _undoCommand():
+    global _commandPointer
+    global _programPointer                    # I think this will be needed, if pass @ 55 became something useful... :-)
+
+    if 0 < _commandPointer:
+        _commandPointer -= 1
+    else:
+        if 0 < _programPointer:
+            for i in range(12):
+                _buzzer.midiBeep(60 + i, 100, 0, 1)
+            pass  # Move last added _commandArray from _programArray to _commandArray variable, etc...
+        else:
+            _buzzer.midiBeep(60, 500, 150, 3)
+
+
 
 def _advanceCounter():
     global _counterPosition
@@ -125,6 +157,15 @@ def _processingGeneralInput(pressed):
     elif pressed == 128:            # LEFT
         return 3
     elif pressed == 256:            # UNDO
+        if not _loopCounterInput:
+            _undoCommand()
+            if _commandArray[_commandPointer] == 10:
+                _loopInputMode = False
+                _buzzer.setDefaultState(0)
+                _buzzer.midiBeep(71, 100, 25, 3)
+                _buzzer.midiBeep(60, 500, 100, 1)
+            else:
+                _buzzer.midiBeep(71, 100, 25, 2)
         return 0
     elif pressed == 512:            # DELETE a.k.a. 'X'
         return 0
@@ -144,7 +185,7 @@ def _modifyLoopCounter(value = 1):
         _loopCounter = 255
         _buzzer.midiBeep(60, 500, 150, 3)
     elif value == 0:                                # Reset the counter. Use case: forget the exact count and press 'X'.
-        _loopCounter = 1
+        _loopCounter = 0
         _buzzer.midiBeep(71, 100, 25, 3)
         _buzzer.midiBeep(60, 500, 100, 1)
     else:                                           # General modification.
@@ -173,7 +214,6 @@ def _processingLoopInput(pressed):
             _loopInputMode    = False
             _loopCounterInput = False
             _buzzer.setDefaultState(0)
-            _buzzer.midiBeep(60, 100, 50, 2)
             return 12
         elif pressed == 1:              # FORWARD
             _modifyLoopCounter(1)
@@ -201,21 +241,29 @@ def _processingMidiInput(pressed):
 
 
 
-def _saveCommand():
+def _addCommand():
     global _loopCounter
 
     try:
         pressed = _getValidatedPressedButton()
 
         if pressed == 0:
-            result = 0                                         # Zero means, there is nothing to append to _commandList.
+            result = 0                                        # Zero means, there is nothing to append to _commandArray.
         else:
             if _loopInputMode:
                 result = _processingLoopInput(pressed)
 
-                if result == 12:                          # If the loop has closed, insert counter before end sign (12).
-                    _commandList.append(_loopCounter)
-                    _loopCounter = 0
+                if result == 12:                              # If the loop has closed
+                    if _loopCounter == 0:                     # Loop created accidentally, loop is no more needed, etc.
+                        while _commandArray[_commandPointer] == 10:                  # Purge unnecessary half-baked loop
+                            _undoCommand()
+                        _buzzer.midiBeep(71, 100, 25, 3)
+                        _buzzer.midiBeep(60, 500, 100, 1)
+                        result = 0
+                    else:                                                                    # Successful loop creating.
+                        _addToCommandArray(_loopCounter)
+                        _loopCounter = 0
+                        _buzzer.midiBeep(60, 100, 50, 2)
 
             elif _midiInputMode:
                 result = _processingMidiInput(pressed)
@@ -225,13 +273,13 @@ def _saveCommand():
 
 
         if result != 0:
-            _commandList.append(result)
+            _addToCommandArray(result)
             _buzzer.midiBeep(64, 100, 0, 1)
     except Exception as e:
         sys.print_exception(e)
 
 
-def config(config, buzzer, commandList, programList):
+def config(config, buzzer):
 
     global _clockPin
     global _inputPin
@@ -240,8 +288,6 @@ def config(config, buzzer, commandList, programList):
     global _firstRepeat
     global _loopChecking
     global _pressedList
-    global _commandList
-    global _programList
     global _buzzer
 
     _clockPin = Pin(config.get("turtleClockPin"), Pin.OUT)
@@ -257,8 +303,6 @@ def config(config, buzzer, commandList, programList):
     _loopChecking = config.get("turtleLoopChecking")
 
     _pressedList  = [0] * (_pressLength + _maxError)
-    _commandList  = commandList
-    _programList  = programList
     _buzzer       = buzzer
 
-    _timer.init(period = config.get("turtleCheckPeriod"), mode = Timer.PERIODIC, callback = lambda t:_saveCommand())
+    _timer.init(period = config.get("turtleCheckPeriod"), mode = Timer.PERIODIC, callback = lambda t:_addCommand())

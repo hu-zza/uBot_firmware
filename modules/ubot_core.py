@@ -46,8 +46,6 @@ except Exception as e:
 DT = IDT = RTC()
 CONFIG   = {}
 
-COMMAND_LIST = bytearray()
-PROGRAM_LIST = bytearray()
 
 ################################
 ## METHODS
@@ -228,7 +226,7 @@ BUZZ = Buzzer(Pin(15), 262, 0, CONFIG.get("buzzerActive"))
 
 
 if CONFIG.get("turtleHatActive"):
-    turtlehat.config(CONFIG, BUZZ, COMMAND_LIST, PROGRAM_LIST)
+    turtlehat.config(CONFIG, BUZZ)
 else:
     P13 = Pin(13, Pin.OUT)
     P16 = Pin(16, Pin.IN)   # MicroPython can not handle the pull-down resistor of the GPIO16: Use PULL physical switch.
