@@ -27,7 +27,7 @@ def config(socket, dateTime, config, exceptionList, jsonFunction):
     _jsonFunction = jsonFunction
 
 
-def _getDebugTable(method, path, length = 0, type = "-", body = "-"):
+def _getDebugContent(method, path, length = 0, type = "-", body = "-"):
     length = str(length)
 
     result = ubot_webpage_template.getStats()
@@ -50,6 +50,10 @@ def _getDebugTable(method, path, length = 0, type = "-", body = "-"):
         method = method, path = path, length = length, type = type, body = body,
         freePercent = freePercent, freeMem = gc.mem_free(), allMem = allMem, exceptions = exceptionList
     )
+
+
+def _getCommandPanel(method, path):
+    return ""
 
 
 def _reply(returnFormat, httpCode, message, title = None):
@@ -85,8 +89,10 @@ def _reply(returnFormat, httpCode, message, title = None):
 
 
 def _processGetQuery(path):
-    _reply("HTML", "200 OK", _getDebugTable("GET", path), "&microBot Debug Page")
-
+    if path[1:] == "debug":
+        _reply("HTML", "200 OK", _getDebugContent("GET", path), "&microBot Debug Page")
+    else:
+        _reply("HTML", "200 OK", _getCommandPanel("GET", path), "&microBot Command Page")
 
 def _processPostQuery(body):
     try:

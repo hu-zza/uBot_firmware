@@ -10,7 +10,7 @@ from utime       import sleep, sleep_ms
 import ubot_buzzer    as buzzer
 import ubot_feedback  as feedback
 import ubot_motor     as motor
-import ubot_turtlehat as turtlehat
+import ubot_turtle    as turtle
 import ubot_webserver as webserver
 
 
@@ -224,15 +224,15 @@ if CONFIG.get("i2cActive"):
 buzzer.config(CONFIG)
 
 
-if CONFIG.get("turtleHatActive"):
-    turtlehat.config(CONFIG)
+if CONFIG.get("turtleActive"):
+    turtle.config(CONFIG)
 else:
     P13 = Pin(13, Pin.OUT)
     P16 = Pin(16, Pin.IN)   # MicroPython can not handle the pull-down resistor of the GPIO16: Use PULL physical switch.
     P13.off()
 
 
-P12 = Pin(12, Pin.OUT)              # GPIO pin. On turtle HAT it can drive a LED if you switch physical switch on.
+P12 = Pin(12, Pin.OUT)              # GPIO pin. On μBot turtle it can drive a LED if you switch physical switch on.
 P14 = Pin(14, Pin.IN, Pin.PULL_UP)  # GPIO pin.
 P12.off()
 
