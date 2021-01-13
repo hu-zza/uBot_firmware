@@ -33,8 +33,11 @@ def keyBeep(keyInConfigDictionary):
     tuneList = _config.get(keyInConfigDictionary)
 
     if tuneList != None:
-        for tune in tuneList:
-            midiBeep(tune[0], tune[1], tune[2], tune[3])
+        if (isinstance(tuneList[0], tuple)):
+            for tune in tuneList:
+                midiBeep(tune[0], tune[1], tune[2], tune[3])
+        else:
+            midiBeep(tuneList[0], tuneList[1], tuneList[2], tuneList[3])
     else:
         midiBeep(64)
 
