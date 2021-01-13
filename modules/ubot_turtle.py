@@ -14,13 +14,13 @@ _loopChecking      = 0           # [need config()]
 
 _pressedListIndex  = 0
 _pressedList       = 0           # [need config()] Low-level:  The last N (_pressLength + _maxError) buttoncheck results.
-_temporaryExcluded = []          #
 _commandArray      = bytearray() #                 High-level: Abstract commands, result of processed button presses.
 _commandPointer    = 0           #                 Pointer for _commandArray.
 _programArray      = bytearray() #                 High-level: Result of one or more added _commandArray.
 _programPointer    = 0           #                 Pointer for _programArray.
-_programParts      = bytearray() #                 Positions by which _programArray can be split into _commandArray(s).
+_programParts      = []          #                 Positions by which _programArray can be split into _commandArray(s).
 
+_loopPosition      = 0 #################################################################################################
 _loopInputMode     = False       #                 Special input mode for declaring a loop.
 _loopCounterInput  = False       #                 Special input mode for declaring the counter of the loop.
 _loopCounter       = 0
@@ -34,37 +34,9 @@ _midiInputMode     = False       #                 Special input mode for declar
 _timer             = Timer(-1)   #                 Executes the repeated button checks.
 
 
-def _addToCommandArray(command):
-    global _commandArray
-    global _commandPointer
 
-    if _commandPointer < len(_commandArray):
-        _commandArray[_commandPointer] = command
-    else:
-        _commandArray.append(command)
-
-    _commandPointer += 1
-
-def _undoCommand():
-    global _commandPointer
-    global _programPointer                # I think this will be needed, if section 53-55 became something useful... :-)
-
-    if 0 < _commandPointer:
-        _commandPointer -= 1
-        return True
-    else:
-        if 0 < _programPointer:
-            buzzer.keyBeep("beepLoaded")
-            # Move last added _commandArray from _programArray to _commandArray variable, etc...
-            return True
-        else:
-            buzzer.keyBeep("beepBoundary")
-            return False
-
-
-def _addToProgramArray():
-    pass
-
+################################
+## BUTTON PRESS PROCESSING
 
 def _advanceCounter():
     global _counterPosition
@@ -137,48 +109,106 @@ def _getValidatedPressedButton():
         return 0                                                 # If validation is in progress, returns 0.
 
 
-def _creatingFunction(pressed):
-    return pressed
-    """
-    global _functionInputMode
-    global _temporaryExcluded
 
-    _functionInputMode = True
-    _temporaryExcluded = [pressed, 8, 64, 1023]    # *itself*, ADD, START / STOP, USER
-    buzzer.setDefaultState(1)
-    return 20
-    """
+################################
+## BUTTON PRESS INTERPRETATION
 
-def _processingGeneralInput(pressed):
-    global _loopInputMode
-    global _temporaryExcluded
+def _addCommand():
+    try:
+        pressed = _getValidatedPressedButton()
 
-    if pressed == 1:                # FORWARD
-        return 1
-    elif pressed == 2:              # PAUSE
-        return 9
-    elif pressed == 4:              # REPEAT
-        _loopInputMode     = True
-        _temporaryExcluded = [8, 64, 1023]    # ADD, START / STOP, USER
-        buzzer.setDefaultState(1)
-        return 10
-    elif pressed == 6:              # F1
-        return _creatingFunction(pressed)
-    elif pressed == 8:              # ADD
-        _addToProgramArray()
-        return 0
-    elif pressed == 10:             # F2
-        return _creatingFunction(pressed)
-    elif pressed == 12:             # F3
-        return _creatingFunction(pressed)
-    elif pressed == 16:             # RIGHT
-        return 4
-    elif pressed == 32:             # BACKWARD
-        return 2
-    elif pressed == 64:             # START / STOP
-        return 64                                          ############## For testing _temporaryExcluded
-    elif pressed == 128:            # LEFT
-        return 3
+        if pressed == 0:
+            result = 0  # Zero means, there is nothing to save to _commandArray. Not only lack of buttonpress returns 0.
+        else:
+            tupleWithCallable = _currentMapping.get(pressed)                # Dictionary based switch...case
+
+            if tupleWithCallable == None:                                   # Default branch
+                result = 0
+            else:
+                if tupleWithCallable[1] == ():
+                    result = tupleWithCallable[0]()
+                else:
+                    result = tupleWithCallable[0](tupleWithCallable[1])
+
+        if result != 0:
+            _addToCommandArray(result)
+
+    except Exception as e:
+        sys.print_exception(e)
+
+
+
+################################
+## STANDARDIZED FUNCTIONS
+
+def __beepAndReturn(arguments):
+    buzzer.keyBeep(arguments[0])
+    return arguments[1]
+
+
+def _createLoop():
+    pass
+    """    if _loopCounterInput:
+            if pressed == 4:                # REPEAT
+                _loopInputMode     = False
+                _loopCounterInput  = False
+                _temporaryExcluded = []
+                buzzer.setDefaultState(0)
+
+        elif pressed == 4:                  # REPEAT
+            _loopCounterInput = True
+            buzzer.keyBeep("beepInputNeeded")
+            return 11
+        else:
+            return _processingGeneralInput(pressed)
+
+
+                if pressed == 4:              # REPEAT
+                    _loopInputMode     = True
+                    _temporaryExcluded = [8, 64, 1023]    # ADD, START / STOP, USER
+                    buzzer.setDefaultState(1)
+                    return 10
+"""
+
+
+def _manageFunction():
+    pass
+
+
+def _startOrStop():
+    pass
+
+
+def _undo():
+    global _commandPointer
+    global _programPointer                # I think this will be needed, if section 53-55 became something useful... :-)
+
+    if 0 < _commandPointer:
+        _commandPointer -= 1
+        return True
+    else:
+        if 0 < _programPointer:
+            buzzer.keyBeep("beepLoaded")
+            # Move last added _commandArray from _programArray to _commandArray variable, etc...
+            return True
+        else:
+            buzzer.keyBeep("beepBoundary")
+            return False
+"""
+# from _addCommand()
+
+                if result == 12:                              # If the loop has closed
+                    if _loopCounter == 0:                     # Loop created accidentally, loop is no more needed, etc.
+                        while _commandArray[_commandPointer] == 10:                  # Purge unnecessary half-baked loop
+                            _undoCommand()
+                        buzzer.keyBeep("beepDeleted")
+                        result = 0
+                    else:                                                                    # Successful loop creating.
+                        _addToCommandArray(_loopCounter)
+                        _loopCounter = 0
+                        buzzer.keyBeep("beepCompleted")
+
+
     elif pressed == 256:            # UNDO
         if not _loopCounterInput:
             undoResult = _undoCommand()
@@ -190,12 +220,34 @@ def _processingGeneralInput(pressed):
                 if undoResult:
                     buzzer.keyBeep("beepUndone")
         return 0
-    elif pressed == 512:            # DELETE a.k.a. 'X'
-        return 0
-    elif pressed == 1023:           # USER                                              CAUSE OF THE HEAT?! TEST NEEDED!
-        return 0
+"""
+
+def _delete():
+    pass
+
+
+def _customMapping():
+    pass
+
+
+
+################################
+## HELPERS FUNCTIONS
+
+def _addToCommandArray(command):
+    global _commandArray
+    global _commandPointer
+
+    if _commandPointer < len(_commandArray):
+        _commandArray[_commandPointer] = command
     else:
-        return 0
+        _commandArray.append(command)
+
+    _commandPointer += 1
+
+
+def _addToProgramArray():
+    pass
 
 
 def _modifyLoopCounter(value = 1):
@@ -227,79 +279,55 @@ def _checkLoopCounter():
         buzzer.midiBeep(64, 100, 400, _loopCounter)
 
 
-def _processingLoopInput(pressed):
-    global _loopInputMode
-    global _loopCounterInput
-    global _temporaryExcluded
-
-    if _loopCounterInput:
-        if pressed == 4:                # REPEAT
-            _loopInputMode     = False
-            _loopCounterInput  = False
-            _temporaryExcluded = []
-            buzzer.setDefaultState(0)
-            return 12
-        elif pressed == 1:              # FORWARD
-            _modifyLoopCounter(1)
-        elif pressed == 16:             # RIGHT
-            _modifyLoopCounter(1)
-        elif pressed == 32:             # BACKWARD
-            _modifyLoopCounter(-1)
-        elif pressed == 128:            # LEFT
-            _modifyLoopCounter(-1)
-        elif pressed == 512:            # DELETE a.k.a. 'X'
-            _modifyLoopCounter(0)
-        elif pressed == 64:
-            _checkLoopCounter()         # START / STOP
-        return 0
-    elif pressed == 4:                  # REPEAT
-        _loopCounterInput = True
-        buzzer.keyBeep("beepInputNeeded")
-        return 11
-    else:
-        return _processingGeneralInput(pressed)
 
 
-def _processingMidiInput(pressed):
-    return 0
+################################
+## MAPPINGS
+
+_defaultMapping = {
+    1:    (_beepAndReturn,     ("beepProcessed", 1)),               # FORWARD
+    2:    (_beepAndReturn,     ("beepProcessed", 9)),               # PAUSE
+    4:    (_createLoop,        (10,)),                              # REPEAT
+    6:    (_manageFunction,    (1,)),                               # F1
+    8:    (_addToProgramArray, ()),                                 # ADD
+    10:   (_manageFunction,    (2,)),                               # F2
+    12:   (_manageFunction,    (3,)),                               # F3
+    16:   (_beepAndReturn,     ("beepProcessed", 4)),               # RIGHT
+    32:   (_beepAndReturn,     ("beepProcessed", 2)),               # BACKWARD
+    64:   (_startOrStop,       (0,)),                               # START / STOP
+    128:  (_beepAndReturn,     ("beepProcessed", 3)),               # LEFT
+    256:  (_undo,              ()),                                 # UNDO
+    512:  (_delete,            (0,)),                               # DELETE
+    1023: (_customMapping,     ())                                  # MAPPING
+}
+
+_loopBeginMapping = {
+    1:    (_beepAndReturn,     ("beepProcessed", 1)),               # FORWARD
+    2:    (_beepAndReturn,     ("beepProcessed", 9)),               # PAUSE
+    4:    (_createLoop,        (11,)),                              # REPEAT
+    6:    (_manageFunction,    (1, "call")),                        # F1
+    10:   (_manageFunction,    (2, "call")),                        # F2
+    12:   (_manageFunction,    (3, "call")),                        # F3
+    16:   (_beepAndReturn,     ("beepProcessed", 4)),               # RIGHT
+    32:   (_beepAndReturn,     ("beepProcessed", 2)),               # BACKWARD
+    64:   (_startOrStop,       (_loopPosition,)),                   # START / STOP
+    128:  (_beepAndReturn,     ("beepProcessed", 3)),               # LEFT
+    256:  (_undo,              ()),                                 # UNDO
+    512:  (_delete,            (_loopPosition,))                    # DELETE
+}
 
 
-
-def _addCommand():
-    global _loopCounter
-
-    try:
-        pressed = _getValidatedPressedButton()
-
-        if pressed == 0 or pressed in _temporaryExcluded:
-            result = 0                                        # Zero means, there is nothing to append to _commandArray.
-        else:
-            if _loopInputMode:
-                result = _processingLoopInput(pressed)
-
-                if result == 12:                              # If the loop has closed
-                    if _loopCounter == 0:                     # Loop created accidentally, loop is no more needed, etc.
-                        while _commandArray[_commandPointer] == 10:                  # Purge unnecessary half-baked loop
-                            _undoCommand()
-                        buzzer.keyBeep("beepDeleted")
-                        result = 0
-                    else:                                                                    # Successful loop creating.
-                        _addToCommandArray(_loopCounter)
-                        _loopCounter = 0
-                        buzzer.keyBeep("beepCompleted")
-
-            elif _midiInputMode:
-                result = _processingMidiInput(pressed)
-
-            else:
-                result = _processingGeneralInput(pressed)
+_loopCounterMapping = {
+    1:    (_modifyLoopCounter, (1,)),                               # FORWARD
+    4:    (_createLoop,        (12,)),                              # REPEAT
+    16:   (_modifyLoopCounter, (1,)),                               # RIGHT
+    32:   (_modifyLoopCounter, (-1,)),                              # BACKWARD
+    64:   (_checkLoopCounter,  ()),                                 # START / STOP
+    128:  (_modifyLoopCounter, (-1,)),                              # LEFT
+    512:  (_modifyLoopCounter, (0,)),                               # DELETE
+}
 
 
-        if result != 0:
-            _addToCommandArray(result)
-            buzzer.keyBeep("beepProcessed")
-    except Exception as e:
-        sys.print_exception(e)
 
 
 def config(config):
