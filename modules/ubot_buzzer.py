@@ -30,13 +30,11 @@ def setDefaultState(value = 0):
 
 
 def keyBeep(keyInConfigDictionary):
-    predefinedTune = _config.get(keyInConfigDictionary)
+    tuneList = _config.get(keyInConfigDictionary)
 
-    if predefinedTune != None:
-        tuneList = predefinedTune.split("#")
+    if tuneList != None:
         for tune in tuneList:
-            p = tune.split(":")
-            midiBeep(int(p[0]), int(p[1]), int(p[2]), int(p[3]))
+            midiBeep(tune[0], tune[1], tune[2], tune[3])
     else:
         midiBeep(64)
 

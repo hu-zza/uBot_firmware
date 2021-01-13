@@ -2,31 +2,36 @@ import sys
 from machine import Pin, Timer
 import ubot_buzzer as buzzer
 
-_clockPin         = 0           # [need config()] Advances the decade counter (U3).
-_inputPin         = 0           # [need config()] Checks the returning signal from turtle HAT.
-_counterPosition  = 0           #                 The position of the decade counter (U3).
-_pressLength      = 0           # [need config()]
-_maxError         = 0           # [need config()]
+_clockPin          = 0           # [need config()] Advances the decade counter (U3).
+_inputPin          = 0           # [need config()] Checks the returning signal from turtle HAT.
+_counterPosition   = 0           #                 The position of the decade counter (U3).
+_pressLength       = 0           # [need config()]
+_maxError          = 0           # [need config()]
 
-_lastPressed      = [0, 0]      #                 Inside: [last pressed button, elapsed (button check) cycles]
-_firstRepeat      = 0           # [need config()]
-_loopChecking     = 0           # [need config()]
+_lastPressed       = [0, 0]      #                 Inside: [last pressed button, elapsed (button check) cycles]
+_firstRepeat       = 0           # [need config()]
+_loopChecking      = 0           # [need config()]
 
-_pressedListIndex = 0
-_pressedList      = 0           # [need config()] Low-level:  The last N (_pressLength + _maxError) buttoncheck results.
-_commandArray     = bytearray() #                 High-level: Abstract commands, result of processed button presses.
-_commandPointer   = 0           #                 Pointer for _commandArray.
-_programArray     = bytearray() #                 High-level: Result of one or more added _commandArray.
-_programPointer   = 0           #                 Pointer for _programArray.
-_programParts     = bytearray() #                 Positions by which _programArray can be split into _commandArray(s).
+_pressedListIndex  = 0
+_pressedList       = 0           # [need config()] Low-level:  The last N (_pressLength + _maxError) buttoncheck results.
+_temporaryExcluded = []          #
+_commandArray      = bytearray() #                 High-level: Abstract commands, result of processed button presses.
+_commandPointer    = 0           #                 Pointer for _commandArray.
+_programArray      = bytearray() #                 High-level: Result of one or more added _commandArray.
+_programPointer    = 0           #                 Pointer for _programArray.
+_programParts      = bytearray() #                 Positions by which _programArray can be split into _commandArray(s).
 
-_loopInputMode    = False       #                 Special input mode for declaring a loop.
-_loopCounterInput = False       #                 Special input mode for declaring the counter of the loop.
-_loopCounter      = 0
+_loopInputMode     = False       #                 Special input mode for declaring a loop.
+_loopCounterInput  = False       #                 Special input mode for declaring the counter of the loop.
+_loopCounter       = 0
 
-_midiInputMode    = False       #                 Special input mode for declaring a MIDI tune.
+_functionInputMode = False
+_functionIdInput   = False
+_functionDefined   = [False, False, False]
 
-_timer            = Timer(-1)   #                 Executes the repeated button checks.
+_midiInputMode     = False       #                 Special input mode for declaring a MIDI tune.
+
+_timer             = Timer(-1)   #                 Executes the repeated button checks.
 
 
 def _addToCommandArray(command):
@@ -40,20 +45,25 @@ def _addToCommandArray(command):
 
     _commandPointer += 1
 
-
 def _undoCommand():
     global _commandPointer
-    global _programPointer                    # I think this will be needed, if pass @ 55 became something useful... :-)
+    global _programPointer                # I think this will be needed, if section 53-55 became something useful... :-)
 
     if 0 < _commandPointer:
         _commandPointer -= 1
+        return True
     else:
         if 0 < _programPointer:
-            buzzer.keyBeep("beepGeneralOk")
-            pass  # Move last added _commandArray from _programArray to _commandArray variable, etc...
+            buzzer.keyBeep("beepLoaded")
+            # Move last added _commandArray from _programArray to _commandArray variable, etc...
+            return True
         else:
             buzzer.keyBeep("beepBoundary")
+            return False
 
+
+def _addToProgramArray():
+    pass
 
 
 def _advanceCounter():
@@ -127,42 +137,58 @@ def _getValidatedPressedButton():
         return 0                                                 # If validation is in progress, returns 0.
 
 
+def _creatingFunction(pressed):
+    return pressed
+    """
+    global _functionInputMode
+    global _temporaryExcluded
+
+    _functionInputMode = True
+    _temporaryExcluded = [pressed, 8, 64, 1023]    # *itself*, ADD, START / STOP, USER
+    buzzer.setDefaultState(1)
+    return 20
+    """
+
 def _processingGeneralInput(pressed):
     global _loopInputMode
+    global _temporaryExcluded
 
     if pressed == 1:                # FORWARD
         return 1
     elif pressed == 2:              # PAUSE
         return 9
     elif pressed == 4:              # REPEAT
-        _loopInputMode = True
+        _loopInputMode     = True
+        _temporaryExcluded = [8, 64, 1023]    # ADD, START / STOP, USER
         buzzer.setDefaultState(1)
         return 10
     elif pressed == 6:              # F1
-        return 0
+        return _creatingFunction(pressed)
     elif pressed == 8:              # ADD
+        _addToProgramArray()
         return 0
     elif pressed == 10:             # F2
-        return 0
+        return _creatingFunction(pressed)
     elif pressed == 12:             # F3
-        return 0
+        return _creatingFunction(pressed)
     elif pressed == 16:             # RIGHT
         return 4
     elif pressed == 32:             # BACKWARD
         return 2
     elif pressed == 64:             # START / STOP
-        return 0
+        return 64                                          ############## For testing _temporaryExcluded
     elif pressed == 128:            # LEFT
         return 3
     elif pressed == 256:            # UNDO
         if not _loopCounterInput:
-            _undoCommand()
+            undoResult = _undoCommand()
             if _commandArray[_commandPointer] == 10:
                 _loopInputMode = False
                 buzzer.setDefaultState(0)
                 buzzer.keyBeep("beepDeleted")
             else:
-                buzzer.keyBeep("beepUndone")
+                if undoResult:
+                    buzzer.keyBeep("beepUndone")
         return 0
     elif pressed == 512:            # DELETE a.k.a. 'X'
         return 0
@@ -204,11 +230,13 @@ def _checkLoopCounter():
 def _processingLoopInput(pressed):
     global _loopInputMode
     global _loopCounterInput
+    global _temporaryExcluded
 
     if _loopCounterInput:
         if pressed == 4:                # REPEAT
-            _loopInputMode    = False
-            _loopCounterInput = False
+            _loopInputMode     = False
+            _loopCounterInput  = False
+            _temporaryExcluded = []
             buzzer.setDefaultState(0)
             return 12
         elif pressed == 1:              # FORWARD
@@ -221,8 +249,8 @@ def _processingLoopInput(pressed):
             _modifyLoopCounter(-1)
         elif pressed == 512:            # DELETE a.k.a. 'X'
             _modifyLoopCounter(0)
-        else:
-            _checkLoopCounter()
+        elif pressed == 64:
+            _checkLoopCounter()         # START / STOP
         return 0
     elif pressed == 4:                  # REPEAT
         _loopCounterInput = True
@@ -243,7 +271,7 @@ def _addCommand():
     try:
         pressed = _getValidatedPressedButton()
 
-        if pressed == 0:
+        if pressed == 0 or pressed in _temporaryExcluded:
             result = 0                                        # Zero means, there is nothing to append to _commandArray.
         else:
             if _loopInputMode:
