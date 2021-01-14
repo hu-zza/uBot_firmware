@@ -324,11 +324,11 @@ def _undo(arguments):                       # (blockLevel,)
 
         buzzer.keyBeep("beepUndone")
 
-        if boundary == 0:
-            _commandPointer -= 1
-        else:
-            while True:
-                _commandPointer -= 1
+        _commandPointer -= 1
+
+        if boundary != 0:
+            while True:                                            # General undo decreases the pointer by one, so this
+                _commandPointer -= 1                               # do...while loop can handle identic boundary pairs.
                 if _commandArray[_commandPointer] == boundary:
                     break
             buzzer.keyBeep("beepDeleted")
