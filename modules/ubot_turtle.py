@@ -20,17 +20,15 @@ _programArray      = bytearray() #                 High-level: Result of one or 
 _programPointer    = 0           #                 Pointer for _programArray.
 _programParts      = []          #                 Positions by which _programArray can be split into _commandArray(s).
 
-_loopPosition      = 0 #################################################################################################
-_loopInputMode     = False       #                 Special input mode for declaring a loop.
-_loopCounterInput  = False       #                 Special input mode for declaring the counter of the loop.
-_loopCounter       = 0
+_loopCounter       = 0           #
 
-_functionInputMode = False
-_functionIdInput   = False
 _functionDefined   = [False, False, False]
 
-_midiInputMode     = False       #                 Special input mode for declaring a MIDI tune.
-
+_blockStartIndex   = 0           #
+_blockPrevStarts   = []          #
+_currentMapping    = 0           #
+_previousMappings  = []          #
+_runningProgram    = False       #
 _timer             = Timer(-1)   #                 Executes the repeated button checks.
 
 
@@ -65,7 +63,7 @@ def _getPressedButton():
             _inputPin.init(Pin.IN)         # DEPRECATED: New PCB design (2.1) will resolve this.
 
         if _inputPin.value() == 1:
-            pressed += pow(2, _counterPosition)
+            pressed += 1<<_counterPosition # pow(2, _counterPosition)
 
         _advanceCounter()
 
@@ -117,8 +115,10 @@ def _addCommand():
     try:
         pressed = _getValidatedPressedButton()
 
-        if pressed == 0:
-            result = 0  # Zero means, there is nothing to save to _commandArray. Not only lack of buttonpress returns 0.
+        if pressed == 0:                # result = 0 means, there is nothing to save to _commandArray.
+            result = 0                  # Not only lack of buttonpress (pressed == 0) returns 0.
+        elif _runningProgram:
+            _startOrStop((0, False))    # Stop program execution.
         else:
             tupleWithCallable = _currentMapping.get(pressed)                # Dictionary based switch...case
 
@@ -131,55 +131,157 @@ def _addCommand():
                     result = tupleWithCallable[0](tupleWithCallable[1])
 
         if result != 0:
-            _addToCommandArray(result)
-
+            if isinstance(result, int):
+                _addToCommandArray(result)
+            else:
+                for r in result:
+                    _addToCommandArray(result)
     except Exception as e:
         sys.print_exception(e)
+
+
+def _addToCommandArray(command):
+    global _commandArray
+    global _commandPointer
+
+    if _commandPointer < len(_commandArray):
+        _commandArray[_commandPointer] = command
+    else:
+        _commandArray.append(command)
+
+    _commandPointer += 1
 
 
 
 ################################
 ## STANDARDIZED FUNCTIONS
 
-def __beepAndReturn(arguments):
+
+# COMMAND AND PROGRAM ARRAY
+
+def _addToProgramArray():
+    pass
+
+
+# BLOCK
+
+def _blockStarted(newMapping):
+    global _blockStartIndex
+    global _currentMapping
+
+    _blockPrevStarts.append(_blockStartIndex)
+    _blockStartIndex = _commandPointer
+    _previousMappings.append(_currentMapping)
+    _currentMapping  = newMapping
+    buzzer.setDefaultState(1)
+    buzzer.keyBeep("beepStarted")
+
+
+def _blockCompleted(delete):
+    global _commandPointer
+    global _blockStartIndex
+    global _currentMapping
+
+    if delete:
+        _commandPointer = _blockStartIndex
+
+    buzzer.setDefaultState(0)
+    _blockStartIndex = _blockPrevStarts.pop()
+    _currentMapping  = _previousMappings.pop()
+
+    if delete:
+        buzzer.keyBeep("beepDeleted")
+        return True
+    else:
+        buzzer.keyBeep("beepCompleted")
+        return False
+
+
+
+# LOOP
+
+def _createLoop(arguments):                 # (creationState,)               10  [statements...] 11 [iteration count] 12
+    global _currentMapping
+    global _loopCounter
+
+    if arguments[0] == 10:
+        _blockStarted(_loopBeginMapping)
+        _loopCounter = 0
+        return 10
+    elif arguments[0] == 11:
+        _currentMapping = _loopCounterMapping
+        buzzer.keyBeep("beepInputNeeded")
+        return 11
+    elif arguments[0] == 12:
+        return ((_loopCounter, 12), 0)[_blockCompleted(_loopCounter == 0)]  # False == 0, and True == 1 (deleted)
+
+
+
+def _modifyLoopCounter(arguments):          # (value,)     Increasing by this value, if value == 0, it resets he counter
+    global _loopCounter
+
+    if _loopCounter + arguments[0] < 1:             # Checks lower boundary.
+        _loopCounter = 1
+        buzzer.keyBeep("beepBoundary")
+    elif 255 < _loopCounter + arguments[0]:         # Checks upper boundary.
+        _loopCounter = 255
+        buzzer.keyBeep("beepBoundary")
+    elif arguments[0] == 0:                         # Reset the counter. Use case: forget the exact count and press 'X'.
+        _loopCounter = 0
+        buzzer.keyBeep("beepDeleted")
+    else:                                           # General modification.
+        _loopCounter += arguments[0]
+        buzzer.keyBeep("beepInAndDecrease")
+
+
+def _checkLoopCounter():
+    global _loopChecking
+
+    if _loopChecking == 1:
+        if _loopCounter <= 20:
+            buzzer.keyBeep("beepAttention")
+            buzzer.midiBeep(64, 100, 400, _loopCounter)
+        else:
+            buzzer.keyBeep("beepTooLong")
+    elif _loopChecking == 2:
+        buzzer.keyBeep("beepAttention")
+        buzzer.midiBeep(64, 100, 400, _loopCounter)
+
+
+# FUNCTION
+
+def _manageFunction(arguments):             # (functionId, onlyCall)
+    global _functionDefined
+
+    if arguments[1] or _functionDefined[arguments[0]]:      # Call function <- flag 'only call' is True or it is defined
+        buzzer.keyBeep("beepProcessed")
+        return (23, arguments[0], 24)
+    elif _functionDefined[arguments[0]] == ():              # End of defining the function
+        _blockCompleted()
+        _functionDefined[arguments[0]] = True
+        return (21, arguments[0], 22)
+    else:                                                   # Beginning of defining the function
+        _blockStarted(_functionMapping)
+        _functionDefined[arguments[0]] = ()                 # In progress, so it isn't True or False.
+        return 20
+
+
+
+# GENERAL
+
+def _beepAndReturn(arguments):              # (keyOfBeep, returningValue)
     buzzer.keyBeep(arguments[0])
     return arguments[1]
 
 
-def _createLoop():
-    pass
-    """    if _loopCounterInput:
-            if pressed == 4:                # REPEAT
-                _loopInputMode     = False
-                _loopCounterInput  = False
-                _temporaryExcluded = []
-                buzzer.setDefaultState(0)
+def _startOrStop(arguments):                # (blockLevel, starting)
+    global _runningProgram
 
-        elif pressed == 4:                  # REPEAT
-            _loopCounterInput = True
-            buzzer.keyBeep("beepInputNeeded")
-            return 11
-        else:
-            return _processingGeneralInput(pressed)
-
-
-                if pressed == 4:              # REPEAT
-                    _loopInputMode     = True
-                    _temporaryExcluded = [8, 64, 1023]    # ADD, START / STOP, USER
-                    buzzer.setDefaultState(1)
-                    return 10
-"""
-
-
-def _manageFunction():
+    _runningProgram = arguments[1]
     pass
 
 
-def _startOrStop():
-    pass
-
-
-def _undo():
+def _undo(arguments):                       # (blockLevel,)
     global _commandPointer
     global _programPointer                # I think this will be needed, if section 53-55 became something useful... :-)
 
@@ -197,18 +299,6 @@ def _undo():
 """
 # from _addCommand()
 
-                if result == 12:                              # If the loop has closed
-                    if _loopCounter == 0:                     # Loop created accidentally, loop is no more needed, etc.
-                        while _commandArray[_commandPointer] == 10:                  # Purge unnecessary half-baked loop
-                            _undoCommand()
-                        buzzer.keyBeep("beepDeleted")
-                        result = 0
-                    else:                                                                    # Successful loop creating.
-                        _addToCommandArray(_loopCounter)
-                        _loopCounter = 0
-                        buzzer.keyBeep("beepCompleted")
-
-
     elif pressed == 256:            # UNDO
         if not _loopCounterInput:
             undoResult = _undoCommand()
@@ -222,61 +312,18 @@ def _undo():
         return 0
 """
 
-def _delete():
-    pass
+def _delete(arguments):                     # (blockLevel,)
+    global _commandPointer
+
+    if arguments[0] == True:
+        _blockCompleted(True)
+    else:
+        _commandPointer = 0
 
 
 def _customMapping():
     pass
 
-
-
-################################
-## HELPERS FUNCTIONS
-
-def _addToCommandArray(command):
-    global _commandArray
-    global _commandPointer
-
-    if _commandPointer < len(_commandArray):
-        _commandArray[_commandPointer] = command
-    else:
-        _commandArray.append(command)
-
-    _commandPointer += 1
-
-
-def _addToProgramArray():
-    pass
-
-
-def _modifyLoopCounter(value = 1):
-    global _loopCounter
-
-    if _loopCounter + value < 1:                    # Checks lower boundary.
-        _loopCounter = 1
-        buzzer.keyBeep("beepBoundary")
-    elif 255 < _loopCounter + value:                # Checks upper boundary.
-        _loopCounter = 255
-        buzzer.keyBeep("beepBoundary")
-    elif value == 0:                                # Reset the counter. Use case: forget the exact count and press 'X'.
-        _loopCounter = 0
-        buzzer.keyBeep("beepDeleted")
-    else:                                           # General modification.
-        _loopCounter += value
-        buzzer.keyBeep("beepInAndDecrease")
-
-
-def _checkLoopCounter():
-    global _loopChecking
-
-    if _loopChecking == 1:
-        if _loopCounter <= 20:
-            buzzer.midiBeep(64, 100, 400, _loopCounter)
-        else:
-            buzzer.keyBeep("beepTooLong")
-    elif _loopChecking == 2:
-        buzzer.midiBeep(64, 100, 400, _loopCounter)
 
 
 
@@ -288,16 +335,16 @@ _defaultMapping = {
     1:    (_beepAndReturn,     ("beepProcessed", 1)),               # FORWARD
     2:    (_beepAndReturn,     ("beepProcessed", 9)),               # PAUSE
     4:    (_createLoop,        (10,)),                              # REPEAT
-    6:    (_manageFunction,    (1,)),                               # F1
+    6:    (_manageFunction,    (1, False)),                         # F1
     8:    (_addToProgramArray, ()),                                 # ADD
-    10:   (_manageFunction,    (2,)),                               # F2
-    12:   (_manageFunction,    (3,)),                               # F3
+    10:   (_manageFunction,    (2, False)),                         # F2
+    12:   (_manageFunction,    (3, False)),                         # F3
     16:   (_beepAndReturn,     ("beepProcessed", 4)),               # RIGHT
     32:   (_beepAndReturn,     ("beepProcessed", 2)),               # BACKWARD
-    64:   (_startOrStop,       (0,)),                               # START / STOP
+    64:   (_startOrStop,       (False, True)),                      # START / STOP
     128:  (_beepAndReturn,     ("beepProcessed", 3)),               # LEFT
-    256:  (_undo,              ()),                                 # UNDO
-    512:  (_delete,            (0,)),                               # DELETE
+    256:  (_undo,              (False,)),                           # UNDO
+    512:  (_delete,            (False,)),                           # DELETE
     1023: (_customMapping,     ())                                  # MAPPING
 }
 
@@ -305,15 +352,15 @@ _loopBeginMapping = {
     1:    (_beepAndReturn,     ("beepProcessed", 1)),               # FORWARD
     2:    (_beepAndReturn,     ("beepProcessed", 9)),               # PAUSE
     4:    (_createLoop,        (11,)),                              # REPEAT
-    6:    (_manageFunction,    (1, "call")),                        # F1
-    10:   (_manageFunction,    (2, "call")),                        # F2
-    12:   (_manageFunction,    (3, "call")),                        # F3
+    6:    (_manageFunction,    (1, True)),                          # F1
+    10:   (_manageFunction,    (2, True)),                          # F2
+    12:   (_manageFunction,    (3, True)),                          # F3
     16:   (_beepAndReturn,     ("beepProcessed", 4)),               # RIGHT
     32:   (_beepAndReturn,     ("beepProcessed", 2)),               # BACKWARD
-    64:   (_startOrStop,       (_loopPosition,)),                   # START / STOP
+    64:   (_startOrStop,       (True, True)),                       # START / STOP
     128:  (_beepAndReturn,     ("beepProcessed", 3)),               # LEFT
-    256:  (_undo,              ()),                                 # UNDO
-    512:  (_delete,            (_loopPosition,))                    # DELETE
+    256:  (_undo,              (True,)),                            # UNDO
+    512:  (_delete,            (True,))                             # DELETE
 }
 
 
@@ -324,9 +371,24 @@ _loopCounterMapping = {
     32:   (_modifyLoopCounter, (-1,)),                              # BACKWARD
     64:   (_checkLoopCounter,  ()),                                 # START / STOP
     128:  (_modifyLoopCounter, (-1,)),                              # LEFT
-    512:  (_modifyLoopCounter, (0,)),                               # DELETE
+    512:  (_modifyLoopCounter, (0,))                                # DELETE
 }
 
+
+_functionMapping = {
+    1:    (_beepAndReturn,     ("beepProcessed", 1)),               # FORWARD
+    2:    (_beepAndReturn,     ("beepProcessed", 9)),               # PAUSE
+    4:    (_createLoop,        (10,)),                              # REPEAT
+    6:    (_manageFunction,    (1, False)),                         # F1
+    10:   (_manageFunction,    (2, False)),                         # F2
+    12:   (_manageFunction,    (3, False)),                         # F3
+    16:   (_beepAndReturn,     ("beepProcessed", 4)),               # RIGHT
+    32:   (_beepAndReturn,     ("beepProcessed", 2)),               # BACKWARD
+    64:   (_startOrStop,       (True, True)),                       # START / STOP
+    128:  (_beepAndReturn,     ("beepProcessed", 3)),               # LEFT
+    256:  (_undo,              (True,)),                            # UNDO
+    512:  (_delete,            (True,))                             # DELETE
+}
 
 
 
@@ -338,6 +400,7 @@ def config(config):
     global _firstRepeat
     global _loopChecking
     global _pressedList
+    global _currentMapping
 
     _clockPin = Pin(config.get("turtleClockPin"), Pin.OUT)
     _clockPin.off()
@@ -352,5 +415,7 @@ def config(config):
     _loopChecking = config.get("turtleLoopChecking")
 
     _pressedList  = [0] * (_pressLength + _maxError)
+
+    _currentMapping = _defaultMapping
 
     _timer.init(period = config.get("turtleCheckPeriod"), mode = Timer.PERIODIC, callback = lambda t:_addCommand())
