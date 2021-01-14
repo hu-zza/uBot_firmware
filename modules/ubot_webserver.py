@@ -2,7 +2,8 @@ import gc, ujson, usocket
 
 from machine import RTC
 
-import ubot_webpage_template
+import ubot_webpage_template as template
+import ubot_turtle           as turtle
 
 
 _socket       = 0
@@ -27,10 +28,8 @@ def config(socket, dateTime, config, exceptionList, jsonFunction):
     _jsonFunction = jsonFunction
 
 
-def _getDebugContent(method, path, length = 0, type = "-", body = "-"):
-    length = str(length)
-
-    result = ubot_webpage_template.getStats()
+def _getDebugContent():
+    result = template.getStats()
 
     allMem = gc.mem_free() + gc.mem_alloc()
     freePercent = gc.mem_free() * 100 // allMem
@@ -47,12 +46,13 @@ def _getDebugContent(method, path, length = 0, type = "-", body = "-"):
     exceptionList += "</tbody></table>"
 
     return result.format(
-        method = method, path = path, length = length, type = type, body = body,
-        freePercent = freePercent, freeMem = gc.mem_free(), allMem = allMem, exceptions = exceptionList
+        commands = turtle._commandArray[:turtle._commandPointer].decode(),
+        program  = turtle._programArray[:turtle._programPointer].decode(),
+        freeMemory = freePercent, exceptions = exceptionList
     )
 
 
-def _getCommandPanel(method, path):
+def _getCommandPanel(path):
     return ""
 
 
@@ -75,7 +75,7 @@ def _reply(returnFormat, httpCode, message, title = None):
             if title == None:
                 title = httpCode
             str  = "<html><head><title>" + title + "</title><style>"
-            str += ubot_webpage_template.getStyle()
+            str += template.getStyle()
             str += "</style></head>"
             str += "<body><h1>" + httpCode + "</h1><p>" + message + "</p></body></html>\r\n\r\n"
         elif returnFormat == "JSON":
@@ -90,9 +90,9 @@ def _reply(returnFormat, httpCode, message, title = None):
 
 def _processGetQuery(path):
     if path[1:] == "debug":
-        _reply("HTML", "200 OK", _getDebugContent("GET", path), "&microBot Debug Page")
+        _reply("HTML", "200 OK", _getDebugContent(), "&microBot Debug Page")
     else:
-        _reply("HTML", "200 OK", _getCommandPanel("GET", path), "&microBot Command Page")
+        _reply("HTML", "200 OK", _getCommandPanel(path), "&microBot Command Page")
 
 def _processPostQuery(body):
     try:
