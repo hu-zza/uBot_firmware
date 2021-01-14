@@ -9,8 +9,8 @@ ap = network.WLAN(network.AP_IF)
 config = {
     "firmwareMajor"     : 0,
     "firmwareMinor"     : 1,
-    "firmwarePatch"     : 3,
-    "initialDateTime"   : (2021, 1, 14, 0, 2, 15, 0, 0),
+    "firmwarePatch"     : 7,
+    "initialDateTime"   : (2021, 1, 14, 0, 20, 30, 0, 0),
 
     "apActive"          : True,
     "apEssid"           : "uBot__" + hexlify(ap.config("mac"), ":").decode()[9:],
@@ -42,19 +42,17 @@ config = {
 
 
     "beepProcessed"     : (64, 100, 0, 1),
-    "beepAttention"     : ((60, 100, 25, 1), (64, 100, 25, 1), (71, 100, 25, 1)),
+    "beepAttention"     : ((60, 100, 25, 1), (64, 100, 25, 1), (71, 100, 25, 1), (None, 500)),
 
     "beepStarted"       : ((60, 300, 50, 1), (71, 100, 50, 1)),
-    "beepInputNeeded"   : (71, 100, 50, 2),
-    "beepCompleted"     : (60, 100, 50, 2),
-    "beepUndone"        : (71, 100, 25, 2),
+    "beepInputNeeded"   : ((71, 100, 50, 2), (64, 100, 50, 1)),
+    "beepCompleted"     : ((71, 300, 50, 1), (60, 100, 50, 1)),
+    "beepUndone"        : ((71, 100, 25, 2), (None, 200)),
     "beepDeleted"       : ((71, 100, 25, 3), (60, 500, 100, 1)),
 
     "beepInAndDecrease" : (71, 100, 0, 1),
     "beepBoundary"      : (60, 500, 150, 3),
     "beepTooLong"       : (64, 1500, 100, 2),
-
-
 
     "beepAdded"         : ((71, 500, 50, 1), (64, 300, 50, 1), (60, 100, 50, 1)),
     "beepLoaded"        : ((60, 500, 50, 1), (64, 300, 50, 1), (71, 100, 50, 1)),

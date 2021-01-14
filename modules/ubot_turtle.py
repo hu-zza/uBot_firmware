@@ -118,7 +118,7 @@ def _addCommand():
         if pressed == 0:                # result = 0 means, there is nothing to save to _commandArray.
             result = 0                  # Not only lack of buttonpress (pressed == 0) returns 0.
         elif _runningProgram:
-            _startOrStop((0, False))    # Stop program execution.
+            result = _startOrStop((0, False))    # Stop program execution.
         else:
             tupleWithCallable = _currentMapping.get(pressed)                # Dictionary based switch...case
 
@@ -133,9 +133,11 @@ def _addCommand():
         if result != 0:
             if isinstance(result, int):
                 _addToCommandArray(result)
-            else:
+            elif isinstance(result, tuple):
                 for r in result:
-                    _addToCommandArray(result)
+                    _addToCommandArray(r)
+            else:
+                print("Wrong result: {}".format(result))
     except Exception as e:
         sys.print_exception(e)
 
@@ -152,18 +154,8 @@ def _addToCommandArray(command):
     _commandPointer += 1
 
 
-
 ################################
-## STANDARDIZED FUNCTIONS
-
-
-# COMMAND AND PROGRAM ARRAY
-
-def _addToProgramArray():
-    pass
-
-
-# BLOCK
+## HELPER METHODS FOR BLOCKS
 
 def _blockStarted(newMapping):
     global _blockStartIndex
@@ -177,25 +169,50 @@ def _blockStarted(newMapping):
     buzzer.keyBeep("beepStarted")
 
 
-def _blockCompleted(delete):
+def _blockCompleted(deleteFlag):
     global _commandPointer
     global _blockStartIndex
     global _currentMapping
 
-    if delete:
+    if deleteFlag:
         _commandPointer = _blockStartIndex
 
-    buzzer.setDefaultState(0)
     _blockStartIndex = _blockPrevStarts.pop()
     _currentMapping  = _previousMappings.pop()
 
-    if delete:
+    if len(_previousMappings) == 0:             # len(_previousMappings) == 0 means all blocks are closed.
+        buzzer.setDefaultState(0)
+
+    if deleteFlag:
         buzzer.keyBeep("beepDeleted")
         return True
     else:
         buzzer.keyBeep("beepCompleted")
         return False
 
+
+def _findBlockBoundaries(value):
+    boundaries = ((10, 12), (20, 22), (23, 24))
+
+    for b in boundaries:
+        if value == b[0] or value == b[1]:
+            return b
+    return ()
+
+
+def _getOppositeBoundary(value):
+    b = _findBlockBoundaries(value)
+    return 0 if b == () else b[b[0] == value]   # b[0] == value: False == 0 -> b[0], and True == 1 -> b[1]
+
+
+
+################################
+## STANDARDIZED FUNCTIONS
+
+# COMMAND AND PROGRAM ARRAY
+
+def _addToProgramArray():
+    return 0
 
 
 # LOOP
@@ -209,19 +226,24 @@ def _createLoop(arguments):                 # (creationState,)               10 
         _loopCounter = 0
         return 10
     elif arguments[0] == 11:
-        _currentMapping = _loopCounterMapping
-        buzzer.keyBeep("beepInputNeeded")
-        return 11
+        if _commandPointer - _blockStartIndex < 2:      # If the body of the loop is empty,
+            _blockCompleted(True)                       # close and delete the complete block.
+            return 0
+        else:
+            _currentMapping = _loopCounterMapping
+            buzzer.keyBeep("beepInputNeeded")
+            return 11
     elif arguments[0] == 12:
-        return ((_loopCounter, 12), 0)[_blockCompleted(_loopCounter == 0)]  # False == 0, and True == 1 (deleted)
-
+         # _blockCompleted deletes the loop if counter is zero, and returns with the result of the
+         # deletion (True if deleted). This returning value is used as index: False == 0, and True == 1
+        return ((_loopCounter, 12), 0)[_blockCompleted(_loopCounter == 0)]
 
 
 def _modifyLoopCounter(arguments):          # (value,)     Increasing by this value, if value == 0, it resets he counter
     global _loopCounter
 
-    if _loopCounter + arguments[0] < 1:             # Checks lower boundary.
-        _loopCounter = 1
+    if _loopCounter + arguments[0] < 0:             # Checks lower boundary.
+        _loopCounter = 0
         buzzer.keyBeep("beepBoundary")
     elif 255 < _loopCounter + arguments[0]:         # Checks upper boundary.
         _loopCounter = 255
@@ -232,39 +254,43 @@ def _modifyLoopCounter(arguments):          # (value,)     Increasing by this va
     else:                                           # General modification.
         _loopCounter += arguments[0]
         buzzer.keyBeep("beepInAndDecrease")
+    return 0
 
 
 def _checkLoopCounter():
     global _loopChecking
 
-    if _loopChecking == 1:
-        if _loopCounter <= 20:
-            buzzer.keyBeep("beepAttention")
-            buzzer.midiBeep(64, 100, 400, _loopCounter)
-        else:
-            buzzer.keyBeep("beepTooLong")
-    elif _loopChecking == 2:
+    if _loopChecking == 2 or (_loopChecking == 1 and _loopCounter <= 20):
         buzzer.keyBeep("beepAttention")
-        buzzer.midiBeep(64, 100, 400, _loopCounter)
+        buzzer.midiBeep(64, 100, 500, _loopCounter)
+    else:
+        buzzer.keyBeep("beepTooLong")
+    buzzer.rest(1000)
+    return 0
 
 
 # FUNCTION
 
 def _manageFunction(arguments):             # (functionId, onlyCall)
     global _functionDefined
+    id = arguments[0]
 
-    if arguments[1] or _functionDefined[arguments[0]]:      # Call function <- flag 'only call' is True or it is defined
+    if arguments[1] or _functionDefined[id - 1]:      # Call function <- flag 'only call' is True or it is defined
         buzzer.keyBeep("beepProcessed")
         return (23, arguments[0], 24)
-    elif _functionDefined[arguments[0]] == ():              # End of defining the function
-        _blockCompleted()
-        _functionDefined[arguments[0]] = True
-        return (21, arguments[0], 22)
-    else:                                                   # Beginning of defining the function
-        _blockStarted(_functionMapping)
-        _functionDefined[arguments[0]] = ()                 # In progress, so it isn't True or False.
-        return 20
+    elif _functionDefined[id - 1] == ():              # End of defining the function
+        # If function contains nothing
+        # (_commandPointer - _blockStartIndex < 2 -> Function start and end are adjacent.),
+        # delete it by _blockCompleted() which return a boolean (True if deleted).
+        # Save the opposite of this returning value in _functionDefined.
+        _functionDefined[id - 1] = not _blockCompleted(_commandPointer - _blockStartIndex < 2)
 
+        return (0, (21, arguments[0], 22))[_functionDefined[id - 1]]      # False == 0, and True == 1 (function defined)
+
+    else:                                             # Beginning of defining the function
+        _blockStarted(_functionMapping)
+        _functionDefined[id - 1] = ()                 # In progress, so it isn't True or False.
+        return 20
 
 
 # GENERAL
@@ -277,52 +303,60 @@ def _beepAndReturn(arguments):              # (keyOfBeep, returningValue)
 def _startOrStop(arguments):                # (blockLevel, starting)
     global _runningProgram
 
+    buzzer.keyBeep("beepProcessed")
     _runningProgram = arguments[1]
-    pass
+    return 0
 
 
 def _undo(arguments):                       # (blockLevel,)
     global _commandPointer
     global _programPointer                # I think this will be needed, if section 53-55 became something useful... :-)
 
-    if 0 < _commandPointer:
-        _commandPointer -= 1
-        return True
+    # Sets the maximum range of undo in according to blockLevel flag.
+    undoLowerBoundary = _blockStartIndex + 1 if arguments[0] else 0
+
+    if undoLowerBoundary < _commandPointer:
+        toBeUndone = _commandArray[_commandPointer - 1] # The command which will be undone
+
+        # If toBeUndone is a block boundary, _getOppositeBoundary returns with its pair (the beginning of the block).
+        boundary = _getOppositeBoundary(toBeUndone)
+
+        buzzer.keyBeep("beepUndone")
+
+        if boundary == 0:
+            _commandPointer -= 1
+        else:
+            while True:
+                _commandPointer -= 1
+                if _commandArray[_commandPointer] == boundary:
+                    break
+            buzzer.keyBeep("beepDeleted")
+
+        if _commandPointer == undoLowerBoundary:
+            buzzer.keyBeep("beepBoundary")
     else:
-        if 0 < _programPointer:
+        if arguments[0] or 0 == _programPointer:      # Block level undo or no more loadable command from _programArray.
+            buzzer.keyBeep("beepBoundary")
+        else:
             buzzer.keyBeep("beepLoaded")
             # Move last added _commandArray from _programArray to _commandArray variable, etc...
-            return True
-        else:
-            buzzer.keyBeep("beepBoundary")
-            return False
-"""
-# from _addCommand()
+    return 0
 
-    elif pressed == 256:            # UNDO
-        if not _loopCounterInput:
-            undoResult = _undoCommand()
-            if _commandArray[_commandPointer] == 10:
-                _loopInputMode = False
-                buzzer.setDefaultState(0)
-                buzzer.keyBeep("beepDeleted")
-            else:
-                if undoResult:
-                    buzzer.keyBeep("beepUndone")
-        return 0
-"""
 
 def _delete(arguments):                     # (blockLevel,)
     global _commandPointer
 
-    if arguments[0] == True:
-        _blockCompleted(True)
-    else:
+    if arguments[0] == True:                # Block-level
+        _blockCompleted(True)               # buzzer.keyBeep("beepDeleted") is called inside _blockCompleted(True)
+    else:                                   # Not block-level: the whole _commandArray is affected.
         _commandPointer = 0
+        buzzer.keyBeep("beepDeleted")
+    return 0
 
 
 def _customMapping():
-    pass
+    buzzer.keyBeep("beepLoaded")
+    return 0
 
 
 

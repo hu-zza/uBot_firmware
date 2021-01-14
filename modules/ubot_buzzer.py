@@ -35,9 +35,15 @@ def keyBeep(keyInConfigDictionary):
     if tuneList != None:
         if isinstance(tuneList[0], tuple):
             for tune in tuneList:
-                midiBeep(tune[0], tune[1], tune[2], tune[3])
+                if tune[0] == None:
+                    rest(tune[1])
+                else:
+                    midiBeep(tune[0], tune[1], tune[2], tune[3])
         else:
-            midiBeep(tuneList[0], tuneList[1], tuneList[2], tuneList[3])
+            if tuneList[0] == None:
+                rest(tuneList[1])
+            else:
+                midiBeep(tuneList[0], tuneList[1], tuneList[2], tuneList[3])
     else:
         midiBeep(64)
 
@@ -45,11 +51,14 @@ def keyBeep(keyInConfigDictionary):
 def rest(duration = 100):
     _pwm.duty(0)
     sleep_ms(duration)
-
+    _pwm.duty(1023 * _defaultState)
 
 def midiBeep(noteOn = 69, duration = 100, restAround = 100, count = 1):
-    freq = 440 * pow(2, (noteOn - 69) / 12)
-    beep(freq, duration, restAround, count)
+    if noteOn == None:
+        rest(duration)
+    else:
+        freq = 440 * pow(2, (noteOn - 69) / 12)
+        beep(freq, duration, restAround, count)
 
 
 def beep(freq = 440.0, duration = 100, restAround = 100, count = 1):
@@ -63,9 +72,6 @@ def beep(freq = 440.0, duration = 100, restAround = 100, count = 1):
             sleep_ms(duration)
 
         rest(restAround)
-
-    if _defaultState == 1:
-        _pwm.duty(1023)
 
 
 def _pwmBeep(freq = 440.0, duration = 100):
