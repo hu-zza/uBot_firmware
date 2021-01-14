@@ -276,7 +276,8 @@ def _manageFunction(arguments):             # (functionId, onlyCall)            
     global _functionDefined                 #                           function call:  126 [id] 126
     id = arguments[0]
 
-    if arguments[1] or _functionDefined[id - 1]:      # Call function if flag 'only call' is True or it is defined
+    # Calling the function if it is defined, or flag 'only call' is True and it is not under definition.
+    if _functionDefined[id - 1] or (arguments[1] and _functionDefined[id - 1] != ()):
         buzzer.keyBeep("beepProcessed")
         return (126, arguments[0] + 48, 126)          # Increase by 48 = human-friendly bytes: 48 -> "0", 49 -> "1", ...
     elif _functionDefined[id - 1] == ():              # End of defining the function
@@ -322,9 +323,8 @@ def _undo(arguments):                       # (blockLevel,)
         # If toBeUndone is a block boundary, _getOppositeBoundary returns with its pair (the beginning of the block).
         boundary = _getOppositeBoundary(toBeUndone)
 
-        buzzer.keyBeep("beepUndone")
-
         _commandPointer -= 1
+        buzzer.keyBeep("beepUndone")
 
         if boundary != 0:
             while True:                                            # General undo decreases the pointer by one, so this
@@ -414,9 +414,9 @@ _functionMapping = {
     1:    (_beepAndReturn,     ("beepProcessed", 70)),              # FORWARD
     2:    (_beepAndReturn,     ("beepProcessed", 80)),              # PAUSE
     4:    (_createLoop,        (40,)),                              # REPEAT (start)
-    6:    (_manageFunction,    (1, False)),                         # F1
-    10:   (_manageFunction,    (2, False)),                         # F2
-    12:   (_manageFunction,    (3, False)),                         # F3
+    6:    (_manageFunction,    (1, True)),                          # F1
+    10:   (_manageFunction,    (2, True)),                          # F2
+    12:   (_manageFunction,    (3, True)),                          # F3
     16:   (_beepAndReturn,     ("beepProcessed", 82)),              # RIGHT
     32:   (_beepAndReturn,     ("beepProcessed", 66)),              # BACKWARD
     64:   (_startOrStop,       (True, True)),                       # START / STOP
