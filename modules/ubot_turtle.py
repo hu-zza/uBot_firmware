@@ -192,7 +192,7 @@ def _blockCompleted(deleteFlag):
 
 
 def _findBlockBoundaries(value):
-    boundaries = ((10, 12), (20, 22), (23, 24))
+    boundaries = ((40, 41), (123, 125), (126, 126))       #(("(", ")"), ("{", "}"), ("~", "~"))
 
     for b in boundaries:
         if value == b[0] or value == b[1]:
@@ -217,41 +217,42 @@ def _addToProgramArray():
 
 # LOOP
 
-def _createLoop(arguments):                 # (creationState,)               10  [statements...] 11 [iteration count] 12
+def _createLoop(arguments):                 # (creationState,)                40 [statements...] 42 [iteration count] 41
     global _currentMapping
     global _loopCounter
 
-    if arguments[0] == 10:
+    if arguments[0] == 40:
         _blockStarted(_loopBeginMapping)
         _loopCounter = 0
-        return 10
-    elif arguments[0] == 11:
+        return 40
+    elif arguments[0] == 42:
         if _commandPointer - _blockStartIndex < 2:      # If the body of the loop is empty,
             _blockCompleted(True)                       # close and delete the complete block.
             return 0
         else:
             _currentMapping = _loopCounterMapping
             buzzer.keyBeep("beepInputNeeded")
-            return 11
-    elif arguments[0] == 12:
+            return 42
+    elif arguments[0] == 41:
          # _blockCompleted deletes the loop if counter is zero, and returns with the result of the
          # deletion (True if deleted). This returning value is used as index: False == 0, and True == 1
-        return ((_loopCounter, 12), 0)[_blockCompleted(_loopCounter == 0)]
+         # Increase _loopCounter by 48 = human-friendly bytes: 48 -> "0", 49 -> "1", ...
+        return ((_loopCounter + 48, 41), 0)[_blockCompleted(_loopCounter == 0)]
 
 
 def _modifyLoopCounter(arguments):          # (value,)     Increasing by this value, if value == 0, it resets he counter
     global _loopCounter
 
-    if _loopCounter + arguments[0] < 0:             # Checks lower boundary.
+    if _loopCounter + arguments[0] < 0:     # Checks lower boundary.
         _loopCounter = 0
         buzzer.keyBeep("beepBoundary")
-    elif 255 < _loopCounter + arguments[0]:         # Checks upper boundary.
+    elif 255 < _loopCounter + arguments[0]: # Checks upper boundary.
         _loopCounter = 255
         buzzer.keyBeep("beepBoundary")
-    elif arguments[0] == 0:                         # Reset the counter. Use case: forget the exact count and press 'X'.
+    elif arguments[0] == 0:                 # Reset the counter. Use case: forget the exact count and press 'X'.
         _loopCounter = 0
         buzzer.keyBeep("beepDeleted")
-    else:                                           # General modification.
+    else:                                   # General modification.
         _loopCounter += arguments[0]
         buzzer.keyBeep("beepInAndDecrease")
     return 0
@@ -271,13 +272,13 @@ def _checkLoopCounter():
 
 # FUNCTION
 
-def _manageFunction(arguments):             # (functionId, onlyCall)
-    global _functionDefined
+def _manageFunction(arguments):             # (functionId, onlyCall)                    123 [statements...] 124 [id] 125
+    global _functionDefined                 #                           function call:  126 [id] 126
     id = arguments[0]
 
-    if arguments[1] or _functionDefined[id - 1]:      # Call function <- flag 'only call' is True or it is defined
+    if arguments[1] or _functionDefined[id - 1]:      # Call function if flag 'only call' is True or it is defined
         buzzer.keyBeep("beepProcessed")
-        return (23, arguments[0], 24)
+        return (126, arguments[0] + 48, 126)          # Increase by 48 = human-friendly bytes: 48 -> "0", 49 -> "1", ...
     elif _functionDefined[id - 1] == ():              # End of defining the function
         # If function contains nothing
         # (_commandPointer - _blockStartIndex < 2 -> Function start and end are adjacent.),
@@ -285,12 +286,12 @@ def _manageFunction(arguments):             # (functionId, onlyCall)
         # Save the opposite of this returning value in _functionDefined.
         _functionDefined[id - 1] = not _blockCompleted(_commandPointer - _blockStartIndex < 2)
 
-        return (0, (21, arguments[0], 22))[_functionDefined[id - 1]]      # False == 0, and True == 1 (function defined)
+        return (0, (124, arguments[0] + 48, 125))[_functionDefined[id - 1]] # False == 0, and True == 1 (function defined)
 
     else:                                             # Beginning of defining the function
         _blockStarted(_functionMapping)
         _functionDefined[id - 1] = ()                 # In progress, so it isn't True or False.
-        return 20
+        return 123
 
 
 # GENERAL
@@ -310,7 +311,7 @@ def _startOrStop(arguments):                # (blockLevel, starting)
 
 def _undo(arguments):                       # (blockLevel,)
     global _commandPointer
-    global _programPointer                # I think this will be needed, if section 53-55 became something useful... :-)
+    global _programPointer                  # I think this will be needed, if line 342 became something useful... :-)
 
     # Sets the maximum range of undo in according to blockLevel flag.
     undoLowerBoundary = _blockStartIndex + 1 if arguments[0] else 0
@@ -366,33 +367,33 @@ def _customMapping():
 ## MAPPINGS
 
 _defaultMapping = {
-    1:    (_beepAndReturn,     ("beepProcessed", 1)),               # FORWARD
-    2:    (_beepAndReturn,     ("beepProcessed", 9)),               # PAUSE
-    4:    (_createLoop,        (10,)),                              # REPEAT
+    1:    (_beepAndReturn,     ("beepProcessed", 70)),              # FORWARD
+    2:    (_beepAndReturn,     ("beepProcessed", 80)),              # PAUSE
+    4:    (_createLoop,        (40,)),                              # REPEAT (start)
     6:    (_manageFunction,    (1, False)),                         # F1
     8:    (_addToProgramArray, ()),                                 # ADD
     10:   (_manageFunction,    (2, False)),                         # F2
     12:   (_manageFunction,    (3, False)),                         # F3
-    16:   (_beepAndReturn,     ("beepProcessed", 4)),               # RIGHT
-    32:   (_beepAndReturn,     ("beepProcessed", 2)),               # BACKWARD
+    16:   (_beepAndReturn,     ("beepProcessed", 82)),              # RIGHT
+    32:   (_beepAndReturn,     ("beepProcessed", 66)),              # BACKWARD
     64:   (_startOrStop,       (False, True)),                      # START / STOP
-    128:  (_beepAndReturn,     ("beepProcessed", 3)),               # LEFT
+    128:  (_beepAndReturn,     ("beepProcessed", 76)),              # LEFT
     256:  (_undo,              (False,)),                           # UNDO
     512:  (_delete,            (False,)),                           # DELETE
     1023: (_customMapping,     ())                                  # MAPPING
 }
 
 _loopBeginMapping = {
-    1:    (_beepAndReturn,     ("beepProcessed", 1)),               # FORWARD
-    2:    (_beepAndReturn,     ("beepProcessed", 9)),               # PAUSE
-    4:    (_createLoop,        (11,)),                              # REPEAT
+    1:    (_beepAndReturn,     ("beepProcessed", 70)),              # FORWARD
+    2:    (_beepAndReturn,     ("beepProcessed", 80)),              # PAUSE
+    4:    (_createLoop,        (42,)),                              # REPEAT (*)
     6:    (_manageFunction,    (1, True)),                          # F1
     10:   (_manageFunction,    (2, True)),                          # F2
     12:   (_manageFunction,    (3, True)),                          # F3
-    16:   (_beepAndReturn,     ("beepProcessed", 4)),               # RIGHT
-    32:   (_beepAndReturn,     ("beepProcessed", 2)),               # BACKWARD
+    16:   (_beepAndReturn,     ("beepProcessed", 82)),              # RIGHT
+    32:   (_beepAndReturn,     ("beepProcessed", 66)),              # BACKWARD
     64:   (_startOrStop,       (True, True)),                       # START / STOP
-    128:  (_beepAndReturn,     ("beepProcessed", 3)),               # LEFT
+    128:  (_beepAndReturn,     ("beepProcessed", 76)),              # LEFT
     256:  (_undo,              (True,)),                            # UNDO
     512:  (_delete,            (True,))                             # DELETE
 }
@@ -400,7 +401,7 @@ _loopBeginMapping = {
 
 _loopCounterMapping = {
     1:    (_modifyLoopCounter, (1,)),                               # FORWARD
-    4:    (_createLoop,        (12,)),                              # REPEAT
+    4:    (_createLoop,        (41,)),                              # REPEAT (end)
     16:   (_modifyLoopCounter, (1,)),                               # RIGHT
     32:   (_modifyLoopCounter, (-1,)),                              # BACKWARD
     64:   (_checkLoopCounter,  ()),                                 # START / STOP
@@ -410,16 +411,16 @@ _loopCounterMapping = {
 
 
 _functionMapping = {
-    1:    (_beepAndReturn,     ("beepProcessed", 1)),               # FORWARD
-    2:    (_beepAndReturn,     ("beepProcessed", 9)),               # PAUSE
-    4:    (_createLoop,        (10,)),                              # REPEAT
+    1:    (_beepAndReturn,     ("beepProcessed", 70)),              # FORWARD
+    2:    (_beepAndReturn,     ("beepProcessed", 80)),              # PAUSE
+    4:    (_createLoop,        (40,)),                              # REPEAT (start)
     6:    (_manageFunction,    (1, False)),                         # F1
     10:   (_manageFunction,    (2, False)),                         # F2
     12:   (_manageFunction,    (3, False)),                         # F3
-    16:   (_beepAndReturn,     ("beepProcessed", 4)),               # RIGHT
-    32:   (_beepAndReturn,     ("beepProcessed", 2)),               # BACKWARD
+    16:   (_beepAndReturn,     ("beepProcessed", 82)),              # RIGHT
+    32:   (_beepAndReturn,     ("beepProcessed", 66)),              # BACKWARD
     64:   (_startOrStop,       (True, True)),                       # START / STOP
-    128:  (_beepAndReturn,     ("beepProcessed", 3)),               # LEFT
+    128:  (_beepAndReturn,     ("beepProcessed", 76)),              # LEFT
     256:  (_undo,              (True,)),                            # UNDO
     512:  (_delete,            (True,))                             # DELETE
 }
@@ -439,7 +440,7 @@ def config(config):
     _clockPin = Pin(config.get("turtleClockPin"), Pin.OUT)
     _clockPin.off()
 
-    _inputPin = Pin(config.get("turtleInputPin"), Pin.OUT) # FUTURE: Pin(16, Pin.IN)
+    _inputPin = Pin(config.get("turtleInputPin"), Pin.OUT) # FUTURE: _inputPin = Pin(16, Pin.IN)
     _inputPin.off()                                        # DEPRECATED: New PCB design (2.1) will resolve this.
     _inputPin.init(Pin.IN)                                 # DEPRECATED: New PCB design (2.1) will resolve this.
 
