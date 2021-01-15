@@ -174,36 +174,35 @@ def _blockCompleted(deleteFlag):
     global _blockStartIndex
     global _currentMapping
 
-    if deleteFlag:
-        _commandPointer = _blockStartIndex
+    if len(_previousMappings) != 0:
+        if deleteFlag:
+            _commandPointer = _blockStartIndex
 
-    _blockStartIndex = _blockPrevStarts.pop()
-    _currentMapping  = _previousMappings.pop()
+        _blockStartIndex = _blockPrevStarts.pop()
+        _currentMapping  = _previousMappings.pop()
 
-    if len(_previousMappings) == 0:             # len(_previousMappings) == 0 means all blocks are closed.
-        buzzer.setDefaultState(0)
+        if len(_previousMappings) == 0:             # len(_previousMappings) == 0 means all blocks are closed.
+            buzzer.setDefaultState(0)
 
-    if deleteFlag:
-        buzzer.keyBeep("beepDeleted")
-        return True
+        if deleteFlag:
+            buzzer.keyBeep("beepDeleted")
+            return True
+        else:
+            buzzer.keyBeep("beepCompleted")
+            return False
+
+
+def _getOpeningBoundary(commandPointer):
+    values = (_commandArray[commandPointer], _commandArray[commandPointer - 2])
+
+    if   values[0] == 41  and values[1] == 42:      # ")" and "*"
+        return 40                                   # "("
+    elif values[0] == 125 and values[1] == 124:     # "}" and "|"
+        return 123                                  # "{"
+    elif values[0] == 126 and values[1] == 126:     # "~" and "~"
+        return 126                                  # "~"
     else:
-        buzzer.keyBeep("beepCompleted")
-        return False
-
-
-def _findBlockBoundaries(value):
-    boundaries = ((40, 41), (123, 125), (126, 126))       #(("(", ")"), ("{", "}"), ("~", "~"))
-
-    for b in boundaries:
-        if value == b[0] or value == b[1]:
-            return b
-    return ()
-
-
-def _getOppositeBoundary(value):
-    b = _findBlockBoundaries(value)
-    return 0 if b == () else b[b[0] == value]   # b[0] == value: False == 0 -> b[0], and True == 1 -> b[1]
-
+        return 0
 
 
 ################################
@@ -313,20 +312,21 @@ def _startOrStop(arguments):                # (blockLevel, starting)
 def _undo(arguments):                       # (blockLevel,)
     global _commandPointer
     global _programPointer                  # I think this will be needed, if line 342 became something useful... :-)
+    global _functionDefined
 
     # Sets the maximum range of undo in according to blockLevel flag.
     undoLowerBoundary = _blockStartIndex + 1 if arguments[0] else 0
 
     if undoLowerBoundary < _commandPointer:
-        toBeUndone = _commandArray[_commandPointer - 1] # The command which will be undone
-
-        # If toBeUndone is a block boundary, _getOppositeBoundary returns with its pair (the beginning of the block).
-        boundary = _getOppositeBoundary(toBeUndone)
-
         _commandPointer -= 1
         buzzer.keyBeep("beepUndone")
 
+        # If toBeUndone is a block boundary, _getOpeningBoundary returns with its pair (the beginning of the block).
+        boundary = _getOpeningBoundary(_commandPointer)
+
         if boundary != 0:
+            if boundary == 123:                                    # If it undoes a function declaration.
+                _functionDefined[_commandArray[_commandPointer - 1] - 49] = False   # not 48! functionId - 1 = index
             while True:                                            # General undo decreases the pointer by one, so this
                 _commandPointer -= 1                               # do...while loop can handle identic boundary pairs.
                 if _commandArray[_commandPointer] == boundary:
@@ -346,12 +346,25 @@ def _undo(arguments):                       # (blockLevel,)
 
 def _delete(arguments):                     # (blockLevel,)
     global _commandPointer
+    global _programPointer
+    global _functionDefined
 
     if arguments[0] == True:                # Block-level
         _blockCompleted(True)               # buzzer.keyBeep("beepDeleted") is called inside _blockCompleted(True)
+        for i in range(3):                  # Delete mark of unfinished function, if there are any.
+            if _functionDefined[i] = ():
+                _functionDefined[i] = False
     else:                                   # Not block-level: the whole _commandArray is affected.
-        _commandPointer = 0
         buzzer.keyBeep("beepDeleted")
+        if _commandPointer != 0:
+            _commandPointer = 0
+            # for .... if 124 X 125 -> _functionDefined[X] = False
+        else:
+            _programPointer = 0
+            _functionDefined = [False, False, False]
+            buzzer.keyBeep("beepBoundary")
+
+
     return 0
 
 
