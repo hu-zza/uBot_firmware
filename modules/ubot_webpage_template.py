@@ -16,13 +16,14 @@ def getPage():
 
 
 def getStyle():
-    return ("            .exceptions tr:nth-child(even) {background: #EEE}\n"
+    return ("            svg {width: 100px; height: 100px;}\n"
+            "            .exceptions tr:nth-child(even) {background: #EEE}\n"
             "            .exceptions col:nth-child(1) {width: 40px;}\n"
             "            .exceptions col:nth-child(2) {width: 250px;}\n"
             "            .exceptions col:nth-child(3) {width: 500px;}\n"
-            "            .panel{margin:auto; font-size:100px; text-align:center;}\n"
-            "            .command{width:500px; height:750px;}\n"
-            "            .drive{width:500px; height:500px;}\n"
+            "            .panel {margin:auto; font-size:100px; text-align:center;}\n"
+            "            .command {width:500px; height:750px;}\n"
+            "            .drive {width:500px; height:500px;}\n"
            )
 
 
