@@ -26,41 +26,27 @@ def getStyle():
            )
 
 
-def getArrow():
-    return ("            .arrow {"
-            "                    width: 100px;"
-            "                    height: 100px;"
-            "                    background-image: url(data:image/svg+xml;base64,PHN2ZyBpZD0ic3ZnIiB2ZXJzaW9uPSIxLjEiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIgeG1sbnM6eGxpbms9Imh0dHA6Ly93d3cudzMub3JnLzE5OTkveGxpbmsiIHdpZHRoPSI0MDAiIGhlaWdodD0iNDAwIiB2aWV3Qm94PSIwLCAwLCA0MDAsNDAwIj48ZyBpZD0ic3ZnZyI+PHBhdGggaWQ9InBhdGgwIiBkPSJNMTg2LjY2NyAzLjcyOSBDIDE4NS4zODMgMy44ODAsMTgxLjMzMyA0LjMxOSwxNzcuNjY3IDQuNzA1IEMgNzEuNjA1IDE1Ljg1MSwtOC41ODkgMTE2LjgxMiw0LjUzNyAyMjIuNjY3IEMgMjQuODcyIDM4Ni42NDgsMjIzLjA0MCA0NTUuNzIzLDMzOS4zODEgMzM5LjM4MSBDIDQ1NC42MTcgMjI0LjE0NSwzODcuOTAyIDI3LjM4NywyMjYuMDAwIDQuOTk3IEMgMjE4LjczOCAzLjk5MywxOTEuNzk4IDMuMTI0LDE4Ni42NjcgMy43MjkgTTIwNi43NjMgNDMuMDAwIEMgMjEwLjM1MyA0OC4yNTgsMjMxLjIzMCA3Ny45NDksMjM4LjY0MCA4OC4zMzMgQyAyNDAuNzMzIDkxLjI2NywyNDMuNzcwIDk1LjU3NywyNDUuMzg5IDk3LjkxMSBDIDI0OS4wNzggMTAzLjIyOSwyNTEuMzA2IDEwNi4zOTcsMjc0LjYxMiAxMzkuNDU4IEMgMjg1LjAzMiAxNTQuMjM5LDI5Ny40NTAgMTcxLjg4MywzMDIuMjA5IDE3OC42NjcgQyAzMDYuOTY3IDE4NS40NTAsMzExLjYzNCAxOTIuMDE3LDMxMi41ODAgMTkzLjI1OSBDIDMxNC4xMjMgMTk1LjI4NywzMTQuMTY0IDE5NS40ODAsMzEyLjk4MyAxOTUuMTUwIEMgMzEyLjI1OSAxOTQuOTQ3LDMwOS4yNjcgMTk0LjI5MCwzMDYuMzMzIDE5My42OTAgQyAzMDMuNDAwIDE5My4wOTAsMjk2Ljk1MCAxOTEuNzM2LDI5Mi4wMDAgMTkwLjY4MCBDIDI4Ny4wNTAgMTg5LjYyNCwyNzguNTAwIDE4Ny44MjIsMjczLjAwMCAxODYuNjc2IEMgMjY3LjUwMCAxODUuNTMwLDI1OS41NjkgMTgzLjgxNywyNTUuMzc2IDE4Mi44NjkgQyAyMzYuMjY1IDE3OC41NDksMjM1LjkzMCAxNzkuMTEzLDIzOS42NzMgMjA5LjMzMyBDIDI0MC4xOTUgMjEzLjU1MCwyNDAuOTQ3IDIyMC40NTAsMjQxLjM0NCAyMjQuNjY3IEMgMjQyLjQ2OCAyMzYuNjIyLDI0OC43ODIgMjk3LjM1NywyNTEuMzkzIDMyMS4zMzMgQyAyNTIuMTMyIDMyOC4xMTcsMjUzLjE2MCAzMzguMzE3LDI1My42NzggMzQ0LjAwMCBDIDI1NC4xOTYgMzQ5LjY4MywyNTQuODIzIDM1Ni4zNTgsMjU1LjA3MyAzNTguODMzIEwgMjU1LjUyNiAzNjMuMzMzIDIwMi4zNDUgMzYzLjMzMyBMIDE0OS4xNjMgMzYzLjMzMyAxNDkuNTUxIDM2MC44MzMgQyAxNDkuNzY0IDM1OS40NTgsMTUwLjEyMyAzNTUuOTMzLDE1MC4zNDggMzUzLjAwMCBDIDE1MC41NzMgMzUwLjA2NywxNTEuNjIzIDMzOS41NjcsMTUyLjY4MCAzMjkuNjY3IEMgMTUzLjczOCAzMTkuNzY3LDE1NS4wNjQgMzA3LjAxNywxNTUuNjI4IDMwMS4zMzMgQyAxNTYuMTkyIDI5NS42NTAsMTU3Ljg1MiAyNzkuNjAwLDE1OS4zMTcgMjY1LjY2NyBDIDE2OC41NDQgMTc3LjkyNCwxNjcuODUzIDE4NS44OTIsMTY2LjQyMyAxODMuNzExIEMgMTY0LjkyMCAxODEuNDE1LDE2Mi4zOTMgMTgwLjQ5MywxNTkuMDMwIDE4MS4wMTEgQyAxNTYuMDIxIDE4MS40NzUsMTI3LjU3NSAxODcuMDY4LDEwMi43MzcgMTkyLjA4MCBDIDkzLjc5MiAxOTMuODg1LDg2LjM3NyAxOTUuMjY2LDg2LjI1OSAxOTUuMTQ4IEMgODYuMTQyIDE5NS4wMzEsOTAuOTkyIDE4OC4xOTksOTcuMDM4IDE3OS45NjcgQyAxMDMuMDgzIDE3MS43MzUsMTEwLjc5OCAxNjEuMjE1LDExNC4xODIgMTU2LjU5MCBDIDEyMC4zNDEgMTQ4LjE3MCwxMzMuMTYwIDEzMC43NTUsMTUwLjY4NiAxMDcuMDAwIEMgMTU1LjgyNSAxMDAuMDMzLDE2My40MjggODkuNjgzLDE2Ny41ODAgODQuMDAwIEMgMTcxLjczMyA3OC4zMTcsMTc5LjY5NCA2Ny41MTcsMTg1LjI3MSA2MC4wMDAgQyAxOTAuODQ5IDUyLjQ4MywxOTYuOTUyIDQ0LjE1NSwxOTguODMzIDQxLjQ5NCBDIDIwMC43MTUgMzguODMyLDIwMi40NDkgMzYuODgyLDIwMi42ODggMzcuMTYwIEMgMjAyLjkyNyAzNy40MzksMjA0Ljc2MSA0MC4wNjcsMjA2Ljc2MyA0My4wMDAgIiBzdHJva2U9Im5vbmUiIGZpbGw9IiMwMDAwMDAiIGZpbGwtcnVsZT0iZXZlbm9kZCI+PC9wYXRoPjwvZz48L3N2Zz4=);"
-            "            }"
+def getTurtleSvg():
+    return ("         <svg style='display:none' xmlns='http://www.w3.org/2000/svg'>\n"
+            "             <defs>\n"
+            "                 <symbol id='arrow' width='100' height='100' viewBox='0 0 400 400' xmlns:v='https://vecta.io/nano'>\n"
+            "                     <path d='M186.667 3.729l-9 .976C71.605 15.851-8.589 116.812 4.537 222.667 24.872 386.648 223.04 455.723 339.381 339.381 454.617 224.145 387.902 27.387 226 4.997c-7.262-1.004-34.202-1.873-39.333-1.268M206.763 43l95.446 135.667 10.371 14.592c1.543 2.028 1.584 2.221.403 1.891-.724-.203-3.716-.86-6.65-1.46L292 190.68l-19-4.004-17.624-3.807c-19.111-4.32-19.446-3.756-15.703 26.464l1.671 15.334 10.049 96.666L253.678 344l1.395 14.833.453 4.5H149.163l.388-2.5c.213-1.375.572-4.9.797-7.833s1.275-13.433 2.332-23.333l6.637-64c9.227-87.743 8.536-79.775 7.106-81.956-1.503-2.296-4.03-3.218-7.393-2.7-3.009.464-31.455 6.057-56.293 11.069-8.945 1.805-16.36 3.186-16.478 3.068s4.733-6.949 10.779-15.181l17.144-23.377L150.686 107l16.894-23 17.691-24 13.562-18.506c1.882-2.662 3.616-4.612 3.855-4.334s2.073 2.907 4.075 5.84' fill-rule='evenodd'/>\n"
+            "                 </symbol>\n"
+
+            "                 <symbol id='play' width='100' height='100' viewBox='0 0 400 400' xmlns:v='https://vecta.io/nano'>\n"
+            "                     <path d='M186.667 3.729l-9 .976C71.605 15.851-8.589 116.812 4.537 222.667 24.872 386.648 223.04 455.723 339.381 339.381 454.617 224.145 387.902 27.387 226 4.997c-7.262-1.004-34.202-1.873-39.333-1.268m-96.582 98.648c4.824 2.444 8.807 6.698 10.495 11.21l1.42 3.796v165.426l-2.012 4.216c-7.804 16.352-30.585 16.235-38.751-.199l-1.57-3.159-.175-82.303c-.194-91.568-.433-86.417 4.305-92.873 5.593-7.623 17.738-10.447 26.288-6.114m69.817-1.738c1.225.351 9.323 4.521 17.996 9.266L293 172.654c33.458 18.102 45.814 25.041 46.341 26.027 1.144 2.137-1.097 3.596-27.674 18.021l-45 24.467L229 261.677l-43.333 23.665c-29.478 16.148-32.836 16.993-36.828 9.26-1.642-3.181-.837-189.425.828-191.29 2.589-2.902 6.174-3.838 10.235-2.673' fill-rule='evenodd'/>\n"
+            "                 </symbol>\n"
+
+            "                 <symbol id='undo' width='100' height='100' viewBox='0 0 400 400' xmlns:v='https://vecta.io/nano'>\n"
+            "                     <path d='M186.667 3.729l-9 .976C71.605 15.851-8.589 116.812 4.537 222.667 24.872 386.648 223.04 455.723 339.381 339.381 454.617 224.145 387.902 27.387 226 4.997c-7.262-1.004-34.202-1.873-39.333-1.268m-4 35.533c6.343 2.637 6.277 2.283 6.549 34.691.131 15.609.436 28.565.678 28.792s4.939 1.043 10.439 1.816C296.116 118.016 358.36 210.711 334.256 304c-3.723 14.408-16.009 42.999-16.315 37.967-4.137-68.016-58.592-125.536-124.108-131.093l-4.5-.382-.079 22.254c-.111 31.45-.26 34.494-1.783 36.552-2.999 4.051-8.055 5.741-12.261 4.099-3.278-1.28-117.691-96.377-130.651-108.594-8.565-8.074-7.708-10.841 7.338-23.697L168.156 44.12c7.622-6.191 9.662-6.874 14.511-4.858' fill-rule='evenodd'/>\n"
+            "                 </symbol>\n"
+
+            "                 <symbol id='cross' width='100' height='100' viewBox='0 0 400 400' xmlns:v='https://vecta.io/nano'>\n"
+            "                     <path d='M186.667 3.729l-9 .976C71.605 15.851-8.589 116.812 4.537 222.667 24.872 386.648 223.04 455.723 339.381 339.381 454.617 224.145 387.902 27.387 226 4.997c-7.262-1.004-34.202-1.873-39.333-1.268M98.801 69.416c7.832 1.662 7.598 1.454 55.532 49.305l45.334 45.254L245 118.724c48.521-48.433 47.751-47.755 56.202-49.418 15.906-3.129 31.829 12.712 28.805 28.658-1.506 7.941-.51 6.816-49.192 55.534l-45.797 45.831 45.422 45.502c44.718 44.796 46.903 47.177 48.776 53.169 6.376 20.394-15.611 39.146-34.758 29.645-2.743-1.361-12.831-11.08-48.793-47.014l-45.998-45.298c-.365 0-21.064 20.384-45.999 45.298-48.345 48.307-47.817 47.84-55.992 49.482C80.918 333.478 64.872 314.78 70.118 298c1.873-5.992 4.057-8.373 48.775-53.169l45.422-45.502-45.797-45.831c-48.682-48.718-47.686-47.593-49.191-55.534-3.098-16.334 13.099-32.022 29.474-28.548' fill-rule='evenodd'/>\n"
+            "                 </symbol>\n"
+            "             </defs>\n"
+            "         </svg>\n"
            )
-
-
-def getPlay():
-    return ("            .play {"
-            "                    width: 100px;"
-            "                    height: 100px;"
-            "                    background-image: url(data:image/svg+xml;base64,PHN2ZyBpZD0ic3ZnIiB2ZXJzaW9uPSIxLjEiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIgeG1sbnM6eGxpbms9Imh0dHA6Ly93d3cudzMub3JnLzE5OTkveGxpbmsiIHdpZHRoPSI0MDAiIGhlaWdodD0iNDAwIiB2aWV3Qm94PSIwLCAwLCA0MDAsNDAwIj48ZyBpZD0ic3ZnZyI+PHBhdGggaWQ9InBhdGgwIiBkPSJNMTg2LjY2NyAzLjcyOSBDIDE4NS4zODMgMy44ODAsMTgxLjMzMyA0LjMxOSwxNzcuNjY3IDQuNzA1IEMgNzEuNjA1IDE1Ljg1MSwtOC41ODkgMTE2LjgxMiw0LjUzNyAyMjIuNjY3IEMgMjQuODcyIDM4Ni42NDgsMjIzLjA0MCA0NTUuNzIzLDMzOS4zODEgMzM5LjM4MSBDIDQ1NC42MTcgMjI0LjE0NSwzODcuOTAyIDI3LjM4NywyMjYuMDAwIDQuOTk3IEMgMjE4LjczOCAzLjk5MywxOTEuNzk4IDMuMTI0LDE4Ni42NjcgMy43MjkgTTkwLjA4NSAxMDIuMzc3IEMgOTQuOTA5IDEwNC44MjEsOTguODkyIDEwOS4wNzUsMTAwLjU4MCAxMTMuNTg3IEwgMTAyLjAwMCAxMTcuMzgzIDEwMi4wMDAgMjAwLjA5NiBMIDEwMi4wMDAgMjgyLjgwOSA5OS45ODggMjg3LjAyNSBDIDkyLjE4NCAzMDMuMzc3LDY5LjQwMyAzMDMuMjYwLDYxLjIzNyAyODYuODI2IEwgNTkuNjY3IDI4My42NjcgNTkuNDkyIDIwMS4zNjQgQyA1OS4yOTggMTA5Ljc5Niw1OS4wNTkgMTE0Ljk0Nyw2My43OTcgMTA4LjQ5MSBDIDY5LjM5MCAxMDAuODY4LDgxLjUzNSA5OC4wNDQsOTAuMDg1IDEwMi4zNzcgTTE1OS45MDIgMTAwLjYzOSBDIDE2MS4xMjcgMTAwLjk5MCwxNjkuMjI1IDEwNS4xNjAsMTc3Ljg5OCAxMDkuOTA1IEMgMjAwLjgyOSAxMjIuNDUzLDIyMS42OTYgMTMzLjgzMSwyMjYuNjY3IDEzNi40OTcgQyAyMzcuMDIxIDE0Mi4wNTIsMjQ4LjcwNSAxNDguNDA2LDI1My4zMzMgMTUwLjk5OSBDIDI1Ni4wODMgMTUyLjUzOSwyNjAuNzMzIDE1NS4wODYsMjYzLjY2NyAxNTYuNjU5IEMgMjY2LjYwMCAxNTguMjMxLDI3My42NTAgMTYyLjA2OCwyNzkuMzMzIDE2NS4xODQgQyAyODUuMDE3IDE2OC4zMDEsMjkxLjE2NyAxNzEuNjYyLDI5My4wMDAgMTcyLjY1NCBDIDMyNi40NTggMTkwLjc1NiwzMzguODE0IDE5Ny42OTUsMzM5LjM0MSAxOTguNjgxIEMgMzQwLjQ4NSAyMDAuODE4LDMzOC4yNDQgMjAyLjI3NywzMTEuNjY3IDIxNi43MDIgQyAyOTcuMzY3IDIyNC40NjQsMjc3LjExNyAyMzUuNDczLDI2Ni42NjcgMjQxLjE2OSBDIDI1Ni4yMTcgMjQ2Ljg2NCwyMzkuMjY3IDI1Ni4wOTIsMjI5LjAwMCAyNjEuNjc3IEMgMjE4LjczMyAyNjcuMjYxLDE5OS4yMzMgMjc3LjkxMCwxODUuNjY3IDI4NS4zNDIgQyAxNTYuMTg5IDMwMS40OTAsMTUyLjgzMSAzMDIuMzM1LDE0OC44MzkgMjk0LjYwMiBDIDE0Ny4xOTcgMjkxLjQyMSwxNDguMDAyIDEwNS4xNzcsMTQ5LjY2NyAxMDMuMzEyIEMgMTUyLjI1NiAxMDAuNDEwLDE1NS44NDEgOTkuNDc0LDE1OS45MDIgMTAwLjYzOSAiIHN0cm9rZT0ibm9uZSIgZmlsbD0iIzAwMDAwMCIgZmlsbC1ydWxlPSJldmVub2RkIj48L3BhdGg+PC9nPjwvc3ZnPg==);"
-            "            }"
-           )
-
-
-def getUndo():
-    return ("            .undo {"
-            "                    width: 100px;"
-            "                    height: 100px;"
-            "                    background-image: url(data:image/svg+xml;base64,PHN2ZyBpZD0ic3ZnIiB2ZXJzaW9uPSIxLjEiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIgeG1sbnM6eGxpbms9Imh0dHA6Ly93d3cudzMub3JnLzE5OTkveGxpbmsiIHdpZHRoPSI0MDAiIGhlaWdodD0iNDAwIiB2aWV3Qm94PSIwLCAwLCA0MDAsNDAwIj48ZyBpZD0ic3ZnZyI+PHBhdGggaWQ9InBhdGgwIiBkPSJNMTg2LjY2NyAzLjcyOSBDIDE4NS4zODMgMy44ODAsMTgxLjMzMyA0LjMxOSwxNzcuNjY3IDQuNzA1IEMgNzEuNjA1IDE1Ljg1MSwtOC41ODkgMTE2LjgxMiw0LjUzNyAyMjIuNjY3IEMgMjQuODcyIDM4Ni42NDgsMjIzLjA0MCA0NTUuNzIzLDMzOS4zODEgMzM5LjM4MSBDIDQ1NC42MTcgMjI0LjE0NSwzODcuOTAyIDI3LjM4NywyMjYuMDAwIDQuOTk3IEMgMjE4LjczOCAzLjk5MywxOTEuNzk4IDMuMTI0LDE4Ni42NjcgMy43MjkgTTE4Mi42NjcgMzkuMjYyIEMgMTg5LjAxMCA0MS44OTksMTg4Ljk0NCA0MS41NDUsMTg5LjIxNiA3My45NTMgQyAxODkuMzQ3IDg5LjU2MiwxODkuNjUyIDEwMi41MTgsMTg5Ljg5NCAxMDIuNzQ1IEMgMTkwLjEzNiAxMDIuOTcxLDE5NC44MzMgMTAzLjc4OCwyMDAuMzMzIDEwNC41NjEgQyAyOTYuMTE2IDExOC4wMTYsMzU4LjM2MCAyMTAuNzExLDMzNC4yNTYgMzA0LjAwMCBDIDMzMC41MzMgMzE4LjQwOCwzMTguMjQ3IDM0Ni45OTksMzE3Ljk0MSAzNDEuOTY3IEMgMzEzLjgwNCAyNzMuOTUxLDI1OS4zNDkgMjE2LjQzMSwxOTMuODMzIDIxMC44NzQgTCAxODkuMzMzIDIxMC40OTIgMTg5LjI1NCAyMzIuNzQ2IEMgMTg5LjE0MyAyNjQuMTk2LDE4OC45OTQgMjY3LjI0MCwxODcuNDcxIDI2OS4yOTggQyAxODQuNDcyIDI3My4zNDksMTc5LjQxNiAyNzUuMDM5LDE3NS4yMTAgMjczLjM5NyBDIDE3MS45MzIgMjcyLjExNyw1Ny41MTkgMTc3LjAyMCw0NC41NTkgMTY0LjgwMyBDIDM1Ljk5NCAxNTYuNzI5LDM2Ljg1MSAxNTMuOTYyLDUxLjg5NyAxNDEuMTA2IEMgNzQuMjYwIDEyMS45OTgsMTQ3LjY1OCA2MC43NjcsMTY4LjE1NiA0NC4xMjAgQyAxNzUuNzc4IDM3LjkyOSwxNzcuODE4IDM3LjI0NiwxODIuNjY3IDM5LjI2MiAiIHN0cm9rZT0ibm9uZSIgZmlsbD0iIzAwMDAwMCIgZmlsbC1ydWxlPSJldmVub2RkIj48L3BhdGg+PC9nPjwvc3ZnPg==);"
-            "            }"
-           )
-
-
-def getCross():
-    return ("            .cross {"
-            "                    width: 100px;"
-            "                    height: 100px;"
-            "                    background-image: url(data:image/svg+xml;base64,PHN2ZyBpZD0ic3ZnIiB2ZXJzaW9uPSIxLjEiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIgeG1sbnM6eGxpbms9Imh0dHA6Ly93d3cudzMub3JnLzE5OTkveGxpbmsiIHdpZHRoPSI0MDAiIGhlaWdodD0iNDAwIiB2aWV3Qm94PSIwLCAwLCA0MDAsNDAwIj48ZyBpZD0ic3ZnZyI+PHBhdGggaWQ9InBhdGgwIiBkPSJNMTg2LjY2NyAzLjcyOSBDIDE4NS4zODMgMy44ODAsMTgxLjMzMyA0LjMxOSwxNzcuNjY3IDQuNzA1IEMgNzEuNjA1IDE1Ljg1MSwtOC41ODkgMTE2LjgxMiw0LjUzNyAyMjIuNjY3IEMgMjQuODcyIDM4Ni42NDgsMjIzLjA0MCA0NTUuNzIzLDMzOS4zODEgMzM5LjM4MSBDIDQ1NC42MTcgMjI0LjE0NSwzODcuOTAyIDI3LjM4NywyMjYuMDAwIDQuOTk3IEMgMjE4LjczOCAzLjk5MywxOTEuNzk4IDMuMTI0LDE4Ni42NjcgMy43MjkgTTk4LjgwMSA2OS40MTYgQyAxMDYuNjMzIDcxLjA3OCwxMDYuMzk5IDcwLjg3MCwxNTQuMzMzIDExOC43MjEgTCAxOTkuNjY3IDE2My45NzUgMjQ1LjAwMCAxMTguNzI0IEMgMjkzLjUyMSA3MC4yOTEsMjkyLjc1MSA3MC45NjksMzAxLjIwMiA2OS4zMDYgQyAzMTcuMTA4IDY2LjE3NywzMzMuMDMxIDgyLjAxOCwzMzAuMDA3IDk3Ljk2NCBDIDMyOC41MDEgMTA1LjkwNSwzMjkuNDk3IDEwNC43ODAsMjgwLjgxNSAxNTMuNDk4IEwgMjM1LjAxOCAxOTkuMzI5IDI4MC40NDAgMjQ0LjgzMSBDIDMyNS4xNTggMjg5LjYyNywzMjcuMzQzIDI5Mi4wMDgsMzI5LjIxNiAyOTguMDAwIEMgMzM1LjU5MiAzMTguMzk0LDMxMy42MDUgMzM3LjE0NiwyOTQuNDU4IDMyNy42NDUgQyAyOTEuNzE1IDMyNi4yODQsMjgxLjYyNyAzMTYuNTY1LDI0NS42NjUgMjgwLjYzMSBDIDIyMC43MzEgMjU1LjcxNywyMDAuMDMxIDIzNS4zMzMsMTk5LjY2NyAyMzUuMzMzIEMgMTk5LjMwMiAyMzUuMzMzLDE3OC42MDMgMjU1LjcxNywxNTMuNjY4IDI4MC42MzEgQyAxMDUuMzIzIDMyOC45MzgsMTA1Ljg1MSAzMjguNDcxLDk3LjY3NiAzMzAuMTEzIEMgODAuOTE4IDMzMy40NzgsNjQuODcyIDMxNC43ODAsNzAuMTE4IDI5OC4wMDAgQyA3MS45OTEgMjkyLjAwOCw3NC4xNzUgMjg5LjYyNywxMTguODkzIDI0NC44MzEgTCAxNjQuMzE1IDE5OS4zMjkgMTE4LjUxOCAxNTMuNDk4IEMgNjkuODM2IDEwNC43ODAsNzAuODMyIDEwNS45MDUsNjkuMzI3IDk3Ljk2NCBDIDY2LjIyOSA4MS42MzAsODIuNDI2IDY1Ljk0Miw5OC44MDEgNjkuNDE2ICIgc3Ryb2tlPSJub25lIiBmaWxsPSIjMDAwMDAwIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjwvcGF0aD48L2c+PC9zdmc+);"
-            "            }"
-           )
-
 
 
 def getDebug():
@@ -74,40 +60,59 @@ def getDebug():
             "            <strong>Memory:</strong> {freeMemory}%\n"
             "        <br><br><hr><hr>\n"
             "        <h3>Exceptions</h3>\n"
-            "            {exceptions}\n")
+            "            {exceptions}\n"
+           )
 
 
 def getDrive():
     return ("        <h3>Drive mode</h3>\n"
             "        <table class = 'drive panel'>\n"
             "            <tr>\n"
-            "                <td>&#8598;</td><td>&#11014;</td><td>&#8599;</td>\n"
+            "                <td><svg style='rotate: -45deg;'><use xlink:href='#arrow'></use></svg></td>\n"
+            "                <td><svg><use xlink:href='#arrow'></use></svg></td>\n"
+            "                <td><svg style='rotate: 45deg;'><use xlink:href='#arrow'></use></svg></td>\n"
             "            </tr>\n"
             "            <tr>\n"
-            "                <td>&#11013;</td><td></td><td>&#10145;</td>\n"
+            "                <td><svg style='rotate: -90deg;'><use xlink:href='#arrow'></use></svg></td>\n"
+            "                <td></td>\n"
+            "                <td><svg style='rotate: 90deg;'><use xlink:href='#arrow'></use></svg></td>\n"
             "            </tr>\n"
             "            <tr>\n"
-            "                <td></td><td>&#11015;</td><td></td>\n"
+            "                <td></td>\n"
+            "                <td><svg style='rotate: 180deg;'><use xlink:href='#arrow'></use></svg></td>\n"
+            "                <td></td>\n"
             "            </tr>\n"
-            "        </table>\n")
+            "        </table>\n"
+           )
 
 
 def getCommand():
     return ("        <h3>Command mode</h3>\n"
-            "        <table class = 'command panel'>\n"
+            "        <table class = 'drive panel'>\n"
             "            <tr>\n"
-            "                <td>&#8598;</td><td>&#11014;</td><td>&#8599;</td>\n"
+            "                <td><svg style='rotate: -45deg;'><use xlink:href='#arrow'></use></svg></td>\n"
+            "                <td><svg><use xlink:href='#arrow'></use></svg></td>\n"
+            "                <td><svg style='rotate: 45deg;'><use xlink:href='#arrow'></use></svg></td>\n"
             "            </tr>\n"
             "            <tr>\n"
-            "                <td>&#11013;</td><td>&#9199;</td><td>&#10145;</td>\n"
+            "                <td><svg style='rotate: -90deg;'><use xlink:href='#arrow'></use></svg></td>\n"
+            "                <td><svg><use xlink:href='#play'></use></svg></td>\n"
+            "                <td><svg style='rotate: 90deg;'><use xlink:href='#arrow'></use></svg></td>\n"
             "            </tr>\n"
             "            <tr>\n"
-            "                <td>&#9208;</td><td>&#11015;</td><td>&#128257;</td>\n"
+            "                <td>&#9208;</td>\n"
+            "                <td><svg style='rotate: 180deg;'><use xlink:href='#arrow'></use></svg></td>\n"
+            "                <td>&#128257;</td>\n"
             "            </tr>\n"
             "            <tr>\n"
-            "                <td>&#10060;</td><td>&#10133;</td><td>&#11178;</td>\n"
+            "                <td><svg><use xlink:href='#cross'></use></svg></td>\n"
+            "                <td><svg style='rotate: 90deg;'><use xlink:href='#cross'></use></svg></td>\n"
+            "                <td><svg><use xlink:href='#undo'></use></svg></td>\n"
             "            </tr>\n"
             "            <tr>\n"
-            "                <td>&#9312;</td><td>&#9313;</td><td>&#9314;</td>\n"
+            "                <td>&#9312;</td>\n"
+            "                <td>&#9313;</td>\n"
+            "                <td>&#9314;</td>\n"
             "            </tr>\n"
-            "        </table>\n")
+            "        </table>\n"
+           )

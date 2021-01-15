@@ -53,11 +53,11 @@ def _getDebugContent():
 
 
 def _getDrivePanel(path):
-    return template.getDrive()
+    return template.getTurtleSvg() + template.getDrive()
 
 
 def _getCommandPanel(path):
-    return template.getCommand()
+    return template.getTurtleSvg() + template.getCommand()
 
 
 def _reply(returnFormat, httpCode, message, title = None):
