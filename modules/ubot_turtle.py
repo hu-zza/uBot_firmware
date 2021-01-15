@@ -352,7 +352,7 @@ def _delete(arguments):                     # (blockLevel,)
     if arguments[0] == True:                # Block-level
         _blockCompleted(True)               # buzzer.keyBeep("beepDeleted") is called inside _blockCompleted(True)
         for i in range(3):                  # Delete mark of unfinished function, if there are any.
-            if _functionDefined[i] = ():
+            if _functionDefined[i] == ():
                 _functionDefined[i] = False
     else:                                   # Not block-level: the whole _commandArray is affected.
         buzzer.keyBeep("beepDeleted")

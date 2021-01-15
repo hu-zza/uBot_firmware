@@ -29,7 +29,7 @@ def config(socket, dateTime, config, exceptionList, jsonFunction):
 
 
 def _getDebugContent():
-    result = template.getStats()
+    result = template.getDebug()
 
     allMem = gc.mem_free() + gc.mem_alloc()
     freePercent = gc.mem_free() * 100 // allMem
@@ -52,8 +52,12 @@ def _getDebugContent():
     )
 
 
+def _getDrivePanel(path):
+    return template.getDrive()
+
+
 def _getCommandPanel(path):
-    return ""
+    return template.getCommand()
 
 
 def _reply(returnFormat, httpCode, message, title = None):
@@ -74,10 +78,8 @@ def _reply(returnFormat, httpCode, message, title = None):
         if returnFormat == "HTML":
             if title == None:
                 title = httpCode
-            str  = "<html><head><title>" + title + "</title><style>"
-            str += template.getStyle()
-            str += "</style></head>"
-            str += "<body><h1>" + httpCode + "</h1><p>" + message + "</p></body></html>\r\n\r\n"
+
+            str = template.getPage().format(title = title, style = template.getStyle(), body = message)
         elif returnFormat == "JSON":
             str = ujson.dumps({"code" : httpCode, "message" : message})
 
@@ -91,6 +93,8 @@ def _reply(returnFormat, httpCode, message, title = None):
 def _processGetQuery(path):
     if path[1:] == "debug":
         _reply("HTML", "200 OK", _getDebugContent(), "&microBot Debug Page")
+    elif path[1:] == "drive":
+        _reply("HTML", "200 OK", _getDrivePanel(path), "&microBot Drive Page")
     else:
         _reply("HTML", "200 OK", _getCommandPanel(path), "&microBot Command Page")
 
