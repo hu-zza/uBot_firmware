@@ -77,7 +77,11 @@ def config(config):
 
     _currentMapping = _defaultMapping
 
-    _timer.init(period = config.get("turtleCheckPeriod"), mode = Timer.PERIODIC, callback = lambda t:_addCommand())
+    _timer.init(
+        period = config.get("turtleCheckPeriod"),
+        mode = Timer.PERIODIC,
+        callback = lambda t:_addCommand(_getValidatedPressedButton())
+    )
 
 
 
@@ -106,6 +110,12 @@ def move(direction):
     motor.move(0, _breathLength)        # Pause between movements.
 
 
+def press(pressed):                     # pressed = 1<<buttonOrdinal
+    _logLastPressed(pressed)
+    _addCommand(pressed)
+
+
+
 ################################################################
 ################################################################
 ##########
@@ -121,16 +131,21 @@ def _getValidatedPressedButton():
 
     pressed = _getPressedButton()
 
-    if pressed == _lastPressed[0]:
-        _lastPressed[1] += 1
-    else:
-        _lastPressed = [pressed, 1]
+    _logLastPressed(pressed)
 
     if _lastPressed[1] == 1 or _firstRepeat < _lastPressed[1]:    # Lack of pressing returns same like a button press.
         _lastPressed[1] = 1                                       # In this case the returning value is 0.
         return pressed
     else:
         return 0                                                 # If validation is in progress, returns 0.
+
+
+def _logLastPressed(pressed):
+    global _lastPressed
+    if pressed == _lastPressed[0]:
+        _lastPressed[1] += 1
+    else:
+        _lastPressed = [pressed, 1]
 
 
 def _getPressedButton():
@@ -191,10 +206,8 @@ def _advanceCounter():
 ################################
 ## BUTTON PRESS INTERPRETATION
 
-def _addCommand():
+def _addCommand(pressed):
     try:
-        pressed = _getValidatedPressedButton()
-
         if pressed == 0:                # result = 0 means, there is nothing to save to _commandArray.
             result = 0                  # Not only lack of buttonpress (pressed == 0) returns 0.
         elif _runningProgram:

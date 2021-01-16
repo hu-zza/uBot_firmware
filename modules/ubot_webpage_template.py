@@ -5,7 +5,20 @@ import ubot_turtle as turtle
 
 _exceptions = 0
 
-
+_sender =  ("\n"
+            "        <script>\n"
+            "            function send(value) {{\n"
+            "                let object = {{\n"
+            "                   \"title\" : \"{title}\",\n"
+            "                   \"commandList\" : [ \"{prefix}\" + value ]\n"
+            "                }}\n\n"
+            "                let json = JSON.stringify(object);\n\n"
+            "                let xhr = new XMLHttpRequest();\n"
+            "                xhr.open('POST', '', false);\n"
+            "                xhr.setRequestHeader('Content-Type', 'application/json');\n"
+            "                xhr.send(json);\n"
+            "            }}\n"
+            "        </script>\n")
 
 ###########
 ## CONFIG
@@ -126,14 +139,14 @@ def getDebugPanel():
 def getDrivePanel():
     return ("        <table class = 'drive panel'>\n"
             "            <tr>\n"
-            "                <td><svg onclick='move(\"l\")' style='rotate: -45deg;'><use xlink:href='#arrow'></use></svg></td>\n"
-            "                <td><svg onclick='move(\"F\")'><use xlink:href='#arrow'></use></svg></td>\n"
-            "                <td><svg onclick='move(\"r\")' style='rotate:  45deg;'><use xlink:href='#arrow'></use></svg></td>\n"
+            "                <td><svg onclick='send(\"l\")' style='rotate: -45deg;'><use xlink:href='#arrow'></use></svg></td>\n"
+            "                <td><svg onclick='send(\"F\")'><use xlink:href='#arrow'></use></svg></td>\n"
+            "                <td><svg onclick='send(\"r\")' style='rotate:  45deg;'><use xlink:href='#arrow'></use></svg></td>\n"
             "            </tr>\n"
             "            <tr>\n"
-            "                <td><svg onclick='move(\"L\")' style='rotate: -90deg;'><use xlink:href='#arrow'></use></svg></td>\n"
-            "                <td><svg onclick='move(\"B\")' style='rotate: 180deg;'><use xlink:href='#arrow'></use></svg></td>\n"
-            "                <td><svg onclick='move(\"R\")' style='rotate:  90deg;'><use xlink:href='#arrow'></use></svg></td>\n"
+            "                <td><svg onclick='send(\"L\")' style='rotate: -90deg;'><use xlink:href='#arrow'></use></svg></td>\n"
+            "                <td><svg onclick='send(\"B\")' style='rotate: 180deg;'><use xlink:href='#arrow'></use></svg></td>\n"
+            "                <td><svg onclick='send(\"R\")' style='rotate:  90deg;'><use xlink:href='#arrow'></use></svg></td>\n"
             "            </tr>\n"
             "        </table>\n"
            )
@@ -142,50 +155,40 @@ def getDrivePanel():
 def getCommandPanel():
     return ("        <table class = 'command panel'>\n"
             "            <tr>\n"
-            "                <td><svg style='rotate: -45deg;'><use xlink:href='#arrow'></use></svg></td>\n"
-            "                <td><svg><use xlink:href='#arrow'></use></svg></td>\n"
-            "                <td><svg style='rotate:  45deg;'><use xlink:href='#arrow'></use></svg></td>\n"
+            "                <td><svg onclick='send(128)' style='rotate: -45deg;'><use xlink:href='#arrow'></use></svg></td>\n"
+            "                <td><svg onclick='send(1)'><use xlink:href='#arrow'></use></svg></td>\n"
+            "                <td><svg onclick='send(16)' style='rotate: 45deg;'><use xlink:href='#arrow'></use></svg></td>\n"
             "            </tr>\n"
             "            <tr>\n"
-            "                <td><svg style='rotate: -90deg;'><use xlink:href='#arrow'></use></svg></td>\n"
-            "                <td><svg><use xlink:href='#pause'></use></svg></td>\n"
-            "                <td><svg style='rotate:  90deg;'><use xlink:href='#arrow'></use></svg></td>\n"
+            "                <td><svg onclick='send(128)' style='rotate: -90deg;'><use xlink:href='#arrow'></use></svg></td>\n"
+            "                <td><svg onclick='send(64)'><use xlink:href='#play'></use></svg></td>\n"
+            "                <td><svg onclick='send(16)' style='rotate:  90deg;'><use xlink:href='#arrow'></use></svg></td>\n"
             "            </tr>\n"
             "            <tr>\n"
-            "                <td><svg><use xlink:href='#play'></use></svg></td>\n"
-            "                <td><svg style='rotate: 180deg;'><use xlink:href='#arrow'></use></svg></td>\n"
-            "                <td><svg><use xlink:href='#repeat'></use></svg></td>\n"
+            "                <td><svg onclick='send(2)'><use xlink:href='#pause'></use></svg></td>\n"
+            "                <td><svg onclick='send(32)' style='rotate: 180deg;'><use xlink:href='#arrow'></use></svg></td>\n"
+            "                <td><svg onclick='send(4)'><use xlink:href='#repeat'></use></svg></td>\n"
             "            </tr>\n"
             "            <tr>\n"
-            "                <td><svg><use xlink:href='#cross'></use></svg></td>\n"
-            "                <td><svg><use xlink:href='#undo'></use></svg></td>\n"
-            "                <td><svg style='rotate:  45deg;'><use xlink:href='#cross'></use></svg></td>\n"
+            "                <td><svg onclick='send(512)'><use xlink:href='#cross'></use></svg></td>\n"
+            "                <td><svg onclick='send(256)'><use xlink:href='#undo'></use></svg></td>\n"
+            "                <td><svg onclick='send(8)' style='rotate: 45deg;'><use xlink:href='#cross'></use></svg></td>\n"
             "            </tr>\n"
             "            <tr>\n"
-            "                <td><svg><use xlink:href='#F1'></use></svg></td>\n"
-            "                <td><svg><use xlink:href='#F2'></use></svg></td>\n"
-            "                <td><svg><use xlink:href='#F3'></use></svg></td>\n"
+            "                <td><svg onclick='send(6)' ><use xlink:href='#F1'></use></svg></td>\n"
+            "                <td><svg onclick='send(10)'><use xlink:href='#F2'></use></svg></td>\n"
+            "                <td><svg onclick='send(12)'><use xlink:href='#F3'></use></svg></td>\n"
             "            </tr>\n"
             "        </table>\n"
            )
 
 
-def getCommandListSender():
-    return ("\n"
-            "        <script>\n"
-            "            function move(direction) {\n"
-            "                let object = {\n"
-            "                   \"title\" : \"Immediate command | μBot Drive\",\n"
-            "                   \"commandList\" : [ \"TURTLE_\" + direction ]\n"
-            "                }\n\n"
-            "                let json = JSON.stringify(object);\n\n"
-            "                let xhr = new XMLHttpRequest();\n"
-            "                xhr.open('POST', '', false);\n"
-            "                xhr.setRequestHeader('Content-Type', 'application/json');\n"
-            "                xhr.send(json);\n"
-            "            }\n"
-            "        </script>\n"
-           )
+def getTurtleMoveSender():
+    return _sender.format(title = "Immediate command | μBot Drive", prefix = "TURTLE_")
+
+
+def getButtonPressSender():
+    return _sender.format(title = "Pressed button | μBot Command", prefix = "PRESS_")
 
 
 
@@ -280,11 +283,11 @@ title = {
 parts = {
     "/debug"    : (getDebugPanel,),
 
-    "/drive"    : (getSvgDefinitionHead, getArrowSymbol, getSvgDefinitionFooter, getDrivePanel, getCommandListSender),
+    "/drive"    : (getSvgDefinitionHead, getArrowSymbol, getSvgDefinitionFooter, getDrivePanel, getTurtleMoveSender),
 
     "/command"  : (getSvgDefinitionHead, getArrowSymbol, getPlaySymbol, getPauseSymbol, getRepeatSymbol,
                    getF1Symbol, getF2Symbol, getF3Symbol, getUndoSymbol, getCrossSymbol, getSvgDefinitionFooter,
-                   getCommandPanel
+                   getCommandPanel, getButtonPressSender
                   )
 }
 
