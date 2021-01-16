@@ -28,12 +28,12 @@ def getSimplePage():
             "        <meta name='viewport' content='width=600, initial-scale=1.0'>\n"
             "        <title>{title}</title>\n"
             "        <style>\n"
-            "{style}\n"
+            "{style}"
             "        </style>\n"
             "    </head>\n"
             "    <body>\n"
             "        <h1>{title}</h1>\n"
-            "{body}\n"
+            "        {body}\n"
             "    </body>\n"
             "</html>\r\n\r\n"
            )
@@ -94,7 +94,7 @@ def getDebugPanel():
               "            <strong>Memory:</strong> {freeMemory}%\n"
               "        <br><br><hr><hr>\n"
               "        <h3>Exceptions</h3>\n"
-              "{exceptions}\n"
+              "{exceptions}"
              )
 
     allMem = gc.mem_free() + gc.mem_alloc()
@@ -126,14 +126,14 @@ def getDebugPanel():
 def getDrivePanel():
     return ("        <table class = 'drive panel'>\n"
             "            <tr>\n"
-            "                <td><svg style='rotate: -45deg;'><use xlink:href='#arrow'></use></svg></td>\n"
-            "                <td><svg><use xlink:href='#arrow'></use></svg></td>\n"
-            "                <td><svg style='rotate: 45deg;'><use xlink:href='#arrow'></use></svg></td>\n"
+            "                <td><svg onclick='move(\"l\")' style='rotate: -45deg;'><use xlink:href='#arrow'></use></svg></td>\n"
+            "                <td><svg onclick='move(\"F\")'><use xlink:href='#arrow'></use></svg></td>\n"
+            "                <td><svg onclick='move(\"r\")' style='rotate:  45deg;'><use xlink:href='#arrow'></use></svg></td>\n"
             "            </tr>\n"
             "            <tr>\n"
-            "                <td><svg style='rotate: -90deg;'><use xlink:href='#arrow'></use></svg></td>\n"
-            "                <td><svg style='rotate: 180deg;'><use xlink:href='#arrow'></use></svg></td>\n"
-            "                <td><svg style='rotate: 90deg;'><use xlink:href='#arrow'></use></svg></td>\n"
+            "                <td><svg onclick='move(\"L\")' style='rotate: -90deg;'><use xlink:href='#arrow'></use></svg></td>\n"
+            "                <td><svg onclick='move(\"B\")' style='rotate: 180deg;'><use xlink:href='#arrow'></use></svg></td>\n"
+            "                <td><svg onclick='move(\"R\")' style='rotate:  90deg;'><use xlink:href='#arrow'></use></svg></td>\n"
             "            </tr>\n"
             "        </table>\n"
            )
@@ -144,12 +144,12 @@ def getCommandPanel():
             "            <tr>\n"
             "                <td><svg style='rotate: -45deg;'><use xlink:href='#arrow'></use></svg></td>\n"
             "                <td><svg><use xlink:href='#arrow'></use></svg></td>\n"
-            "                <td><svg style='rotate: 45deg;'><use xlink:href='#arrow'></use></svg></td>\n"
+            "                <td><svg style='rotate:  45deg;'><use xlink:href='#arrow'></use></svg></td>\n"
             "            </tr>\n"
             "            <tr>\n"
             "                <td><svg style='rotate: -90deg;'><use xlink:href='#arrow'></use></svg></td>\n"
             "                <td><svg><use xlink:href='#pause'></use></svg></td>\n"
-            "                <td><svg style='rotate: 90deg;'><use xlink:href='#arrow'></use></svg></td>\n"
+            "                <td><svg style='rotate:  90deg;'><use xlink:href='#arrow'></use></svg></td>\n"
             "            </tr>\n"
             "            <tr>\n"
             "                <td><svg><use xlink:href='#play'></use></svg></td>\n"
@@ -159,7 +159,7 @@ def getCommandPanel():
             "            <tr>\n"
             "                <td><svg><use xlink:href='#cross'></use></svg></td>\n"
             "                <td><svg><use xlink:href='#undo'></use></svg></td>\n"
-            "                <td><svg style='rotate: 45deg;'><use xlink:href='#cross'></use></svg></td>\n"
+            "                <td><svg style='rotate:  45deg;'><use xlink:href='#cross'></use></svg></td>\n"
             "            </tr>\n"
             "            <tr>\n"
             "                <td><svg><use xlink:href='#F1'></use></svg></td>\n"
@@ -167,6 +167,24 @@ def getCommandPanel():
             "                <td><svg><use xlink:href='#F3'></use></svg></td>\n"
             "            </tr>\n"
             "        </table>\n"
+           )
+
+
+def getCommandListSender():
+    return ("\n"
+            "        <script>\n"
+            "            function move(direction) {\n"
+            "                let object = {\n"
+            "                   \"title\" : \"Immediate command | μBot Drive\",\n"
+            "                   \"commandList\" : [ \"TURTLE_\" + direction ]\n"
+            "                }\n\n"
+            "                let json = JSON.stringify(object);\n\n"
+            "                let xhr = new XMLHttpRequest();\n"
+            "                xhr.open('POST', '', false);\n"
+            "                xhr.setRequestHeader('Content-Type', 'application/json');\n"
+            "                xhr.send(json);\n"
+            "            }\n"
+            "        </script>\n"
            )
 
 
@@ -262,7 +280,7 @@ title = {
 parts = {
     "/debug"    : (getDebugPanel,),
 
-    "/drive"    : (getSvgDefinitionHead, getArrowSymbol, getSvgDefinitionFooter, getDrivePanel),
+    "/drive"    : (getSvgDefinitionHead, getArrowSymbol, getSvgDefinitionFooter, getDrivePanel, getCommandListSender),
 
     "/command"  : (getSvgDefinitionHead, getArrowSymbol, getPlaySymbol, getPauseSymbol, getRepeatSymbol,
                    getF1Symbol, getF2Symbol, getF3Symbol, getUndoSymbol, getCrossSymbol, getSvgDefinitionFooter,
