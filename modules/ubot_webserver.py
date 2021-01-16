@@ -53,11 +53,11 @@ def _getDebugContent():
 
 
 def _getDrivePanel(path):
-    return template.getTurtleSvg() + template.getDrive()
+    return template.getSvgDef().format(symbols = template.getDriveSet()) + template.getDrive()
 
 
 def _getCommandPanel(path):
-    return template.getTurtleSvg() + template.getCommand()
+    return template.getSvgDef().format(symbols = template.getFullTurtle()) + template.getDrive()
 
 
 def _reply(returnFormat, httpCode, message, title = None):
@@ -92,11 +92,11 @@ def _reply(returnFormat, httpCode, message, title = None):
 
 def _processGetQuery(path):
     if path[1:] == "debug":
-        _reply("HTML", "200 OK", _getDebugContent(), "&microBot Debug Page")
+        _reply("HTML", "200 OK", _getDebugContent(), "&microBot Debug")
     elif path[1:] == "drive":
-        _reply("HTML", "200 OK", _getDrivePanel(path), "&microBot Drive Page")
+        _reply("HTML", "200 OK", _getDrivePanel(path), "&microBot Drive")
     else:
-        _reply("HTML", "200 OK", _getCommandPanel(path), "&microBot Command Page")
+        _reply("HTML", "200 OK", _getCommandPanel(path), "&microBot Command")
 
 def _processPostQuery(body):
     try:
