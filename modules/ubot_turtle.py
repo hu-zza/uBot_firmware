@@ -111,6 +111,9 @@ def move(direction):
 
 
 def press(pressed):                     # pressed = 1<<buttonOrdinal
+    if isinstance(pressed, str):
+        pressed = int(pressed)
+
     _logLastPressed(pressed)
     _addCommand(pressed)
 
