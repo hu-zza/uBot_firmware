@@ -13,6 +13,11 @@ _jsonFunction = 0
 _connection   = 0
 _address      = 0
 
+
+
+################################
+## CONFIG
+
 def config(socket, dateTime, config, exceptionList, jsonFunction):
     global _socket
     global _dateTime
@@ -29,65 +34,37 @@ def config(socket, dateTime, config, exceptionList, jsonFunction):
     template.config(exceptionList)
 
 
-def _reply(returnFormat, httpCode, message):
-    """ Try to reply with a text/html or application/json
-        if the connection is alive, then closes it. """
 
-    try:
-        _connection.send("HTTP/1.1 " + httpCode + "\r\n")
+################################
+## PUBLIC METHODS
 
-        if returnFormat == "HTML":
-            str = "text/html"
-        elif returnFormat == "JSON":
-            str = "application/json"
+def start():
+    global _config
 
-        _connection.send("Content-Type: " + str + "\r\n")
-        _connection.send("Connection: close\r\n\r\n")
+    _config['webServerActive'] = True
 
-        if returnFormat == "HTML":
-            str = template.getSimplePage().format(title = httpCode, style = template.getSimpleStyle(), body = message)
-        elif returnFormat == "JSON":
-            str = ujson.dumps({"code" : httpCode, "message" : message})
-
-        _connection.sendall(str)
-    except Exception:
-        print("The connection has been closed.")
-    finally:
-        _connection.close()
+    if _config.get("apActive"):
+        while _config.get("webServerActive"):
+            try:
+                _processSockets()
+            except Exception as e:
+                _exceptions.append((_dateTime.datetime(), e))
 
 
-def _processGetQuery(path):
-    try:
-        _connection.send("HTTP/1.1 200 OK\r\n")
-        _connection.send("Content-Type: text/html\r\n")
-        _connection.send("Connection: close\r\n\r\n")
-        _connection.sendall(template.getPageHeadStart().format(template.title.get(path)))
-        _connection.sendall(template.getGeneralStyle())
-        _connection.sendall(template.getPageHeadEnd())
+def stop(message):
+    global _config
 
-        for part in template.parts.get(path):
-            _connection.sendall(part())
-
-        _connection.sendall(template.getPageFooter())
-    except Exception as e:
-        _exceptions.append((_dateTime.datetime(), e))
-    finally:
-        _connection.close()
+    if _config.get("webServerActive"):
+        try:
+            _reply("JSON", "200 OK", [message])
+            _config['webServerActive'] = False
+        except Exception as e:
+            _exceptions.append((_dateTime.datetime(), e))
 
 
-def _processPostQuery(body):
-    try:
-        json = ujson.loads(body)
 
-        if json.get("estimatedExecutionTime") != None:
-            if 10 < json.get("estimatedExecutionTime"):
-                _reply("JSON", "200 OK", "JSON parsed, execution in progress.")
-
-        _reply("JSON", "200 OK", _jsonFunction(json))
-    except Exception as e:
-        _exceptions.append((_dateTime.datetime(), e))
-        _reply("JSON", "400 Bad Request", "The request body could not be parsed and processed.")
-
+################################
+## PRIVATE, HELPER METHODS
 
 def _processSockets():
     global _connection
@@ -141,25 +118,61 @@ def _processSockets():
         _connection.close()
 
 
-def start():
-    global _config
+def _processGetQuery(path):
+    try:
+        _connection.send("HTTP/1.1 200 OK\r\n")
+        _connection.send("Content-Type: text/html\r\n")
+        _connection.send("Connection: close\r\n\r\n")
+        _connection.sendall(template.getPageHeadStart().format(template.title.get(path)))
+        _connection.sendall(template.getGeneralStyle())
+        _connection.sendall(template.getPageHeadEnd())
 
-    _config['webServerActive'] = True
+        for part in template.parts.get(path):
+            _connection.sendall(part())
 
-    if _config.get("apActive"):
-        while _config.get("webServerActive"):
-            try:
-                _processSockets()
-            except Exception as e:
-                _exceptions.append((_dateTime.datetime(), e))
+        _connection.sendall(template.getPageFooter())
+    except Exception as e:
+        _exceptions.append((_dateTime.datetime(), e))
+    finally:
+        _connection.close()
 
 
-def stop(message):
-    global _config
+def _processPostQuery(body):
+    try:
+        json = ujson.loads(body)
 
-    if _config.get("webServerActive"):
-        try:
-            _reply("JSON", "200 OK", [message])
-            _config['webServerActive'] = False
-        except Exception as e:
-            _exceptions.append((_dateTime.datetime(), e))
+        if json.get("estimatedExecutionTime") != None:
+            if 10 < json.get("estimatedExecutionTime"):
+                _reply("JSON", "200 OK", "JSON parsed, execution in progress.")
+
+        _reply("JSON", "200 OK", _jsonFunction(json))
+    except Exception as e:
+        _exceptions.append((_dateTime.datetime(), e))
+        _reply("JSON", "400 Bad Request", "The request body could not be parsed and processed.")
+
+
+def _reply(returnFormat, httpCode, message):
+    """ Try to reply with a text/html or application/json
+        if the connection is alive, then closes it. """
+
+    try:
+        _connection.send("HTTP/1.1 " + httpCode + "\r\n")
+
+        if returnFormat == "HTML":
+            str = "text/html"
+        elif returnFormat == "JSON":
+            str = "application/json"
+
+        _connection.send("Content-Type: " + str + "\r\n")
+        _connection.send("Connection: close\r\n\r\n")
+
+        if returnFormat == "HTML":
+            str = template.getSimplePage().format(title = httpCode, style = template.getSimpleStyle(), body = message)
+        elif returnFormat == "JSON":
+            str = ujson.dumps({"code" : httpCode, "message" : message})
+
+        _connection.sendall(str)
+    except Exception:
+        print("The connection has been closed.")
+    finally:
+        _connection.close()

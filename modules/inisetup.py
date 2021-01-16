@@ -9,8 +9,8 @@ ap = network.WLAN(network.AP_IF)
 config = {
     "firmwareMajor"     : 0,
     "firmwareMinor"     : 1,
-    "firmwarePatch"     : 19,
-    "initialDateTime"   : (2021, 1, 16, 0, 14, 40, 0, 0),
+    "firmwarePatch"     : 20,
+    "initialDateTime"   : (2021, 1, 16, 0, 16, 10, 0, 0),
 
     "apActive"          : True,
     "apEssid"           : "uBot__" + hexlify(ap.config("mac"), ":").decode()[9:],

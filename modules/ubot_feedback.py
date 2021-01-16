@@ -3,10 +3,15 @@ from smbus   import SMBus
 from lsm303  import LSM303
 from utime   import sleep_ms
 
+
 _I2C    = 0
 _MAP    = 0
 _LSM303 = 0
 
+
+
+################################
+## CONFIG
 
 def config(freq, SDA, SCL):
     _I2C = I2C(freq=freq, sda=SDA, scl=SCL)
@@ -14,6 +19,11 @@ def config(freq, SDA, SCL):
 
     if 0 < len(_MAP):
         _LSM303 = LSM303(SMBus(freq=freq, sda=SDA, scl=SCL))
+
+
+
+################################
+## TEST METHODS
 
 def _test():
     if 0 < len(_MAP):

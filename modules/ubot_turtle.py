@@ -1,6 +1,9 @@
 import sys
+
 from machine import Pin, Timer
+
 import ubot_buzzer as buzzer
+
 
 _clockPin          = 0           # [need config()] Advances the decade counter (U3).
 _inputPin          = 0           # [need config()] Checks the returning signal from turtle HAT.
@@ -34,19 +37,56 @@ _timer             = Timer(-1)   #                 Executes the repeated button 
 
 
 ################################
+## CONFIG
+
+def config(config):
+    global _clockPin
+    global _inputPin
+    global _pressLength
+    global _maxError
+    global _firstRepeat
+    global _loopChecking
+    global _pressedList
+    global _currentMapping
+
+    _clockPin = Pin(config.get("turtleClockPin"), Pin.OUT)
+    _clockPin.off()
+
+    _inputPin = Pin(config.get("turtleInputPin"), Pin.OUT) # FUTURE: _inputPin = Pin(16, Pin.IN)
+    _inputPin.off()                                        # DEPRECATED: New PCB design (2.1) will resolve this.
+    _inputPin.init(Pin.IN)                                 # DEPRECATED: New PCB design (2.1) will resolve this.
+
+    _pressLength  = config.get("turtlePressLength")
+    _maxError     = config.get("turtleMaxError")
+    _firstRepeat  = config.get("turtleFirstRepeat")
+    _loopChecking = config.get("turtleLoopChecking")
+
+    _pressedList  = [0] * (_pressLength + _maxError)
+
+    _currentMapping = _defaultMapping
+
+    _timer.init(period = config.get("turtleCheckPeriod"), mode = Timer.PERIODIC, callback = lambda t:_addCommand())
+
+
+
+################################
 ## BUTTON PRESS PROCESSING
 
-def _advanceCounter():
-    global _counterPosition
+def _getValidatedPressedButton():
+    global _lastPressed
 
-    _clockPin.on()
+    pressed = _getPressedButton()
 
-    if 9 <= _counterPosition:
-        _counterPosition = 0
+    if pressed == _lastPressed[0]:
+        _lastPressed[1] += 1
     else:
-        _counterPosition += 1
+        _lastPressed = [pressed, 1]
 
-    _clockPin.off()
+    if _lastPressed[1] == 1 or _firstRepeat < _lastPressed[1]:    # Lack of pressing returns same like a button press.
+        _lastPressed[1] = 1                                       # In this case the returning value is 0.
+        return pressed
+    else:
+        return 0                                                 # If validation is in progress, returns 0.
 
 
 def _getPressedButton():
@@ -90,21 +130,17 @@ def _getPressedButton():
             return 0
 
 
-def _getValidatedPressedButton():
-    global _lastPressed
+def _advanceCounter():
+    global _counterPosition
 
-    pressed = _getPressedButton()
+    _clockPin.on()
 
-    if pressed == _lastPressed[0]:
-        _lastPressed[1] += 1
+    if 9 <= _counterPosition:
+        _counterPosition = 0
     else:
-        _lastPressed = [pressed, 1]
+        _counterPosition += 1
 
-    if _lastPressed[1] == 1 or _firstRepeat < _lastPressed[1]:    # Lack of pressing returns same like a button press.
-        _lastPressed[1] = 1                                       # In this case the returning value is 0.
-        return pressed
-    else:
-        return 0                                                 # If validation is in progress, returns 0.
+    _clockPin.off()
 
 
 
@@ -152,6 +188,7 @@ def _addToCommandArray(command):
         _commandArray.append(command)
 
     _commandPointer += 1
+
 
 
 ################################
@@ -374,8 +411,6 @@ def _customMapping():
 
 
 
-
-
 ################################
 ## MAPPINGS
 
@@ -395,6 +430,7 @@ _defaultMapping = {
     512:  (_delete,            (False,)),                           # DELETE
     1023: (_customMapping,     ())                                  # MAPPING
 }
+
 
 _loopBeginMapping = {
     1:    (_beepAndReturn,     ("beepProcessed", 70)),              # FORWARD
@@ -437,33 +473,3 @@ _functionMapping = {
     256:  (_undo,              (True,)),                            # UNDO
     512:  (_delete,            (True,))                             # DELETE
 }
-
-
-
-def config(config):
-    global _clockPin
-    global _inputPin
-    global _pressLength
-    global _maxError
-    global _firstRepeat
-    global _loopChecking
-    global _pressedList
-    global _currentMapping
-
-    _clockPin = Pin(config.get("turtleClockPin"), Pin.OUT)
-    _clockPin.off()
-
-    _inputPin = Pin(config.get("turtleInputPin"), Pin.OUT) # FUTURE: _inputPin = Pin(16, Pin.IN)
-    _inputPin.off()                                        # DEPRECATED: New PCB design (2.1) will resolve this.
-    _inputPin.init(Pin.IN)                                 # DEPRECATED: New PCB design (2.1) will resolve this.
-
-    _pressLength  = config.get("turtlePressLength")
-    _maxError     = config.get("turtleMaxError")
-    _firstRepeat  = config.get("turtleFirstRepeat")
-    _loopChecking = config.get("turtleLoopChecking")
-
-    _pressedList  = [0] * (_pressLength + _maxError)
-
-    _currentMapping = _defaultMapping
-
-    _timer.init(period = config.get("turtleCheckPeriod"), mode = Timer.PERIODIC, callback = lambda t:_addCommand())

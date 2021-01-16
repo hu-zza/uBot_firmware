@@ -1,11 +1,16 @@
 from machine import Pin, PWM
 from utime   import sleep_ms, sleep_us
 
+
 _config       = 0
 _pwm          = 0
 _buzzerActive = 0
 _defaultState = 0
 
+
+
+################################
+## CONFIG
 
 def config(config):
     global _config
@@ -19,15 +24,9 @@ def config(config):
     _defaultState = 0
 
 
-def setDefaultState(value = 0):
-    global _defaultState
 
-    _defaultState = value
-    if value == 0:
-        _pwm.duty(0)
-    else:
-        _pwm.duty(1023)
-
+################################
+## PUBLIC METHODS
 
 def keyBeep(keyInConfigDictionary):
     tuneList = _config.get(keyInConfigDictionary)
@@ -47,11 +46,6 @@ def keyBeep(keyInConfigDictionary):
     else:
         midiBeep(64)
 
-
-def rest(duration = 100):
-    _pwm.duty(0)
-    sleep_ms(duration)
-    _pwm.duty(1023 * _defaultState)
 
 def midiBeep(noteOn = 69, duration = 100, restAround = 100, count = 1):
     if noteOn == None:
@@ -73,6 +67,26 @@ def beep(freq = 440.0, duration = 100, restAround = 100, count = 1):
 
         rest(restAround)
 
+
+def rest(duration = 100):
+    _pwm.duty(0)
+    sleep_ms(duration)
+    _pwm.duty(1023 * _defaultState)
+
+
+def setDefaultState(value = 0):
+    global _defaultState
+
+    _defaultState = value
+    if value == 0:
+        _pwm.duty(0)
+    else:
+        _pwm.duty(1023)
+
+
+
+################################
+## PRIVATE, HELPER METHODS
 
 def _pwmBeep(freq = 440.0, duration = 100):
     _pwm.freq(round(freq))

@@ -1,6 +1,3 @@
-###########
-## IMPORTS
-
 import esp, gc, network, ujson, uos, usocket, sys, webrepl
 
 from machine     import Pin, PWM, RTC, Timer, UART, WDT
@@ -14,11 +11,19 @@ import ubot_turtle    as turtle
 import ubot_webserver as webserver
 
 
-# Import configuration files
+DT = IDT = RTC()
+CONFIG   = {}
+
+
+
+################################
+## IMPORT CONFIG FILES
+
 EXCEPTIONS     = []
 datetimeLoaded = True
 configLoaded   = True
 defaultsLoaded = True
+
 
 try:
     import etc.datetime as datetime
@@ -26,11 +31,13 @@ except Exception as e:
     datetimeLoaded = False
     EXCEPTIONS.append(([], e))
 
+
 try:
     import etc.config as config
 except Exception as e:
     configLoaded = False
     EXCEPTIONS.append(([], e))
+
 
 try:
     import etc.defaults as defaults
@@ -39,73 +46,12 @@ except Exception as e:
     EXCEPTIONS.append(([], e))
 
 
-###########
-## GLOBALS
-
-DT = IDT = RTC()
-CONFIG   = {}
-
 
 ################################
-## METHODS
+## PUBLIC METHODS
 
-def listExceptions():
-    for i in range(len(EXCEPTIONS)):
-        print("{}\t{}\t{}".format(i, EXCEPTIONS[i][0], EXCEPTIONS[i][1]))
-
-
-def printException(nr):
-    if 0 <= nr and nr < len(EXCEPTIONS):
-        print(EXCEPTIONS[nr][0])
-        sys.print_exception(EXCEPTIONS[nr][1])
-    else:
-        print("List index ({}) is out of range ({}).".format(nr, len(EXCEPTIONS)))
-
-
-# Adding datetime afterwards to exceptions
-def replaceNullDT():
-    global EXCEPTIONS
-
-    for i in range(len(EXCEPTIONS)):
-        if len(EXCEPTIONS[i][0]) == 0:                                 # If datetime is an empty collection
-            EXCEPTIONS[i] = (DT.datetime(), EXCEPTIONS[i][1])          # Reassign exception with datetime
-
-
-def saveToFile(fileName, mode, content):
-    try:
-        with open(fileName, mode) as file:
-            file.write(content)
-    except Exception as e:
-        EXCEPTIONS.append((DT.datetime(), e))
-
-
-def saveDateTime():
-    saveToFile("etc/datetime.py", "w", "DT = {}".format(DT.datetime()))
-
-
-def saveConfig():
-    try:
-        with open("etc/config.py", "w") as file:
-
-            for key in sorted([k for k in CONFIG.keys()]):
-                value = CONFIG.get(key)
-                if isinstance(value, str):
-                    file.write("{} = '{}'\n".format(key, value))
-                else:
-                    file.write("{} = {}\n".format(key, value))
-    except Exception as e:
-        EXCEPTIONS.append(e)
-
-
-def startLsmTest():
-    LSM303_LOG = "etc/LSM303__" + str(DT.datetime()).replace(", ", "_")
-
-    for i in range(600):
-        result = feedback._test()
-        saveToFile(LSM303_LOG, "a+", str(result)+"\n")
-        print(result)
-        sleep_ms(100)
-
+###########
+## SERVER
 
 def executeJson(json):
     global CONFIG
@@ -174,12 +120,84 @@ def executeJson(json):
     return results
 
 
+###########
+## CONFIG
+
+def replaceNullDT():
+    """ Adding datetime afterwards to exceptions """
+    global EXCEPTIONS
+
+    for i in range(len(EXCEPTIONS)):
+        if len(EXCEPTIONS[i][0]) == 0:                                 # If datetime is an empty collection
+            EXCEPTIONS[i] = (DT.datetime(), EXCEPTIONS[i][1])          # Reassign exception with datetime
+
+
+def saveConfig():
+    try:
+        with open("etc/config.py", "w") as file:
+
+            for key in sorted([k for k in CONFIG.keys()]):
+                value = CONFIG.get(key)
+                if isinstance(value, str):
+                    file.write("{} = '{}'\n".format(key, value))
+                else:
+                    file.write("{} = {}\n".format(key, value))
+    except Exception as e:
+        EXCEPTIONS.append(e)
+
+
+def saveDateTime():
+    saveToFile("etc/datetime.py", "w", "DT = {}".format(DT.datetime()))
+
+
+###########
+## HELPER
+
+def saveToFile(fileName, mode, content):
+    try:
+        with open(fileName, mode) as file:
+            file.write(content)
+    except Exception as e:
+        EXCEPTIONS.append((DT.datetime(), e))
+
+        
+###########
+## DEBUG
+
+def listExceptions():
+    for i in range(len(EXCEPTIONS)):
+        print("{}\t{}\t{}".format(i, EXCEPTIONS[i][0], EXCEPTIONS[i][1]))
+
+
+def printException(nr):
+    if 0 <= nr and nr < len(EXCEPTIONS):
+        print(EXCEPTIONS[nr][0])
+        sys.print_exception(EXCEPTIONS[nr][1])
+    else:
+        print("List index ({}) is out of range ({}).".format(nr, len(EXCEPTIONS)))
+
+
+###########
+## TEST
+
+def startLsmTest():
+    LSM303_LOG = "etc/LSM303__" + str(DT.datetime()).replace(", ", "_")
+
+    for i in range(600):
+        result = feedback._test()
+        saveToFile(LSM303_LOG, "a+", str(result)+"\n")
+        print(result)
+        sleep_ms(100)
+
+
+
 ################################
 ## INITIALISATION
 
 gc.enable()
 esp.osdebug(None)
 esp.sleep_type(esp.SLEEP_NONE)
+
 
 if datetimeLoaded:
     try:
@@ -211,6 +229,7 @@ else:
     replaceNullDT()
     EXCEPTIONS.append((DT.datetime(), "Neither the configuration file, nor the default values can be loaded."))
 
+
 if CONFIG.get("i2cActive"):
     try:
         feedback.config(CONFIG.get("i2cFreq"), Pin(CONFIG.get("i2cSda")), Pin(CONFIG.get("i2cScl")))
@@ -222,7 +241,6 @@ if CONFIG.get("i2cActive"):
 ## GPIO
 
 buzzer.config(CONFIG)
-
 
 if CONFIG.get("turtleActive"):
     turtle.config(CONFIG)
@@ -264,10 +282,12 @@ AP.active(CONFIG.get("apActive"))
 AP.ifconfig(("192.168.11.1", "255.255.255.0", "192.168.11.1", "8.8.8.8"))
 AP.config(authmode = network.AUTH_WPA_WPA2_PSK)
 
+
 try:
     AP.config(essid = CONFIG.get("apEssid"))
 except Exception as e:
     EXCEPTIONS.append((DT.datetime(), e))
+
 
 try:
     AP.config(password = CONFIG.get("apPassword"))
@@ -281,9 +301,11 @@ except Exception as e:
 if CONFIG.get("watchdogActive"):
     WD = WDT()
 
+
 # The REPL is attached by default to UART0, detach if not needed.
 if not CONFIG.get("uartActive"):
     uos.dupterm(None, 1)
+
 
 if CONFIG.get("webReplActive"):
     try:

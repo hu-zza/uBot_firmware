@@ -15,6 +15,34 @@ _processing = False
 _moveList   = []
 
 
+
+################################
+## CONFIG
+
+def config(motorConfig, motorPins):
+    global _active
+    global _pin
+    global _pwm
+
+    _active = (0 not in motorPins[0], 0 not in motorPins[1])
+
+    _pin = (
+        (Pin(motorPins[0][0], Pin.OUT), Pin(motorPins[0][1], Pin.OUT)) if _active[0] else (0, 0),
+        (Pin(motorPins[1][0], Pin.OUT), Pin(motorPins[1][1], Pin.OUT)) if _active[1] else (0, 0)
+    )
+
+    if _active[0]:
+        _pin[0][0].off()
+        _pin[0][1].off()
+
+    if _active[1]:
+        _pin[1][0].off()
+        _pin[1][1].off()
+        _pwm     = (PWM(Pin(motorPins[1][0])), PWM(Pin(motorPins[1][1])))
+
+    configMotor(motorConfig)
+
+
 def configMotor(motorConfig):
     global _factor
     global _config
@@ -43,121 +71,8 @@ def configMotor(motorConfig):
 
 
 
-def config(motorConfig, motorPins):
-    global _active
-    global _pin
-    global _pwm
-
-    _active = (0 not in motorPins[0], 0 not in motorPins[1])
-
-    _pin = (
-        (Pin(motorPins[0][0], Pin.OUT), Pin(motorPins[0][1], Pin.OUT)) if _active[0] else (0, 0),
-        (Pin(motorPins[1][0], Pin.OUT), Pin(motorPins[1][1], Pin.OUT)) if _active[1] else (0, 0)
-    )
-
-    if _active[0]:
-        _pin[0][0].off()
-        _pin[0][1].off()
-
-    if _active[1]:
-        _pin[1][0].off()
-        _pin[1][1].off()
-        _pwm     = (PWM(Pin(motorPins[1][0])), PWM(Pin(motorPins[1][1])))
-
-    configMotor(motorConfig)
-
-
-def _driveMotor(motor = 0, mode = 0, sleep = 0):
-    """
-    Low-level motor (temporary) setter
-
-    motor : integer parameter
-    0     : (M3, M6)   T0 terminal / RIGHT MOTOR
-    1     : (M11, M14) T1 terminal / LEFT MOTOR
-
-    mode  : integer parameter
-    0     : (off, off)  -> STOP
-    1     : (on,  off)  -> FORWARD
-    2     : (off,  on)  -> BACKWARD
-
-    sleep : integer parameter (makes this setter temporary)
-    """
-    if mode != 0:
-        _pin[motor][1 - mode].on()
-        _pin[motor][abs(mode - 2)].off()
-        sleep_ms(sleep)
-
-    _pin[motor][0].off()
-    _pin[motor][1].off()
-
-
-def _setController(modeLeft = 0, modeRight = 0):          # (T1 mode, T0 mode)
-    """
-    Sets both motor in one go. (If both are active.)
-    This setter is permanent,
-    its only responsibility to handle PWM.
-    """
-    if _active[1]:                                         # T1 - LEFT MOTOR - PWM
-        if modeLeft == 0:
-            _pwm[0].duty(0)
-            _pwm[1].duty(0)
-        else:
-            duty = round(_factor * _config[1][1])     # Duty factor * initial duty
-            _pwm[modeLeft - 1].freq(_config[1][0])
-            _pwm[modeLeft - 1].duty(duty)
-
-    if _active[0]:                                         # T0 - RIGHT MOTOR - Timer "PWM"
-        if modeRight == 0:
-            _timerT1.deinit()
-            _driveMotor(0, 0)
-        else:
-            _timerT1.init(
-                period = _config[0][0],
-                mode = Timer.PERIODIC,
-                callback = lambda t:_driveMotor(0, modeRight, _config[0][1])
-            )
-
-
-def _stopAndNext():
-    global _processing
-    """
-    Part of a recursive loop: _stopAndNext() - _processMove(move) - _stopAndNext() - ...
-
-    Stops the current, done task (movement) and checks if there is any task waiting for processing.
-    If it finds task(s), pops the first and call _processMove(move). If not, loop stops.
-    """
-
-    _setController(0, 0)
-    _processing = False
-
-    if 0 < len(_moveList):
-        _processing = True
-        _processMove(_moveList.pop(0))
-
-
-def _processMove(move):       # ((direction, duration))
-    """
-    Part of a recursive loop: _stopAndNext() - _processMove(move) - _stopAndNext() - ...
-
-    Sets the motors by _setController() according to the 'move' tuple: (direction, duration)
-    After that it initialise a timer to terminate this move, and to continue processing _moveList.
-    """
-    if move[0] == 1:                # FORWARD
-        _setController(1, 1)
-    elif move[0] == 2:              # LEFT
-        _setController(2, 1)
-    elif move[0] == 3:              # RIGHT
-        _setController(1, 2)
-    elif move[0] == 4:              # BACKWARD
-        _setController(2, 2)
-
-    # STOP
-    _timer.init(
-        period = 0 if move[0] == 0 else move[1],    # immediately / after movement duration (move[1])
-        mode = Timer.ONE_SHOT,
-        callback = lambda t:_stopAndNext()
-    )
-
+################################
+## PUBLIC METHODS
 
 def move(direction = 0, duration = 500):
     """
@@ -185,3 +100,99 @@ def setDutyFactor(dutyFactor):
     else:
         _factor = dutyFactor
         return 0
+
+
+
+################################
+## PRIVATE, HELPER METHODS
+
+def _processMove(move):       # ((direction, duration))
+    """
+    Part of a recursive loop: _stopAndNext() - _processMove(move) - _stopAndNext() - ...
+
+    Sets the motors by _setController() according to the 'move' tuple: (direction, duration)
+    After that it initialise a timer to terminate this move, and to continue processing _moveList.
+    """
+    if move[0] == 1:                # FORWARD
+        _setController(1, 1)
+    elif move[0] == 2:              # LEFT
+        _setController(2, 1)
+    elif move[0] == 3:              # RIGHT
+        _setController(1, 2)
+    elif move[0] == 4:              # BACKWARD
+        _setController(2, 2)
+
+    # STOP
+    _timer.init(
+        period = 0 if move[0] == 0 else move[1],    # immediately / after movement duration (move[1])
+        mode = Timer.ONE_SHOT,
+        callback = lambda t:_stopAndNext()
+    )
+
+
+def _stopAndNext():
+    global _processing
+    """
+    Part of a recursive loop: _stopAndNext() - _processMove(move) - _stopAndNext() - ...
+
+    Stops the current, done task (movement) and checks if there is any task waiting for processing.
+    If it finds task(s), pops the first and call _processMove(move). If not, loop stops.
+    """
+
+    _setController(0, 0)
+    _processing = False
+
+    if 0 < len(_moveList):
+        _processing = True
+        _processMove(_moveList.pop(0))
+
+
+def _setController(modeLeft = 0, modeRight = 0):        # (T1 mode, T0 mode)
+    """
+    Sets both motor in one go. (If both are active.)
+    This setter is permanent,
+    its only responsibility to handle PWM.
+    """
+    if _active[1]:                                      # T1 - LEFT MOTOR - PWM
+        if modeLeft == 0:
+            _pwm[0].duty(0)
+            _pwm[1].duty(0)
+        else:
+            duty = round(_factor * _config[1][1])       # Duty factor * initial duty
+            _pwm[modeLeft - 1].freq(_config[1][0])
+            _pwm[modeLeft - 1].duty(duty)
+
+    if _active[0]:                                      # T0 - RIGHT MOTOR - Timer "PWM"
+        if modeRight == 0:
+            _timerT1.deinit()
+            _driveMotor(0, 0)
+        else:
+            _timerT1.init(
+                period = _config[0][0],
+                mode = Timer.PERIODIC,
+                callback = lambda t:_driveMotor(0, modeRight, _config[0][1])
+            )
+
+
+def _driveMotor(motor = 0, mode = 0, sleep = 0):
+    """
+    Low-level motor (temporary) setter
+
+    motor : integer parameter
+    0     : (M3, M6)   T0 terminal / RIGHT MOTOR
+    1     : (M11, M14) T1 terminal / LEFT MOTOR
+
+    mode  : integer parameter
+    0     : (off, off)  -> STOP
+    1     : (on,  off)  -> FORWARD
+    2     : (off,  on)  -> BACKWARD
+
+    sleep : integer parameter (makes this setter temporary)
+    """
+    if mode != 0:
+        _pin[motor][1 - mode].on()
+        _pin[motor][abs(mode - 2)].off()
+        sleep_ms(sleep)
+
+    _pin[motor][0].off()
+    _pin[motor][1].off()
