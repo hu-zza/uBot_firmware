@@ -78,6 +78,15 @@ def move(direction = 0, duration = 500):
     """
     Public function which books a move tuple (direction, duration)
     on _moveList for the indirect, future processing.
+
+    direction   : integer parameter
+    0           : STOP
+    1           : FORWARD
+    2           : LEFT
+    3           : RIGHT
+    4           : BACKWARD
+
+    duration    : integer parameter (length of movement in millisecond)
     """
     _moveList.append((direction, duration))
     if 1 == len(_moveList) and not _processing:
@@ -121,10 +130,12 @@ def _processMove(move):       # ((direction, duration))
         _setController(1, 2)
     elif move[0] == 4:              # BACKWARD
         _setController(2, 2)
+    else:                           # STOP
+        _setController(0, 0)
 
-    # STOP
-    _timer.init(
-        period = 0 if move[0] == 0 else move[1],    # immediately / after movement duration (move[1])
+
+    _timer.init(                    # STOP AND NEXT
+        period = move[1],
         mode = Timer.ONE_SHOT,
         callback = lambda t:_stopAndNext()
     )
@@ -192,7 +203,7 @@ def _driveMotor(motor = 0, mode = 0, sleep = 0):
     if mode != 0:
         _pin[motor][1 - mode].on()
         _pin[motor][abs(mode - 2)].off()
-        sleep_ms(sleep)
+        sleep_ms(sleep)                                                     # Refactor with Timer / while (millisDiff) ?
 
     _pin[motor][0].off()
     _pin[motor][1].off()

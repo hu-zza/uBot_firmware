@@ -64,28 +64,36 @@ def executeJson(json):
 
     if json.get("commandList") != None:
         for command in json.get("commandList"):
-            if command[0:6] == "SLEEP_":
+            if command[0:7] == "TURTLE_":
+                for char in command[7:].strip():
+                    turtle.move(char)
+
+            elif command[0:6] == "SLEEP_":
                 sleep_ms(int(command[6:].strip()))
-                results.append("'{}' executed successfully.".format(command))
+
             elif command[0:5] == "REST_":
                 buzzer.rest(int(command[5:].strip()))
-                results.append("'{}' executed successfully.".format(command))
+
             elif command[0:5] == "BEEP_":
                 beepArray = command[5:].strip().split(":")
                 buzzer.beep(int(beepArray[0]), int(beepArray[1]), int(beepArray[2]))
-                results.append("'{}' executed successfully.".format(command))
+
             elif command[0:5] == "MIDI_":
                 beepArray = command[5:].strip().split(":")
                 buzzer.midiBeep(int(beepArray[0]), int(beepArray[1]), int(beepArray[2]))
-                results.append("'{}' executed successfully.".format(command))
+
             elif command[0:4] == "MOT_":
                 motor.move(int(command[4]), int(command[6:].strip()))
-                results.append("'{}' executed successfully.".format(command))
+
             elif command[0:5] == "EXEC_": ##############################################################################
                 exec(command[5:])
-                results.append("'{}' executed successfully.".format(command))
-            elif command[0:5] == "EVAL_": ##############################################################################
+
+
+            if command[0:5] == "EVAL_": ################################################################################
                 results.append("'{}' executed successfully, the result is: '{}'".format(command, eval(command[5:])))
+            else:
+                results.append("'{}' executed successfully.".format(command))
+
 
     if json.get("service") != None:
             for command in json.get("service"):
@@ -160,7 +168,7 @@ def saveToFile(fileName, mode, content):
     except Exception as e:
         EXCEPTIONS.append((DT.datetime(), e))
 
-        
+
 ###########
 ## DEBUG
 

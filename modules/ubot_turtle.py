@@ -1,8 +1,10 @@
 import sys
 
 from machine import Pin, Timer
+from utime   import sleep_ms
 
 import ubot_buzzer as buzzer
+import ubot_motor  as motor
 
 
 _clockPin          = 0           # [need config()] Advances the decade counter (U3).
@@ -14,6 +16,9 @@ _maxError          = 0           # [need config()]
 _lastPressed       = [0, 0]      #                 Inside: [last pressed button, elapsed (button check) cycles]
 _firstRepeat       = 0           # [need config()]
 _loopChecking      = 0           # [need config()]
+_moveLength        = 0           #
+_turnLength        = 0           #
+_breathLength      = 0           #
 
 _pressedListIndex  = 0
 _pressedList       = 0           # [need config()] Low-level:  The last N (_pressLength + _maxError) buttoncheck results.
@@ -46,6 +51,9 @@ def config(config):
     global _maxError
     global _firstRepeat
     global _loopChecking
+    global _moveLength
+    global _turnLength
+    global _breathLength
     global _pressedList
     global _currentMapping
 
@@ -61,12 +69,48 @@ def config(config):
     _firstRepeat  = config.get("turtleFirstRepeat")
     _loopChecking = config.get("turtleLoopChecking")
 
+    _moveLength   = config.get("turtleMoveLength")
+    _turnLength   = config.get("turtleTurnLength")
+    _breathLength = config.get("turtleBreathLength")
+
     _pressedList  = [0] * (_pressLength + _maxError)
 
     _currentMapping = _defaultMapping
 
     _timer.init(period = config.get("turtleCheckPeriod"), mode = Timer.PERIODIC, callback = lambda t:_addCommand())
 
+
+
+################################
+## PUBLIC METHODS
+
+def move(direction):
+    if isinstance(direction, str):
+        direction = ord(direction)
+
+    if direction == 70:                 # "F" - FORWARD
+        motor.move(1, _moveLength)
+    elif direction == 66:               # "B" - BACKWARD
+        motor.move(4, _moveLength)
+    elif direction == 76:               # "L" - LEFT (90°)
+        motor.move(2, _turnLength)
+    elif direction == 108:              # "l" - LEFT (45°)
+        motor.move(2, _turnLength // 2) #                       Placeholder...
+    elif direction == 82:               # "R" - RIGHT (90°)
+        motor.move(3, _turnLength)
+    elif direction == 114:              # "r" - RIGHT (45°)
+        motor.move(3, _turnLength // 2) #                       Placeholder...
+    elif direction == 80:               # "P" - PAUSE
+        motor.move(0, _moveLength)
+
+    motor.move(0, _breathLength)        # Pause between movements.
+
+
+################################################################
+################################################################
+##########
+##########  PRIVATE, CLASS-LEVEL METHODS
+##########
 
 
 ################################
