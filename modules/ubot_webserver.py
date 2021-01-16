@@ -1,4 +1,4 @@
-import gc, ujson, usocket
+import gc, ujson, usocket, sys
 
 from machine import RTC
 
@@ -91,12 +91,23 @@ def _reply(returnFormat, httpCode, message, title = None):
 
 
 def _processGetQuery(path):
-    if path[1:] == "debug":
-        _reply("HTML", "200 OK", _getDebugContent(), "&microBot Debug")
-    elif path[1:] == "drive":
-        _reply("HTML", "200 OK", _getDrivePanel(path), "&microBot Drive")
-    else:
-        _reply("HTML", "200 OK", _getCommandPanel(path), "&microBot Command")
+    try:
+        _connection.send("HTTP/1.1 200 OK\r\n")
+        _connection.send("Content-Type: text/html\r\n")
+        _connection.send("Connection: close\r\n\r\n")
+        _connection.sendall(template.getPageHeadStart().format(template.title.get(path)))
+        _connection.sendall(template.getGeneralStyle())
+        _connection.sendall(template.getPageHeadEnd())
+
+        for part in template.parts.get(path):
+            _connection.sendall(part())
+
+        _connection.sendall(template.getPageFooter())
+    except Exception as e:
+        sys.print_exception(e) #print("The connection has been closed.")
+    finally:
+        _connection.close()
+
 
 def _processPostQuery(body):
     try:
