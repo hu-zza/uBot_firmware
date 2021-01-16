@@ -1,5 +1,34 @@
+import gc
+import ubot_turtle as turtle
+
+_exceptions = 0
+
+def config(exceptionList):
+    global _exceptions
+
+    _exceptions   = exceptionList
+
+
 ###########
 ## GENERAL
+
+def getSimplePage():
+    return ("<!DOCTYPE html>\n"
+            "<html>\n"
+            "    <head>\n"
+            "        <meta charset='utf-8'>\n"
+            "        <meta name='viewport' content='width=600, initial-scale=1.0'>\n"
+            "        <title>{title}</title>\n"
+            "        <style>\n"
+            "{style}\n"
+            "        </style>\n"
+            "    </head>\n"
+            "    <body>\n"
+            "        <h1>{title}</h1>\n"
+            "{body}\n"
+            "    </body>\n"
+            "</html>\r\n\r\n"
+           )
 
 def getPageHeadStart():
     return ("<!DOCTYPE html>\n"
@@ -21,6 +50,10 @@ def getPageFooter():
             "</html>\r\n\r\n"
            )
 
+def getSimpleStyle():
+    return ("            body {font-family: Garamond, Baskerville, Baskerville Old Face, Times New Roman, serif;}\n"
+           )
+
 def getGeneralStyle():
     return ("            svg {width: 100px; height: 100px;}\n"
             "            .exceptions tr:nth-child(even) {background: #EEE}\n"
@@ -38,18 +71,43 @@ def getGeneralStyle():
 ## PANELS
 
 def getDebugPanel():
-    return ("        <h3>Commands</h3>\n"
-            "            {commands}\n"
-            "        <br><br><hr><hr>\n"
-            "        <h3>Program</h3>\n"
-            "            {program}\n"
-            "        <br><br><hr><hr>\n"
-            "        <h3>System</h3>\n"
-            "            <strong>Memory:</strong> {freeMemory}%\n"
-            "        <br><br><hr><hr>\n"
-            "        <h3>Exceptions</h3>\n"
-            "            {exceptions}\n"
-           )
+    result = ("        <h3>Commands</h3>\n"
+              "            {commands}\n"
+              "        <br><br><hr><hr>\n"
+              "        <h3>Program</h3>\n"
+              "            {program}\n"
+              "        <br><br><hr><hr>\n"
+              "        <h3>System</h3>\n"
+              "            <strong>Memory:</strong> {freeMemory}%\n"
+              "        <br><br><hr><hr>\n"
+              "        <h3>Exceptions</h3>\n"
+              "{exceptions}\n"
+             )
+
+    allMem = gc.mem_free() + gc.mem_alloc()
+    freePercent = gc.mem_free() * 100 // allMem
+
+    exceptionList = ("            <table class='exceptions'>\n"
+                     "                <colgroup><col><col><col></colgroup>\n"
+                     "                <tbody>\n")
+    index = 0
+
+    for (dt, exception) in _exceptions:
+        exceptionList += "                    <tr>\n"
+        exceptionList += "                        <td> {} </td><td> {}. {}. {}. {}:{}:{}.{} </td><td> {} </td>".format(
+            index, dt[0], dt[1], dt[2], dt[4], dt[5], dt[6], dt[7], exception
+        )
+        exceptionList += "                    </tr>\n"
+        index += 1
+
+    exceptionList += ("                </tbody>\n"
+                      "            </table>\n")
+
+    return result.format(
+        commands = turtle._commandArray[:turtle._commandPointer].decode(),
+        program  = turtle._programArray[:turtle._programPointer].decode(),
+        freeMemory = freePercent, exceptions = exceptionList
+    )
 
 
 def getDrivePanel():
@@ -69,7 +127,7 @@ def getDrivePanel():
 
 
 def getCommandPanel():
-    return ("        <table class = 'drive panel'>\n"
+    return ("        <table class = 'command panel'>\n"
             "            <tr>\n"
             "                <td><svg style='rotate: -45deg;'><use xlink:href='#arrow'></use></svg></td>\n"
             "                <td><svg><use xlink:href='#arrow'></use></svg></td>\n"

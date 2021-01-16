@@ -1,9 +1,8 @@
-import gc, ujson, usocket, sys
+import gc, ujson, usocket
 
 from machine import RTC
 
 import ubot_webpage_template as template
-import ubot_turtle           as turtle
 
 
 _socket       = 0
@@ -27,40 +26,10 @@ def config(socket, dateTime, config, exceptionList, jsonFunction):
     _exceptions   = exceptionList
     _jsonFunction = jsonFunction
 
-
-def _getDebugContent():
-    result = template.getDebug()
-
-    allMem = gc.mem_free() + gc.mem_alloc()
-    freePercent = gc.mem_free() * 100 // allMem
-
-    exceptionList = "<table class=\"exceptions\"><colgroup><col><col><col></colgroup><tbody>"
-    index = 0
-
-    for (dt, exception) in _exceptions:
-        exceptionList += "<tr><td> {} </td><td> {}. {}. {}. {}:{}:{}.{} </td><td> {} </td></tr>".format(
-            index, dt[0], dt[1], dt[2], dt[4], dt[5], dt[6], dt[7], exception
-        )
-        index += 1
-
-    exceptionList += "</tbody></table>"
-
-    return result.format(
-        commands = turtle._commandArray[:turtle._commandPointer].decode(),
-        program  = turtle._programArray[:turtle._programPointer].decode(),
-        freeMemory = freePercent, exceptions = exceptionList
-    )
+    template.config(exceptionList)
 
 
-def _getDrivePanel(path):
-    return template.getSvgDef().format(symbols = template.getDriveSet()) + template.getDrive()
-
-
-def _getCommandPanel(path):
-    return template.getSvgDef().format(symbols = template.getFullTurtle()) + template.getDrive()
-
-
-def _reply(returnFormat, httpCode, message, title = None):
+def _reply(returnFormat, httpCode, message):
     """ Try to reply with a text/html or application/json
         if the connection is alive, then closes it. """
 
@@ -76,10 +45,7 @@ def _reply(returnFormat, httpCode, message, title = None):
         _connection.send("Connection: close\r\n\r\n")
 
         if returnFormat == "HTML":
-            if title == None:
-                title = httpCode
-
-            str = template.getPage().format(title = title, style = template.getStyle(), body = message)
+            str = template.getSimplePage().format(title = httpCode, style = template.getSimpleStyle(), body = message)
         elif returnFormat == "JSON":
             str = ujson.dumps({"code" : httpCode, "message" : message})
 
@@ -104,7 +70,7 @@ def _processGetQuery(path):
 
         _connection.sendall(template.getPageFooter())
     except Exception as e:
-        sys.print_exception(e) #print("The connection has been closed.")
+        _exceptions.append((_dateTime.datetime(), e))
     finally:
         _connection.close()
 
