@@ -381,12 +381,15 @@ def _manageFunction(arguments):             # (functionId, onlyCall)            
         buzzer.keyBeep("beepProcessed")
         return (126, arguments[0] + 48, 126)          # Increase by 48 = human-friendly bytes: 48 -> "0", 49 -> "1", ...
     elif _functionPosition[id - 1] == 0:              # End of defining the function
+        # Save _blockStartIndex + 1 to _functionPosition, because it will be destroyed during _blockCompleted().
+        _functionPosition[id - 1] = _blockStartIndex + 1  # + 1 because it saves the real start, not the parentheses.
+
         # If function contains nothing
         # (_commandPointer - _blockStartIndex < 2 -> Function start and end are adjacent.),
         # delete it by _blockCompleted() which return a boolean (True if deleted).
-        # If this returning value is true, save _blockStartIndex + 1 to _functionPosition, else -1.
-        _functionPosition[id - 1] = (_blockStartIndex + 2) * _blockCompleted(1 < _commandPointer - _blockStartIndex) - 1
-        # _blockCompleted() will destroy current _blockStartIndex, so this strange oneliner will save the world.
+        # If this returning value is true, retain _blockStartIndex + 1, else overwrite it with -1.
+        if _blockCompleted(_commandPointer - _blockStartIndex < 2):
+            _functionPosition[id - 1] = -1
 
         return (0, (124, arguments[0] + 48, 125))[0 < _functionPosition[id - 1]] # False == 0, and True == 1 (defined)
 
