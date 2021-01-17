@@ -38,7 +38,6 @@ def getSimplePage():
             "<html>\n"
             "    <head>\n"
             "        <meta charset='utf-8'>\n"
-            "        <meta name='viewport' content='width=600, initial-scale=1.0'>\n"
             "        <title>{title}</title>\n"
             "        <style>\n"
             "{style}"
@@ -56,6 +55,7 @@ def getPageHeadStart():
     return ("<!DOCTYPE html>\n"
             "<html>\n"
             "    <head>\n"
+            "        <meta name='viewport' content='width=610'>\n"
             "        <meta charset='utf-8'>\n"
             "        <title>{}</title>\n"
             "        <style>\n"
@@ -86,9 +86,10 @@ def getGeneralStyle():
             "            .exceptions col:nth-child(1) {width: 40px;}\n"
             "            .exceptions col:nth-child(2) {width: 250px;}\n"
             "            .exceptions col:nth-child(3) {width: 500px;}\n"
-            "            .panel {margin: auto; font-size: 100px; text-align: center;}\n"
-            "            .command {width: 600px; height: 1000px;}\n"
-            "            .drive {width: 600px; height: 400px;}\n"
+            "            .panel  {margin: auto; font-size: 100px; text-align: center;}\n"
+            "            .drive  {width: 600px; height: 400px;}\n"
+            "            .simple {width: 600px; height: 900px;}\n"
+            "            .pro    {width: 600px; height: 1000px;}\n"
            )
 
 
@@ -152,8 +153,37 @@ def getDrivePanel():
            )
 
 
-def getCommandPanel():
-    return ("        <table class = 'command panel'>\n"
+def getSimplePanel():
+    return ("        <table class = 'simple panel'>\n"
+            "            <tr>\n"
+            "                <td></td>\n"
+            "                <td><svg onclick='send(1)'><use xlink:href='#arrow'></use></svg></td>\n"
+            "                <td></td>\n"
+            "            </tr>\n"
+            "            <tr>\n"
+            "                <td><svg onclick='send(128)' style='rotate: -90deg;'><use xlink:href='#arrow'></use></svg></td>\n"
+            "                <td><svg onclick='send(64)'><use xlink:href='#play'></use></svg></td>\n"
+            "                <td><svg onclick='send(16)' style='rotate:  90deg;'><use xlink:href='#arrow'></use></svg></td>\n"
+            "            </tr>\n"
+            "            <tr>\n"
+            "                <td></td>\n"
+            "                <td><svg onclick='send(32)' style='rotate: 180deg;'><use xlink:href='#arrow'></use></svg></td>\n"
+            "                <td></td>\n"
+            "            </tr>\n"
+            "            <tr>\n"
+            "                <td colspan='3' style='height:100px;'></td>\n"
+            "            </tr>\n"
+            "            <tr>\n"
+            "                <td><svg onclick='send(512)'><use xlink:href='#cross'></use></svg></td>\n"
+            "                <td><svg onclick='send(2)'><use xlink:href='#pause'></use></svg></td>\n"
+            "                <td><svg onclick='send(256)'><use xlink:href='#undo'></use></svg></td>\n"
+            "            </tr>\n"
+            "        </table>\n"
+           )
+
+
+def getProPanel():
+    return ("        <table class = 'pro panel'>\n"
             "            <tr>\n"
             "                <td><svg onclick='send(128)' style='rotate: -45deg;'><use xlink:href='#arrow'></use></svg></td>\n"
             "                <td><svg onclick='send(1)'><use xlink:href='#arrow'></use></svg></td>\n"
@@ -277,7 +307,8 @@ def getCrossSymbol():
 title = {
     "/debug"    : "&microBot Debug",
     "/drive"    : "&microBot Drive",
-    "/command"  : "&microBot Command"
+    "/simple"   : "&microBot Simple",
+    "/pro"      : "&microBot Professional"
 }
 
 parts = {
@@ -285,11 +316,18 @@ parts = {
 
     "/drive"    : (getSvgDefinitionHead, getArrowSymbol, getSvgDefinitionFooter, getDrivePanel, getTurtleMoveSender),
 
-    "/command"  : (getSvgDefinitionHead, getArrowSymbol, getPlaySymbol, getPauseSymbol, getRepeatSymbol,
+    "/simple"   : (getSvgDefinitionHead, getArrowSymbol, getPlaySymbol, getPauseSymbol, getUndoSymbol, getCrossSymbol,
+                   getSvgDefinitionFooter, getSimplePanel, getButtonPressSender
+                  ),
+
+    "/pro"      : (getSvgDefinitionHead, getArrowSymbol, getPlaySymbol, getPauseSymbol, getRepeatSymbol,
                    getF1Symbol, getF2Symbol, getF3Symbol, getUndoSymbol, getCrossSymbol, getSvgDefinitionFooter,
-                   getCommandPanel, getButtonPressSender
+                   getProPanel, getButtonPressSender
                   )
 }
 
-title["/"] = title["/command"]
-parts["/"] = parts["/command"]
+title["/"] = title["/simple"]
+parts["/"] = parts["/simple"]
+
+title["/professional"] = title["/pro"]
+parts["/professional"] = parts["/pro"]
