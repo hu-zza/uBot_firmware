@@ -81,15 +81,18 @@ def getSimpleStyle():
 
 
 def getGeneralStyle():
-    return ("            svg {width: 100px; height: 100px;}\n"
-            "            .exceptions tr:nth-child(even) {background: #EEE}\n"
+    return ("            svg        {width: 100px; height: 100px; fill: rgb(160,160,160); transition: 0.5s;}\n"
+            "            svg:hover  {fill: rgb(120,120,120); transition: 0.5s;}\n"
+            "            svg:active {fill: rgb(60,60,60); transition: 0.1s;}\n"
+            "            .drive     {width: 600px; height: 400px;}\n"
+            "            .simple    {width: 600px; height: 900px;}\n"
+            "            .pro       {width: 600px; height: 1000px;}\n"
+            "            .panel     {margin: auto; font-size: 100px; text-align: center;}\n"
             "            .exceptions col:nth-child(1) {width: 40px;}\n"
             "            .exceptions col:nth-child(2) {width: 250px;}\n"
             "            .exceptions col:nth-child(3) {width: 500px;}\n"
-            "            .panel  {margin: auto; font-size: 100px; text-align: center;}\n"
-            "            .drive  {width: 600px; height: 400px;}\n"
-            "            .simple {width: 600px; height: 900px;}\n"
-            "            .pro    {width: 600px; height: 1000px;}\n"
+            "            .exceptions tr:nth-child(even) {background: #EEE}\n"
+
            )
 
 
