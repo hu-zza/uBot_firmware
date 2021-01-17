@@ -30,7 +30,10 @@ _programParts      = []          #                 Positions by which _programAr
 
 _loopCounter       = 0           #
 
-_functionDefined   = [False, False, False]
+_functionPosition   = [False, False, False]
+_functionPosition  = [-1, -1, -1]                  # -1 : not defined, 0 : under definition, 1+ : defined
+                                                   # If defined, this index refer to the first command of the function,
+                                                   # instead of its parentheses "(".
 
 _blockStartIndex   = 0           #
 _blockPrevStarts   = []          #
@@ -369,25 +372,27 @@ def _checkLoopCounter():
 # FUNCTION
 
 def _manageFunction(arguments):             # (functionId, onlyCall)                    123 [statements...] 124 [id] 125
-    global _functionDefined                 #                           function call:  126 [id] 126
+    global _functionPosition                #                           function call:  126 [id] 126
     id = arguments[0]
 
     # Calling the function if it is defined, or flag 'only call' is True and it is not under definition.
-    if _functionDefined[id - 1] or (arguments[1] and _functionDefined[id - 1] != ()):
+    # In the second case, position -1 (undefined) is fine. (lazy initialization)
+    if 0 < _functionPosition[id - 1] or (arguments[1] and _functionPosition[id - 1] != 0):
         buzzer.keyBeep("beepProcessed")
         return (126, arguments[0] + 48, 126)          # Increase by 48 = human-friendly bytes: 48 -> "0", 49 -> "1", ...
-    elif _functionDefined[id - 1] == ():              # End of defining the function
+    elif _functionPosition[id - 1] == 0:              # End of defining the function
         # If function contains nothing
         # (_commandPointer - _blockStartIndex < 2 -> Function start and end are adjacent.),
         # delete it by _blockCompleted() which return a boolean (True if deleted).
-        # Save the opposite of this returning value in _functionDefined.
-        _functionDefined[id - 1] = not _blockCompleted(_commandPointer - _blockStartIndex < 2)
+        # If this returning value is true, save _blockStartIndex + 1 to _functionPosition, else -1.
+        _functionPosition[id - 1] = (_blockStartIndex + 2) * _blockCompleted(1 < _commandPointer - _blockStartIndex) - 1
+        # _blockCompleted() will destroy current _blockStartIndex, so this strange oneliner will save the world.
 
-        return (0, (124, arguments[0] + 48, 125))[_functionDefined[id - 1]] # False == 0, and True == 1 (function defined)
+        return (0, (124, arguments[0] + 48, 125))[0 < _functionPosition[id - 1]] # False == 0, and True == 1 (defined)
 
     else:                                             # Beginning of defining the function
         _blockStarted(_functionMapping)
-        _functionDefined[id - 1] = ()                 # In progress, so it isn't True or False.
+        _functionPosition[id - 1] = 0                 # In progress, so it isn't -1 (undefined) or 1+ (defined).
         return 123
 
 
@@ -409,7 +414,7 @@ def _startOrStop(arguments):                # (blockLevel, starting)
 def _undo(arguments):                       # (blockLevel,)
     global _commandPointer
     global _programPointer                  # I think this will be needed, if line 342 became something useful... :-)
-    global _functionDefined
+    global _functionPosition
 
     # Sets the maximum range of undo in according to blockLevel flag.
     undoLowerBoundary = _blockStartIndex + 1 if arguments[0] else 0
@@ -423,7 +428,7 @@ def _undo(arguments):                       # (blockLevel,)
 
         if boundary != 0:
             if boundary == 123:                                    # If it undoes a function declaration.
-                _functionDefined[_commandArray[_commandPointer - 1] - 49] = False   # not 48! functionId - 1 = index
+                _functionPosition[_commandArray[_commandPointer - 1] - 49] = -1 # not 48! functionId - 1 = array index
             while True:                                            # General undo decreases the pointer by one, so this
                 _commandPointer -= 1                               # do...while loop can handle identic boundary pairs.
                 if _commandArray[_commandPointer] == boundary:
@@ -444,21 +449,21 @@ def _undo(arguments):                       # (blockLevel,)
 def _delete(arguments):                     # (blockLevel,)
     global _commandPointer
     global _programPointer
-    global _functionDefined
+    global _functionPosition
 
     if arguments[0] == True:                # Block-level
         _blockCompleted(True)               # buzzer.keyBeep("beepDeleted") is called inside _blockCompleted(True)
-        for i in range(3):                  # Delete mark of unfinished function, if there are any.
-            if _functionDefined[i] == ():
-                _functionDefined[i] = False
+        for i in range(3):                  # Delete position of unfinished function, if there are any.
+            if _functionPosition[i] == 0:
+                _functionPosition[i] = -1
     else:                                   # Not block-level: the whole _commandArray is affected.
         buzzer.keyBeep("beepDeleted")
         if _commandPointer != 0:
             _commandPointer = 0
-            # for .... if 124 X 125 -> _functionDefined[X] = False
+            # for .... if 124 X 125 -> _functionPosition[X] = -1
         else:
             _programPointer = 0
-            _functionDefined = [False, False, False]
+            _functionPosition = [-1, -1, -1]
             buzzer.keyBeep("beepBoundary")
 
 

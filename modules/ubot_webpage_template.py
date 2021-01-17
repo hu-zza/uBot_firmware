@@ -74,8 +74,8 @@ def getGeneralStyle():
 
 
 def getDebugStyle():
-    return ("            hr { color: #EEE; }\n"
-            "            .system    { margin: 30px; }\n"
+    return ("            hr    { color: #EEE; }\n"
+            "            table { margin: 30px; }\n"
             "            .system td { padding: 5px; border-bottom: dotted 1px #AAA; }\n"
             "            .exceptions col:nth-child(1)   { width: 40px; }\n"
             "            .exceptions col:nth-child(2)   { width: 250px; }\n"
