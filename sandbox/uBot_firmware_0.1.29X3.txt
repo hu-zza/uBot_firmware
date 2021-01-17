@@ -1,0 +1,630 @@
+picocom v3.1
+
+port is        : /dev/ttyUSB0
+flowcontrol    : none
+baudrate is    : 115200
+parity is      : none
+databits are   : 8
+stopbits are   : 1
+escape is      : C-a
+local echo is  : no
+noinit is      : no
+noreset is     : no
+hangup is      : no
+nolock is      : no
+send_cmd is    : sz -vv
+receive_cmd is : rz -vv -E
+imap is        :
+omap is        :
+emap is        : crcrlf,delbs,
+logfile is     : none
+initstring     : none
+exit_after is  : not set
+exit is        : no
+
+Type [C-a] [C-h] to see available commands
+Terminal ready
+rl��r��#�n���
+             �
+              ��p�<����8��ǒ��p
+
+                              �nn��;�nĒ��
+
+                                         b�$�rrp�n��܀
+                                                     ����l�
+                                                           �
+                                                            �
+                                                             b�n��n�����
+                                                                        �8
+                                                                          ��nn�����l`��#�n�$��l`8`rn|��n������l`~��
+                                                                                                                   ��#�n�$�
+                                                                                                                           ��nn���l`n���
+                                                                                                                                        �r���
+
+                                                                                                                                             p
+                                                                                                                                              p��<��
+                                                                                                                                                    ��p
+                                                                                                                                                       ��nn����l`��#�n��rnr���;��
+                                                                                                                                                                                 ?�l�;p�n��܀
+                                                                                                                                                                                            �r���
+                                                                                                                                                                                                 �
+                                                                                                                                                                                                  p
+                                                                                                                                                                                                   p��<��
+                                                                                                                                                                                                         �
+                                                                                                                                                                                                          p
+                                                                                                                                                                                                          ��nn���
+      r��#�n��rnr���;��
+                       ?l`��;��
+                               ?l`�n�n���l;|n�����;�Fatal exception 0(IllegalInstructionCause):
+�pc1=0x40223ca5, epc2=0x00000000, epc3=0x00000000, excvaddr=0x00000000, depc=0x00000000
+ ets Jan  8 2013,rst cause:2, boot mode:(3,6)
+
+load 0x40100000, len 30764, room 16
+tail 12
+chksum 0x59
+ho 0 tail 12 room 4
+load 0x3ffe8000, len 1012, room 12
+tail 8
+chksum 0x0e
+load 0x3ffe8400, len 1080, room 0
+tail 8
+chksum 0xd9
+csum 0xd9
+Fatal exception 0(IllegalInstructionCause):
+�pc1=0x40222f28, epc2=0x00000000, epc3=0x00000000, excvaddr=0x00000000, depc=0x00000000
+ ets Jan  8 2013,rst cause:2, boot mode:(3,6)
+
+load 0x40100000, len 30764, room 16
+tail 12
+chksum 0x59
+ho 0 tail 12 room 4
+load 0x3ffe8000, len 1012, room 12
+tail 8
+chksum 0x0e
+load 0x3ffe8400, len 1080, room 0
+tail 8
+chksum 0xd9
+csum 0xd9
+Fatal exception 0(IllegalInstructionCause):
+�pc1=0x40223ca5, epc2=0x00000000, epc3=0x00000000, excvaddr=0x00000000, depc=0x00000000
+ ets Jan  8 2013,rst cause:2, boot mode:(3,6)
+
+load 0x40100000, len 30764, room 16
+tail 12
+chksum 0x59
+ho 0 tail 12 room 4
+load 0x3ffe8000, len 1012, room 12
+tail 8
+chksum 0x0e
+load 0x3ffe8400, len 1080, room 0
+tail 8
+chksum 0xd9
+csum 0xd9
+Fatal exception 0(IllegalInstructionCause):
+�pc1=0x40222f28, epc2=0x00000000, epc3=0x00000000, excvaddr=0x00000000, depc=0x00000000
+ ets Jan  8 2013,rst cause:2, boot mode:(3,6)
+
+load 0x40100000, len 30764, room 16
+tail 12
+chksum 0x59
+ho 0 tail 12 room 4
+load 0x3ffe8000, len 1012, room 12
+tail 8
+chksum 0x0e
+load 0x3ffe8400, len 1080, room 0
+tail 8
+chksum 0xd9
+csum 0xd9
+Fatal exception 0(IllegalInstructionCause):
+�pc1=0x40222f28, epc2=0x00000000, epc3=0x00000000, excvaddr=0x00000000, depc=0x00000000
+ ets Jan  8 2013,rst cause:2, boot mode:(3,6)
+
+load 0x40100000, len 30764, room 16
+tail 12
+chksum 0x59
+ho 0 tail 12 room 4
+load 0x3ffe8000, len 1012, room 12
+tail 8
+chksum 0x0e
+load 0x3ffe8400, len 1080, room 0
+tail 8
+chksum 0xd9
+csum 0xd9
+Fatal exception 0(IllegalInstructionCause):
+�pc1=0x40223ca2, epc2=0x00000000, epc3=0x00000000, excvaddr=0x00000000, depc=0x00000000
+ ets Jan  8 2013,rst cause:2, boot mode:(3,6)
+
+load 0x40100000, len 30764, room 16
+tail 12
+chksum 0x59
+ho 0 tail 12 room 4
+load 0x3ffe8000, len 1012, room 12
+tail 8
+chksum 0x0e
+load 0x3ffe8400, len 1080, room 0
+tail 8
+chksum 0xd9
+csum 0xd9
+Fatal exception 0(IllegalInstructionCause):
+�pc1=0x40222f28, epc2=0x00000000, epc3=0x00000000, excvaddr=0x00000000, depc=0x00000000
+ ets Jan  8 2013,rst cause:2, boot mode:(3,6)
+
+load 0x40100000, len 30764, room 16
+tail 12
+chksum 0x59
+ho 0 tail 12 room 4
+load 0x3ffe8000, len 1012, room 12
+tail 8
+chksum 0x0e
+load 0x3ffe8400, len 1080, room 0
+tail 8
+chksum 0xd9
+csum 0xd9
+Fatal exception 0(IllegalInstructionCause):
+�pc1=0x40223ca2, epc2=0x00000000, epc3=0x00000000, excvaddr=0x00000000, depc=0x00000000
+ ets Jan  8 2013,rst cause:2, boot mode:(3,6)
+
+load 0x40100000, len 30764, room 16
+tail 12
+chksum 0x59
+ho 0 tail 12 room 4
+load 0x3ffe8000, len 1012, room 12
+tail 8
+chksum 0x0e
+load 0x3ffe8400, len 1080, room 0
+tail 8
+chksum 0xd9
+csum 0xd9
+Fatal exception 0(IllegalInstructionCause):
+�pc1=0x40223ca2, epc2=0x00000000, epc3=0x00000000, excvaddr=0x00000000, depc=0x00000000
+ ets Jan  8 2013,rst cause:2, boot mode:(3,6)
+
+load 0x40100000, len 30764, room 16
+tail 12
+chksum 0x59
+ho 0 tail 12 room 4
+load 0x3ffe8000, len 1012, room 12
+tail 8
+chksum 0x0e
+load 0x3ffe8400, len 1080, room 0
+tail 8
+chksum 0xd9
+csum 0xd9
+Fatal exception 9(LoadStoreAlignmentCause):
+�pc1=0x40222f38, epc2=0x00000000, epc3=0x00000000, excvaddr=0x3ffee79a, depc=0x00000000
+ ets Jan  8 2013,rst cause:2, boot mode:(3,6)
+
+load 0x40100000, len 30764, room 16
+tail 12
+chksum 0x59
+ho 0 tail 12 room 4
+load 0x3ffe8000, len 1012, room 12
+tail 8
+chksum 0x0e
+load 0x3ffe8400, len 1080, room 0
+tail 8
+chksum 0xd9
+csum 0xd9
+Fatal exception 0(IllegalInstructionCause):
+�pc1=0x40223ca2, epc2=0x00000000, epc3=0x00000000, excvaddr=0x3ffee79a, depc=0x00000000
+ ets Jan  8 2013,rst cause:2, boot mode:(3,6)
+
+load 0x40100000, len 30764, room 16
+tail 12
+chksum 0x59
+ho 0 tail 12 room 4
+load 0x3ffe8000, len 1012, room 12
+tail 8
+chksum 0x0e
+load 0x3ffe8400, len 1080, room 0
+tail 8
+chksum 0xd9
+csum 0xd9
+Fatal exception 0(IllegalInstructionCause):
+�pc1=0x40223ca2, epc2=0x00000000, epc3=0x00000000, excvaddr=0x3ffee79a, depc=0x00000000
+ ets Jan  8 2013,rst cause:2, boot mode:(3,6)
+
+load 0x40100000, len 30764, room 16
+tail 12
+chksum 0x59
+ho 0 tail 12 room 4
+load 0x3ffe8000, len 1012, room 12
+tail 8
+chksum 0x0e
+load 0x3ffe8400, len 1080, room 0
+tail 8
+chksum 0xd9
+csum 0xd9
+Fatal exception 0(IllegalInstructionCause):
+�pc1=0x40223ca2, epc2=0x00000000, epc3=0x00000000, excvaddr=0x3ffee79a, depc=0x00000000
+ ets Jan  8 2013,rst cause:2, boot mode:(3,6)
+
+load 0x40100000, len 30764, room 16
+tail 12
+chksum 0x59
+ho 0 tail 12 room 4
+load 0x3ffe8000, len 1012, room 12
+tail 8
+chksum 0x0e
+load 0x3ffe8400, len 1080, room 0
+tail 8
+chksum 0xd9
+csum 0xd9
+Fatal exception 0(IllegalInstructionCause):
+�pc1=0x40222f28, epc2=0x00000000, epc3=0x00000000, excvaddr=0x3ffee79a, depc=0x00000000
+ ets Jan  8 2013,rst cause:2, boot mode:(3,6)
+
+load 0x40100000, len 30764, room 16
+tail 12
+chksum 0x59
+ho 0 tail 12 room 4
+load 0x3ffe8000, len 1012, room 12
+tail 8
+chksum 0x0e
+load 0x3ffe8400, len 1080, room 0
+tail 8
+chksum 0xd9
+csum 0xd9
+Fatal exception 0(IllegalInstructionCause):
+�pc1=0x40223ca2, epc2=0x00000000, epc3=0x00000000, excvaddr=0x3ffee79a, depc=0x00000000
+ ets Jan  8 2013,rst cause:2, boot mode:(3,6)
+
+load 0x40100000, len 30764, room 16
+tail 12
+chksum 0x59
+ho 0 tail 12 room 4
+load 0x3ffe8000, len 1012, room 12
+tail 8
+chksum 0x0e
+load 0x3ffe8400, len 1080, room 0
+tail 8
+chksum 0xd9
+csum 0xd9
+Fatal exception 0(IllegalInstructionCause):
+�pc1=0x40223ca2, epc2=0x00000000, epc3=0x00000000, excvaddr=0x3ffee79a, depc=0x00000000
+ ets Jan  8 2013,rst cause:2, boot mode:(3,6)
+
+load 0x40100000, len 30764, room 16
+tail 12
+chksum 0x59
+ho 0 tail 12 room 4
+load 0x3ffe8000, len 1012, room 12
+tail 8
+chksum 0x0e
+load 0x3ffe8400, len 1080, room 0
+tail 8
+chksum 0xd9
+csum 0xd9
+Fatal exception 0(IllegalInstructionCause):
+�pc1=0x40223ca2, epc2=0x00000000, epc3=0x00000000, excvaddr=0x3ffee79a, depc=0x00000000
+ ets Jan  8 2013,rst cause:2, boot mode:(3,6)
+
+load 0x40100000, len 30764, room 16
+tail 12
+chksum 0x59
+ho 0 tail 12 room 4
+load 0x3ffe8000, len 1012, room 12
+tail 8
+chksum 0x0e
+load 0x3ffe8400, len 1080, room 0
+tail 8
+chksum 0xd9
+csum 0xd9
+Fatal exception 0(IllegalInstructionCause):
+�pc1=0x40223ca2, epc2=0x00000000, epc3=0x00000000, excvaddr=0x3ffee79a, depc=0x00000000
+ ets Jan  8 2013,rst cause:2, boot mode:(3,6)
+
+load 0x40100000, len 30764, room 16
+tail 12
+chksum 0x59
+ho 0 tail 12 room 4
+load 0x3ffe8000, len 1012, room 12
+tail 8
+chksum 0x0e
+load 0x3ffe8400, len 1080, room 0
+tail 8
+chksum 0xd9
+csum 0xd9
+Fatal exception 0(IllegalInstructionCause):
+�pc1=0x40223ca2, epc2=0x00000000, epc3=0x00000000, excvaddr=0x3ffee79a, depc=0x00000000
+ ets Jan  8 2013,rst cause:2, boot mode:(3,6)
+
+load 0x40100000, len 30764, room 16
+tail 12
+chksum 0x59
+ho 0 tail 12 room 4
+load 0x3ffe8000, len 1012, room 12
+tail 8
+chksum 0x0e
+load 0x3ffe8400, len 1080, room 0
+tail 8
+chksum 0xd9
+csum 0xd9
+Fatal exception 0(IllegalInstructionCause):
+�pc1=0x40223ca2, epc2=0x00000000, epc3=0x00000000, excvaddr=0x3ffee79a, depc=0x00000000
+ ets Jan  8 2013,rst cause:2, boot mode:(3,6)
+
+load 0x40100000, len 30764, room 16
+tail 12
+chksum 0x59
+ho 0 tail 12 room 4
+load 0x3ffe8000, len 1012, room 12
+tail 8
+chksum 0x0e
+load 0x3ffe8400, len 1080, room 0
+tail 8
+chksum 0xd9
+csum 0xd9
+Fatal exception 0(IllegalInstructionCause):
+�pc1=0x40223ca2, epc2=0x00000000, epc3=0x00000000, excvaddr=0x3ffee79a, depc=0x00000000
+ ets Jan  8 2013,rst cause:2, boot mode:(3,6)
+
+load 0x40100000, len 30764, room 16
+tail 12
+chksum 0x59
+ho 0 tail 12 room 4
+load 0x3ffe8000, len 1012, room 12
+tail 8
+chksum 0x0e
+load 0x3ffe8400, len 1080, room 0
+tail 8
+chksum 0xd9
+csum 0xd9
+Fatal exception 0(IllegalInstructionCause):
+�pc1=0x40223ca2, epc2=0x00000000, epc3=0x00000000, excvaddr=0x3ffee79a, depc=0x00000000
+ ets Jan  8 2013,rst cause:2, boot mode:(3,6)
+
+load 0x40100000, len 30764, room 16
+tail 12
+chksum 0x59
+ho 0 tail 12 room 4
+load 0x3ffe8000, len 1012, room 12
+tail 8
+chksum 0x0e
+load 0x3ffe8400, len 1080, room 0
+tail 8
+chksum 0xd9
+csum 0xd9
+Fatal exception 0(IllegalInstructionCause):
+�pc1=0x40223ca2, epc2=0x00000000, epc3=0x00000000, excvaddr=0x3ffee79a, depc=0x00000000
+ ets Jan  8 2013,rst cause:2, boot mode:(3,6)
+
+load 0x40100000, len 30764, room 16
+tail 12
+chksum 0x59
+ho 0 tail 12 room 4
+load 0x3ffe8000, len 1012, room 12
+tail 8
+chksum 0x0e
+load 0x3ffe8400, len 1080, room 0
+tail 8
+chksum 0xd9
+csum 0xd9
+Fatal exception 0(IllegalInstructionCause):
+�pc1=0x40223ca2, epc2=0x00000000, epc3=0x00000000, excvaddr=0x3ffee79a, depc=0x00000000
+ ets Jan  8 2013,rst cause:2, boot mode:(3,6)
+
+load 0x40100000, len 30764, room 16
+tail 12
+chksum 0x59
+ho 0 tail 12 room 4
+load 0x3ffe8000, len 1012, room 12
+tail 8
+chksum 0x0e
+load 0x3ffe8400, len 1080, room 0
+tail 8
+chksum 0xd9
+csum 0xd9
+Fatal exception 0(IllegalInstructionCause):
+�pc1=0x40223ca2, epc2=0x00000000, epc3=0x00000000, excvaddr=0x3ffee79a, depc=0x00000000
+ ets Jan  8 2013,rst cause:2, boot mode:(3,6)
+
+load 0x40100000, len 30764, room 16
+tail 12
+chksum 0x59
+ho 0 tail 12 room 4
+load 0x3ffe8000, len 1012, room 12
+tail 8
+chksum 0x0e
+load 0x3ffe8400, len 1080, room 0
+tail 8
+chksum 0xd9
+csum 0xd9
+Fatal exception 0(IllegalInstructionCause):
+�pc1=0x40223ca2, epc2=0x00000000, epc3=0x00000000, excvaddr=0x3ffee79a, depc=0x00000000
+ ets Jan  8 2013,rst cause:2, boot mode:(3,6)
+
+load 0x40100000, len 30764, room 16
+tail 12
+chksum 0x59
+ho 0 tail 12 room 4
+load 0x3ffe8000, len 1012, room 12
+tail 8
+chksum 0x0e
+load 0x3ffe8400, len 1080, room 0
+tail 8
+chksum 0xd9
+csum 0xd9
+Fatal exception 0(IllegalInstructionCause):
+�pc1=0x40223ca2, epc2=0x00000000, epc3=0x00000000, excvaddr=0x3ffee79a, depc=0x00000000
+ ets Jan  8 2013,rst cause:2, boot mode:(3,6)
+
+load 0x40100000, len 30764, room 16
+tail 12
+chksum 0x59
+ho 0 tail 12 room 4
+load 0x3ffe8000, len 1012, room 12
+tail 8
+chksum 0x0e
+load 0x3ffe8400, len 1080, room 0
+tail 8
+chksum 0xd9
+csum 0xd9
+Fatal exception 0(IllegalInstructionCause):
+�pc1=0x40223ca2, epc2=0x00000000, epc3=0x00000000, excvaddr=0x3ffee79a, depc=0x00000000
+ ets Jan  8 2013,rst cause:2, boot mode:(3,6)
+
+load 0x40100000, len 30764, room 16
+tail 12
+chksum 0x59
+ho 0 tail 12 room 4
+load 0x3ffe8000, len 1012, room 12
+tail 8
+chksum 0x0e
+load 0x3ffe8400, len 1080, room 0
+tail 8
+chksum 0xd9
+csum 0xd9
+Fatal exception 0(IllegalInstructionCause):
+�pc1=0x40223ca2, epc2=0x00000000, epc3=0x00000000, excvaddr=0x3ffee79a, depc=0x00000000
+ ets Jan  8 2013,rst cause:2, boot mode:(3,6)
+
+load 0x40100000, len 30764, room 16
+tail 12
+chksum 0x59
+ho 0 tail 12 room 4
+load 0x3ffe8000, len 1012, room 12
+tail 8
+chksum 0x0e
+load 0x3ffe8400, len 1080, room 0
+tail 8
+chksum 0xd9
+csum 0xd9
+Fatal exception 0(IllegalInstructionCause):
+�pc1=0x40223ca2, epc2=0x00000000, epc3=0x00000000, excvaddr=0x3ffee79a, depc=0x00000000
+ ets Jan  8 2013,rst cause:2, boot mode:(3,6)
+
+load 0x40100000, len 30764, room 16
+tail 12
+chksum 0x59
+ho 0 tail 12 room 4
+load 0x3ffe8000, len 1012, room 12
+tail 8
+chksum 0x0e
+load 0x3ffe8400, len 1080, room 0
+tail 8
+chksum 0xd9
+csum 0xd9
+Fatal exception 0(IllegalInstructionCause):
+�pc1=0x40223ca2, epc2=0x00000000, epc3=0x00000000, excvaddr=0x3ffee79a, depc=0x00000000
+ ets Jan  8 2013,rst cause:2, boot mode:(3,6)
+
+load 0x40100000, len 30764, room 16
+tail 12
+chksum 0x59
+ho 0 tail 12 room 4
+load 0x3ffe8000, len 1012, room 12
+tail 8
+chksum 0x0e
+load 0x3ffe8400, len 1080, room 0
+tail 8
+chksum 0xd9
+csum 0xd9
+Fatal exception 0(IllegalInstructionCause):
+�pc1=0x40223ca2, epc2=0x00000000, epc3=0x00000000, excvaddr=0x3ffee79a, depc=0x00000000
+ ets Jan  8 2013,rst cause:2, boot mode:(3,6)
+
+load 0x40100000, len 30764, room 16
+tail 12
+chksum 0x59
+ho 0 tail 12 room 4
+load 0x3ffe8000, len 1012, room 12
+tail 8
+chksum 0x0e
+load 0x3ffe8400, len 1080, room 0
+tail 8
+chksum 0xd9
+csum 0xd9
+Fatal exception 0(IllegalInstructionCause):
+�pc1=0x40223ca2, epc2=0x00000000, epc3=0x00000000, excvaddr=0x3ffee79a, depc=0x00000000
+ ets Jan  8 2013,rst cause:2, boot mode:(3,6)
+
+load 0x40100000, len 30764, room 16
+tail 12
+chksum 0x59
+ho 0 tail 12 room 4
+load 0x3ffe8000, len 1012, room 12
+tail 8
+chksum 0x0e
+load 0x3ffe8400, len 1080, room 0
+tail 8
+chksum 0xd9
+csum 0xd9
+Fatal exception 0(IllegalInstructionCause):
+�pc1=0x40223ca2, epc2=0x00000000, epc3=0x00000000, excvaddr=0x3ffee79a, depc=0x00000000
+ ets Jan  8 2013,rst cause:2, boot mode:(3,6)
+
+load 0x40100000, len 30764, room 16
+tail 12
+chksum 0x59
+ho 0 tail 12 room 4
+load 0x3ffe8000, len 1012, room 12
+tail 8
+chksum 0x0e
+load 0x3ffe8400, len 1080, room 0
+tail 8
+chksum 0xd9
+csum 0xd9
+Fatal exception 0(IllegalInstructionCause):
+�pc1=0x40223ca2, epc2=0x00000000, epc3=0x00000000, excvaddr=0x3ffee79a, depc=0x00000000
+ ets Jan  8 2013,rst cause:2, boot mode:(3,6)
+
+load 0x40100000, len 30764, room 16
+tail 12
+chksum 0x59
+ho 0 tail 12 room 4
+load 0x3ffe8000, len 1012, room 12
+tail 8
+chksum 0x0e
+load 0x3ffe8400, len 1080, room 0
+tail 8
+chksum 0xd9
+csum 0xd9
+Fatal exception 29(StoreProhibitedCause):
+�pc1=0x40223cbf, epc2=0x00000000, epc3=0x00000000, excvaddr=0x00000008, depc=0x00000000
+ ets Jan  8 2013,rst cause:2, boot mode:(3,6)
+
+load 0x40100000, len 30764, room 16
+tail 12
+chksum 0x59
+ho 0 tail 12 room 4
+load 0x3ffe8000, len 1012, room 12
+tail 8
+chksum 0x0e
+load 0x3ffe8400, len 1080, room 0
+tail 8
+chksum 0xd9
+csum 0xd9
+Fatal exception 0(IllegalInstructionCause):
+�pc1=0x40223ca5, epc2=0x00000000, epc3=0x00000000, excvaddr=0x00000008, depc=0x00000000
+ ets Jan  8 2013,rst cause:2, boot mode:(3,6)
+
+load 0x40100000, len 30764, room 16
+tail 12
+chksum 0x59
+ho 0 tail 12 room 4
+load 0x3ffe8000, len 1012, room 12
+tail 8
+chksum 0x0e
+load 0x3ffe8400, len 1080, room 0
+tail 8
+chksum 0xd9
+csum 0xd9
+Fatal exception 0(IllegalInstructionCause):
+�pc1=0x40224161, epc2=0x00000000, epc3=0x00000000, excvaddr=0x00000008, depc=0x00000000
+ ets Jan  8 2013,rst cause:2, boot mode:(3,6)
+
+load 0x40100000, len 30764, room 16
+tail 12
+chksum 0x59
+ho 0 tail 12 room 4
+load 0x3ffe8000, len 1012, room 12
+tail 8
+chksum 0x0e
+load 0x3ffe8400, len 1080, room 0
+tail 8
+chksum 0xd9
+csum 0xd9
+Fatal exception 0(IllegalInstructionCause):
+�pc1=0x40223ca5, epc2=0x00000000, epc3=0x00000000, excvaddr=0x00000008, depc=0x00000000
+ ets Jan  8 2013,rst cause:2, boot mode:(3,6)

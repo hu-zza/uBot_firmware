@@ -1,32 +1,22 @@
-import gc
+import gc, uos
 
 import ubot_turtle as turtle
 
 
+_config     = 0
 _exceptions = 0
 
-_sender =  ("\n"
-            "        <script>\n"
-            "            function send(value) {{\n"
-            "                let object = {{\n"
-            "                   \"title\" : \"{title}\",\n"
-            "                   \"commandList\" : [ \"{prefix}\" + value ]\n"
-            "                }}\n\n"
-            "                let json = JSON.stringify(object);\n\n"
-            "                let xhr = new XMLHttpRequest();\n"
-            "                xhr.open('POST', '', false);\n"
-            "                xhr.setRequestHeader('Content-Type', 'application/json');\n"
-            "                xhr.send(json);\n"
-            "            }}\n"
-            "        </script>\n")
+
 
 ###########
 ## CONFIG
 
-def config(exceptionList):
+def config(config, exceptionList):
+    global _config
     global _exceptions
 
-    _exceptions   = exceptionList
+    _config     = config
+    _exceptions = exceptionList
 
 
 
@@ -37,6 +27,7 @@ def getSimplePage():
     return ("<!DOCTYPE html>\n"
             "<html>\n"
             "    <head>\n"
+            "        <meta name='viewport' content='width=450'>\n"
             "        <meta charset='utf-8'>\n"
             "        <title>{title}</title>\n"
             "        <style>\n"
@@ -75,24 +66,61 @@ def getPageFooter():
            )
 
 
-def getSimpleStyle():
-    return ("            body {font-family: Garamond, Baskerville, Baskerville Old Face, Times New Roman, serif;}\n"
+def getGeneralStyle():
+    return ("            body     { font-family: Garamond, Baskerville, Baskerville Old Face, Times New Roman, serif; }\n"
+            "            a        { color: rgb(100, 100, 100); transition: 0.75s; }\n"
+            "            a:active { color: rgb(50, 50, 50); transition: 0.1s; }\n"
            )
 
 
-def getGeneralStyle():
-    return ("            svg        {width: 100px; height: 100px; fill: rgb(160,160,160); transition: 0.5s;}\n"
-            "            svg:hover  {fill: rgb(120,120,120); transition: 0.5s;}\n"
-            "            svg:active {fill: rgb(60,60,60); transition: 0.1s;}\n"
-            "            .drive     {width: 600px; height: 400px;}\n"
-            "            .simple    {width: 600px; height: 900px;}\n"
-            "            .pro       {width: 600px; height: 1000px;}\n"
-            "            .panel     {margin: auto; font-size: 100px; text-align: center;}\n"
-            "            .exceptions col:nth-child(1) {width: 40px;}\n"
-            "            .exceptions col:nth-child(2) {width: 250px;}\n"
-            "            .exceptions col:nth-child(3) {width: 500px;}\n"
-            "            .exceptions tr:nth-child(even) {background: #EEE}\n"
+def getDebugStyle():
+    return ("            hr { color: #EEE; }\n"
+            "            .system    { margin: 30px; }\n"
+            "            .system td { padding: 5px; border-bottom: dotted 1px #AAA; }\n"
+            "            .exceptions col:nth-child(1)   { width: 40px; }\n"
+            "            .exceptions col:nth-child(2)   { width: 250px; }\n"
+            "            .exceptions col:nth-child(3)   { width: 500px; }\n"
+            "            .exceptions tr:nth-child(even) { background: #EEE; }\n"
+           )
 
+
+def getPanelStyle():
+    return ("            svg        { width: 100px;\n"
+            "                         height: 100px;\n"
+            "                         fill: rgb(160, 160, 160);\n"
+            "                         transition: 0.75s;\n"
+            "                       }\n"
+            "            svg:active { fill: rgb(80, 80, 80); transition: 0.1s; }\n"
+            "            .drive     { height: 400px; }\n"
+            "            .simple    { height: 900px; }\n"
+            "            .pro       { height: 1000px; }\n"
+            "            .panel     { width: 600px;\n"
+            "                         margin: auto;\n"
+            "                         text-align: center;\n"
+            "                       }\n"
+           )
+
+
+def getSimpleStyle():
+    return ("            .links    { width: 350px;\n"
+            "                        padding: 0px;\n"
+            "                        margin: 100px auto;\n"
+            "                        border-top: 0px;\n"
+            "                        border: 1px solid #BBB;\n"
+            "                        border-radius: 15px 15px 0px 0px;\n"
+            "                        font-size: 20px;\n"
+            "                        color: #888;\n"
+            "                      }\n"
+            "            .links li { list-style: none;\n"
+            "                        background: #EEE;\n"
+            "                        padding: 10px 20px;\n"
+            "                        border-top: 1px solid #CCC;\n"
+            "                      }\n"
+            "            .links li:first-child { color: #FFF;\n"
+            "                                    background: #555;\n"
+            "                                    border: none;\n"
+            "                                    border-radius: 10px 10px 0px 0px;\n"
+            "                                  }\n"
            )
 
 
@@ -108,14 +136,27 @@ def getDebugPanel():
               "            {program}\n"
               "        <br><br><hr><hr>\n"
               "        <h3>System</h3>\n"
-              "            <strong>Memory:</strong> {freeMemory}%\n"
+              "            <table class='system'>\n"
+              "                <tr><td> <strong>Firmware:</strong> </td><td> {firmware} </td><td>  </td></tr>\n"
+              "                <tr><td> <strong>Free memory:</strong> </td><td> {freeMemory}% </td><td> {memoryDetails} </td></tr>\n"
+              "                <tr><td> <strong>Free space:</strong> </td><td> {freeSpace}% </td><td> {diskDetails} </td></tr>\n"
+              "            </table>\n"
               "        <br><br><hr><hr>\n"
               "        <h3>Exceptions</h3>\n"
               "{exceptions}"
              )
 
-    allMem = gc.mem_free() + gc.mem_alloc()
-    freePercent = gc.mem_free() * 100 // allMem
+    firmwareVersion = "{}.{}.{}".format(
+        _config.get("firmwareMajor"), _config.get("firmwareMinor"), _config.get("firmwarePatch")
+    )
+
+    allMem        = gc.mem_free() + gc.mem_alloc()
+    freePercent   = gc.mem_free() * 100 // allMem
+    memoryDetails = "{} / {}".format(gc.mem_free(), allMem)
+
+    stat        = uos.statvfs("/")
+    freeSpace   = stat[4] * stat[0] * 100 // (stat[2] * stat[1])       # f_bavail * f_bsize * 100 // f_blocks * f_frsize
+    diskDetails = "{} / {}".format(stat[4] * stat[0], stat[2] * stat[1])
 
     exceptionList = ("            <table class='exceptions'>\n"
                      "                <colgroup><col><col><col></colgroup>\n"
@@ -136,7 +177,10 @@ def getDebugPanel():
     return result.format(
         commands = turtle._commandArray[:turtle._commandPointer].decode(),
         program  = turtle._programArray[:turtle._programPointer].decode(),
-        freeMemory = freePercent, exceptions = exceptionList
+        firmware = firmwareVersion,
+        freeMemory = freePercent, memoryDetails = memoryDetails,
+        freeSpace = freeSpace, diskDetails = diskDetails,
+        exceptions = exceptionList
     )
 
 
@@ -214,6 +258,22 @@ def getProPanel():
             "            </tr>\n"
             "        </table>\n"
            )
+
+
+_sender =  ("\n"
+            "        <script>\n"
+            "            function send(value) {{\n"
+            "                let object = {{\n"
+            "                   \"title\" : \"{title}\",\n"
+            "                   \"commandList\" : [ \"{prefix}\" + value ]\n"
+            "                }}\n\n"
+            "                let json = JSON.stringify(object);\n\n"
+            "                let xhr = new XMLHttpRequest();\n"
+            "                xhr.open('POST', '', false);\n"
+            "                xhr.setRequestHeader('Content-Type', 'application/json');\n"
+            "                xhr.send(json);\n"
+            "            }}\n"
+            "        </script>\n")
 
 
 def getTurtleMoveSender():
@@ -314,6 +374,13 @@ title = {
     "/pro"      : "&microBot Professional"
 }
 
+style = {
+    "/debug"    : (getGeneralStyle, getDebugStyle),
+    "/drive"    : (getGeneralStyle, getPanelStyle),
+    "/simple"   : (getGeneralStyle, getPanelStyle),
+    "/pro"      : (getGeneralStyle, getPanelStyle)
+}
+
 parts = {
     "/debug"    : (getDebugPanel,),
 
@@ -330,7 +397,9 @@ parts = {
 }
 
 title["/"] = title["/simple"]
+style["/"] = style["/simple"]
 parts["/"] = parts["/simple"]
 
 title["/professional"] = title["/pro"]
+style["/professional"] = style["/pro"]
 parts["/professional"] = parts["/pro"]

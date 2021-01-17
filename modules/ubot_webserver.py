@@ -31,7 +31,7 @@ def config(socket, dateTime, config, exceptionList, jsonFunction):
     _exceptions   = exceptionList
     _jsonFunction = jsonFunction
 
-    template.config(exceptionList)
+    template.config(config, exceptionList)
 
 
 
@@ -120,17 +120,32 @@ def _processSockets():
 
 def _processGetQuery(path):
     try:
-        _connection.send("HTTP/1.1 200 OK\r\n")
-        _connection.send("Content-Type: text/html\r\n")
-        _connection.send("Connection: close\r\n\r\n")
-        _connection.sendall(template.getPageHeadStart().format(template.title.get(path)))
-        _connection.sendall(template.getGeneralStyle())
-        _connection.sendall(template.getPageHeadEnd())
+        if (path in template.title):
+            _connection.send("HTTP/1.1 200 OK\r\n")
+            _connection.send("Content-Type: text/html\r\n")
+            _connection.send("Connection: close\r\n\r\n")
+            _connection.sendall(template.getPageHeadStart().format(template.title.get(path)))
 
-        for part in template.parts.get(path):
-            _connection.sendall(part())
+            for style in template.style.get(path):
+                _connection.sendall(style())
 
-        _connection.sendall(template.getPageFooter())
+            _connection.sendall(template.getPageHeadEnd())
+
+            for part in template.parts.get(path):
+                _connection.sendall(part())
+
+            _connection.sendall(template.getPageFooter())
+        else:
+            helperLinks = "        <ul class='links'>\n"
+            helperLinks += "            <li>Sitemap</li>\n"
+
+            for key in sorted(template.title.keys()):
+                helperLinks += "            <li><a href='{key}'>{title}</a><br><small>{host}{key}</small></li>\n".format(
+                    host = "192.168.11.1", key = key, title = template.title.get(key)
+                )
+
+            helperLinks += "        </ul>\n"
+            _reply("HTML", "404 Not Found", helperLinks)
     except Exception as e:
         _exceptions.append((_dateTime.datetime(), e))
     finally:
@@ -167,9 +182,10 @@ def _reply(returnFormat, httpCode, message):
         _connection.send("Connection: close\r\n\r\n")
 
         if returnFormat == "HTML":
-            str = template.getSimplePage().format(title = httpCode, style = template.getSimpleStyle(), body = message)
+            style = template.getGeneralStyle() + template.getSimpleStyle()
+            str   = template.getSimplePage().format(title = httpCode, style = style, body = message)
         elif returnFormat == "JSON":
-            str = ujson.dumps({"code" : httpCode, "message" : message})
+            str   = ujson.dumps({"code" : httpCode, "message" : message})
 
         _connection.sendall(str)
     except Exception:
