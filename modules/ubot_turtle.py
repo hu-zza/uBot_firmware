@@ -413,7 +413,7 @@ def _startOrStop():
     buzzer.keyBeep("beepProcessed")
     _runningProgram = not _runningProgram
 
-    _toPlay  = _programArray[:] + _commandArray[:]
+    _toPlay  = _programArray[:] + _commandArray[:_commandPointer]
 
     _pointerStack = []
     _pointer      = 0 if len(_commandArray) == 0 else len(_programArray)
@@ -421,22 +421,32 @@ def _startOrStop():
     if _blockStartIndex != 0:
         _pointer += _blockStartIndex + 1    # + 1 is necessary to begin at the real command.
 
+    counter = 0
+
+    print("_toPlay[:_pointer]", "_toPlay[_pointer:]", "\t\t\t", "counter", "_pointer", "_toPlay[_pointer]")
+
     while _runningProgram:
-        if _pointer == len(_toPlay):            #      If everything is executed, exits.
+        if _pointer < len(_toPlay):
+            print(_toPlay[:_pointer].decode(), _toPlay[_pointer:].decode(), "\t\t\t", counter, _pointer, _toPlay[_pointer])
+
+        if len(_toPlay) <= _pointer:            #      If everything is executed, exits.
             _runningProgram = False
         elif _toPlay[_pointer] == 40:           # "("
             _pointerStack.append(_pointer)      #      Save the position of the loop's starting parentheses: "("
         elif _toPlay[_pointer] == 42:           # "*"
-            if 0 < _toPlay[_pointer + 1]:       #      If the loop counter is greater than 0.
+            if 48 < _toPlay[_pointer + 1]:      #      If the loop counter is greater than 0. b'0' == 48
                 _toPlay[_pointer + 1] -= 1      #      Decrease the loop counter.
                 _pointer = _pointerStack[-1]    #      Jump back to the loop starting position.
             else:
                 del _pointerStack[-1]           #      Delete the loop starting position from stack.
                 _pointer += 2                   #      Jump to the loop's closing parentheses: ")"
+        elif _toPlay[_pointer] == 123:          # "{"  Start of a function.
+            while _toPlay[_pointer] != 125:     #      Jump to the function's closing curly brace: "}"
+                _pointer += 1
         elif _toPlay[_pointer] == 124:          # "|"  End of the currently executed function.
             _pointer = _pointerStack.pop()      #      Jump back to where the function call occurred.
         elif _toPlay[_pointer] == 126:          # "~"
-            if _toPlay[_pointer + 2] == 126:    #      Sanity check.
+            if _toPlay[_pointer + 2] == 126:    #      Double check.
                 _pointerStack.append(_pointer + 2) #   Save the returning position as the second tilde: "~"
                 _pointer = _functionPosition[_toPlay[_pointer + 1] - 49] - 1    # not 48! functionId - 1 = array index
                                                                                 # - 1 because................ odd impl
@@ -444,7 +454,10 @@ def _startOrStop():
             move(_toPlay[_pointer])             # Execute the command. If it fails, it's a short (_breathLength) rest.
 
         _pointer += 1
+        counter  += 1
 
+        if _pointer < len(_toPlay):
+            print(_toPlay[:_pointer].decode(), _toPlay[_pointer:].decode(), "\t\t\t", counter, _pointer, _toPlay[_pointer], "\n\n")
     return 0
 
 
