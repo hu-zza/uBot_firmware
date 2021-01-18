@@ -20,6 +20,8 @@ _moveLength        = 0           #
 _turnLength        = 0           #
 _breathLength      = 0           #
 
+_endSignal         = ""          # [need config()] Sound indicates the end of program execution: buzzer.keyBeep(_endSignal)
+
 _pressedListIndex  = 0
 _pressedList       = 0           # [need config()] Low-level:  The last N (_pressLength + _maxError) buttoncheck results.
 _commandArray      = bytearray() #                 High-level: Abstract commands, result of processed button presses.
@@ -30,8 +32,7 @@ _programParts      = []          #                 Positions by which _programAr
 
 _loopCounter       = 0           #
 
-_functionPosition   = [False, False, False]
-_functionPosition  = [-1, -1, -1]                  # -1 : not defined, 0 : under definition, 1+ : defined
+_functionPosition  = [-1, -1, -1]                  # -1 : not defined, -0.1 : under definition, 0+ : defined
                                                    # If defined, this index refer to the first command of the function,
                                                    # instead of its curly brace "{".
 
@@ -57,6 +58,7 @@ def config(config):
     global _moveLength
     global _turnLength
     global _breathLength
+    global _endSignal
     global _pressedList
     global _currentMapping
 
@@ -75,6 +77,8 @@ def config(config):
     _moveLength   = config.get("turtleMoveLength")
     _turnLength   = config.get("turtleTurnLength")
     _breathLength = config.get("turtleBreathLength")
+
+    _endSignal = config.get("turtleEndSignal")
 
     _pressedList  = [0] * (_pressLength + _maxError)
 
@@ -305,6 +309,7 @@ def _getOpeningBoundary(commandPointer):
         return 0
 
 
+
 ################################
 ## STANDARDIZED FUNCTIONS
 
@@ -377,26 +382,25 @@ def _manageFunction(arguments):             # (functionId, onlyCall)            
 
     # Calling the function if it is defined, or flag 'only call' is True and it is not under definition.
     # In the second case, position -1 (undefined) is fine. (lazy initialization)
-    if 0 < _functionPosition[id - 1] or (arguments[1] and _functionPosition[id - 1] != 0):
+    if 0 <= _functionPosition[id - 1] or (arguments[1] and _functionPosition[id - 1] != -0.1):
         buzzer.keyBeep("beepProcessed")
         return (126, arguments[0] + 48, 126)          # Increase by 48 = human-friendly bytes: 48 -> "0", 49 -> "1", ...
-    elif _functionPosition[id - 1] == 0:              # End of defining the function
-        # Save len(_programArray) + _blockStartIndex + 1 to _functionPosition, because it will be destroyed during
-        # _blockCompleted(). (+ 1 is necessary because it saves the real start, not the curly brace "{".)
-        _functionPosition[id - 1] = len(_programArray) + _blockStartIndex + 1
+    elif _functionPosition[id - 1] == -0.1:           # End of defining the function
+        # Save index to _functionPosition, because _blockStartIndex will be destroyed during _blockCompleted().
+        _functionPosition[id - 1] = len(_programArray) + _blockStartIndex
 
         # If function contains nothing
         # (_commandPointer - _blockStartIndex < 2 -> Function start and end are adjacent.),
         # delete it by _blockCompleted() which return a boolean (True if deleted).
-        # If this returning value is true, retain _blockStartIndex + 1, else overwrite it with -1.
+        # If this returning value is True, retain len(_programArray) + _blockStartIndex, else overwrite it with -1.
         if _blockCompleted(_commandPointer - _blockStartIndex < 2):
             _functionPosition[id - 1] = -1
 
-        return (0, (124, arguments[0] + 48, 125))[0 < _functionPosition[id - 1]] # False == 0, and True == 1 (defined)
+        return (0, (124, arguments[0] + 48, 125))[0 <= _functionPosition[id - 1]] # False == 0, and True == 1 (defined)
 
     else:                                             # Beginning of defining the function
         _blockStarted(_functionMapping)
-        _functionPosition[id - 1] = 0                 # In progress, so it isn't -1 (undefined) or 1+ (defined).
+        _functionPosition[id - 1] = -0.1              # In progress, so it isn't -1 (undefined) or 0+ (defined).
         return 123
 
 
@@ -407,7 +411,7 @@ def _beepAndReturn(arguments):              # (keyOfBeep, returningValue)
     return arguments[1]
 
 
-def _startOrStop():
+def _startOrStop(arguments):                # (blockLevel,)
     global _runningProgram
 
     buzzer.keyBeep("beepProcessed")
@@ -418,58 +422,62 @@ def _startOrStop():
     _pointerStack = []
     _pointer      = 0 if len(_commandArray) == 0 else len(_programArray)
 
-    if _blockStartIndex != 0:
+    if arguments[0] == True:                # Block-level
         _pointer += _blockStartIndex + 1    # + 1 is necessary to begin at the real command.
 
-    counter = 0
-
-    print("_toPlay[:_pointer]", "_toPlay[_pointer:]", "\t\t\t", "counter", "_pointer", "_toPlay[_pointer]")
+    if _runningProgram and _endSignal != "":
+        motor.setCallback((lambda: buzzer.keyBeep(_endSignal), True))
 
     while _runningProgram:
-        if _pointer < len(_toPlay):
-            print(_toPlay[:_pointer].decode(), _toPlay[_pointer:].decode(), "\t\t\t", counter, _pointer, _toPlay[_pointer])
+        remaining = len(_toPlay) - 1 - _pointer #      Remaining bytes in _toPlay bytearray. 0 if _toPlay[_pointer] == _toPlay[-1]
 
-        if len(_toPlay) <= _pointer:            #      If everything is executed, exits.
+        if remaining < 0:                       #      If everything is executed, exits.
             _runningProgram = False
+
         elif _toPlay[_pointer] == 40:           # "("
             _pointerStack.append(_pointer)      #      Save the position of the loop's starting parentheses: "("
-        elif _toPlay[_pointer] == 42:           # "*"
-            if 48 < _toPlay[_pointer + 1]:      #      If the loop counter is greater than 0. b'0' == 48
+
+        elif _toPlay[_pointer] == 42:           # "*"  End of the body of the loop.
+            if 2 <= remaining and _toPlay[_pointer + 2] == 41: # Double-check: 1. Enough remaining to close loop; 2. ")"
                 _toPlay[_pointer + 1] -= 1      #      Decrease the loop counter.
-                _pointer = _pointerStack[-1]    #      Jump back to the loop starting position.
-            else:
-                del _pointerStack[-1]           #      Delete the loop starting position from stack.
-                _pointer += 2                   #      Jump to the loop's closing parentheses: ")"
+
+                if 48 < _toPlay[_pointer + 1]:  #      If the loop counter is greater than 0. b'0' == 48
+                    _pointer = _pointerStack[-1]#      Jump back to the loop starting position.
+                else:
+                    del _pointerStack[-1]       #      Delete the loop starting position from stack.
+                    _pointer += 2               #      Jump to the loop's closing parentheses: ")"
+            else:                               #      Maybe it's a half-backed loop, so stop execution. (It is under
+                _runningProgram = False         #      definition, user checks its body. Should run only once.)
+
         elif _toPlay[_pointer] == 123:          # "{"  Start of a function.
             while _toPlay[_pointer] != 125:     #      Jump to the function's closing curly brace: "}"
                 _pointer += 1
+
         elif _toPlay[_pointer] == 124:          # "|"  End of the currently executed function.
             _pointer = _pointerStack.pop()      #      Jump back to where the function call occurred.
+
         elif _toPlay[_pointer] == 126:          # "~"
-            if _toPlay[_pointer + 2] == 126:    #      Double check.
-                _pointerStack.append(_pointer + 2) #   Save the returning position as the second tilde: "~"
-                _pointer = _functionPosition[_toPlay[_pointer + 1] - 49] - 1    # not 48! functionId - 1 = array index
-                                                                                # - 1 because................ odd impl
+            if 2 <= remaining and _toPlay[_pointer + 2] == 126: # Double-check: 1. Enough remaining to close function call; 2. "~"
+                _pointerStack.append(_pointer + 2)              # Save the returning position as the second tilde: "~"
+                _pointer = _functionPosition[_toPlay[_pointer + 1] - 49]    # not 48! functionId - 1 = array index
+            else:                                               # Maybe it's an error, so stop execution.
+                _runningProgram = False
+
         else:
             move(_toPlay[_pointer])             # Execute the command. If it fails, it's a short (_breathLength) rest.
 
         _pointer += 1
-        counter  += 1
-
-        if _pointer < len(_toPlay):
-            print(_toPlay[:_pointer].decode(), _toPlay[_pointer:].decode(), "\t\t\t", counter, _pointer, _toPlay[_pointer], "\n\n")
     return 0
 
 
 def _undo(arguments):                       # (blockLevel,)
     global _commandPointer
-    global _programPointer                  # I think this will be needed, if line 342 became something useful... :-)
     global _functionPosition
 
     # Sets the maximum range of undo in according to blockLevel flag.
     undoLowerBoundary = _blockStartIndex + 1 if arguments[0] else 0
 
-    if undoLowerBoundary < _commandPointer:
+    if undoLowerBoundary < _commandPointer:                         # If there is anything that can be undone.
         _commandPointer -= 1
         buzzer.keyBeep("beepUndone")
 
@@ -539,7 +547,7 @@ _defaultMapping = {
     12:   (_manageFunction,    (3, False)),                         # F3
     16:   (_beepAndReturn,     ("beepProcessed", 82)),              # RIGHT
     32:   (_beepAndReturn,     ("beepProcessed", 66)),              # BACKWARD
-    64:   (_startOrStop,       ()),                                 # START / STOP
+    64:   (_startOrStop,       (False,)),                           # START / STOP
     128:  (_beepAndReturn,     ("beepProcessed", 76)),              # LEFT
     256:  (_undo,              (False,)),                           # UNDO
     512:  (_delete,            (False,)),                           # DELETE
@@ -556,7 +564,7 @@ _loopBeginMapping = {
     12:   (_manageFunction,    (3, True)),                          # F3
     16:   (_beepAndReturn,     ("beepProcessed", 82)),              # RIGHT
     32:   (_beepAndReturn,     ("beepProcessed", 66)),              # BACKWARD
-    64:   (_startOrStop,       ()),                                 # START / STOP
+    64:   (_startOrStop,       (True,)),                            # START / STOP
     128:  (_beepAndReturn,     ("beepProcessed", 76)),              # LEFT
     256:  (_undo,              (True,)),                            # UNDO
     512:  (_delete,            (True,))                             # DELETE
@@ -583,7 +591,7 @@ _functionMapping = {
     12:   (_manageFunction,    (3, True)),                          # F3
     16:   (_beepAndReturn,     ("beepProcessed", 82)),              # RIGHT
     32:   (_beepAndReturn,     ("beepProcessed", 66)),              # BACKWARD
-    64:   (_startOrStop,       ()),                                 # START / STOP
+    64:   (_startOrStop,       (True,)),                            # START / STOP
     128:  (_beepAndReturn,     ("beepProcessed", 76)),              # LEFT
     256:  (_undo,              (True,)),                            # UNDO
     512:  (_delete,            (True,))                             # DELETE

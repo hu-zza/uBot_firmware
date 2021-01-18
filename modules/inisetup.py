@@ -9,8 +9,8 @@ ap = network.WLAN(network.AP_IF)
 config = {
     "firmwareMajor"     : 0,
     "firmwareMinor"     : 1,
-    "firmwarePatch"     : 33,
-    "initialDateTime"   : (2021, 1, 18, 0, 18, 5, 0, 0),
+    "firmwarePatch"     : 34,
+    "initialDateTime"   : (2021, 1, 18, 0, 23, 5, 0, 0),
 
     "apActive"          : True,
     "apEssid"           : "uBot__" + hexlify(ap.config("mac"), ":").decode()[9:],
@@ -40,6 +40,7 @@ config = {
     "motorT1MinDuty"    : 500,
     "motorT1MaxDuty"    : 1023,
 
+    "beepReady"         : ((60, 100, 25, 3), (71, 500, 100, 1)),
 
     "beepProcessed"     : (64, 100, 0, 1),
     "beepAttention"     : ((60, 100, 25, 1), (64, 100, 25, 1), (71, 100, 25, 1), (None, 500)),
@@ -63,6 +64,7 @@ config = {
     "turtleTurnLength"  : 359,
     "turtleBreathLength": 500,
     "turtleLoopChecking": 1,    #  0 - off  #  1 - simple (max. 20)  #  2 - simple (no limit)
+    "turtleEndSignal"   : "beepReady",
 
     "turtleClockPin"    : 13,
     "turtleInputPin"    : 16,

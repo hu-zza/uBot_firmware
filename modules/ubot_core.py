@@ -334,6 +334,8 @@ if CONFIG.get("webServerActive"):
         socket.listen(5)
 
         webserver.config(socket, DT, CONFIG, EXCEPTIONS, executeJson)
+        buzzer.keyBeep("beepProcessed")
+        buzzer.keyBeep("beepReady")
         webserver.start()
     except Exception as e:
         EXCEPTIONS.append((DT.datetime(), e))

@@ -13,7 +13,7 @@ _timerT1    = Timer(-1)
 _timer      = Timer(-1)
 _processing = False
 _moveList   = []
-
+_callback   = ()
 
 
 ################################
@@ -111,6 +111,10 @@ def setDutyFactor(dutyFactor):
         return 0
 
 
+def setCallback(callbackFunction, isTemporary = True):
+    _callback = (callbackFunction, isTemporary)
+
+
 
 ################################
 ## PRIVATE, HELPER METHODS
@@ -156,6 +160,10 @@ def _stopAndNext():
     if 0 < len(_moveList):
         _processing = True
         _processMove(_moveList.pop(0))
+    elif _callback != ():
+        _callback[0]()
+        if _callback[1]:
+            _callback == ()
 
 
 def _setController(modeLeft = 0, modeRight = 0):        # (T1 mode, T0 mode)
