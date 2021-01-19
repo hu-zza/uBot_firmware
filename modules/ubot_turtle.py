@@ -324,7 +324,7 @@ def _startOrStop(arguments):                # (blockLevel,)
     _toPlay  = _programArray[:] + _commandArray[:_commandPointer]
 
     _pointerStack = []
-    _pointer      = 0 if len(_commandArray) == 0 else len(_programArray)
+    _pointer      = 0 if _commandPointer == 0 else len(_programArray)
     _counterStack = []
 
     if arguments[0] == True:                # Block-level
@@ -423,7 +423,7 @@ def _startOrStop(arguments):                # (blockLevel,)
 def _addToProgramArray():
     global _commandPointer
     global _programArray
-    
+
     _programParts.append(_programParts[-1] + _commandPointer)
     _programArray += _commandArray[:_commandPointer]
     _commandPointer = 0
