@@ -333,15 +333,15 @@ def _startOrStop(arguments):                # (blockLevel,)
     if _runningProgram and _endSignal != "":
         motor.setCallback(lambda: buzzer.keyBeep(_endSignal), True)
 
-        counter = 0                             #      Debug
-        print("_toPlay[:_pointer]", "_toPlay[_pointer:]", "\t\t\t", "counter", "_pointer", "_toPlay[_pointer]") # Debug
+        #counter = 0                             #      Debug
+        #print("_toPlay[:_pointer]", "_toPlay[_pointer:]", "\t\t\t", "counter", "_pointer", "_toPlay[_pointer]") # Debug
 
     while _runningProgram:
         remaining = len(_toPlay) - 1 - _pointer #      Remaining bytes in _toPlay bytearray. 0 if _toPlay[_pointer] == _toPlay[-1]
         checkCounter = False
 
-        if _pointer < len(_toPlay):             #      Debug
-            print(_toPlay[:_pointer].decode(), _toPlay[_pointer:].decode(), "\t\t\t", counter, _pointer, _toPlay[_pointer])
+        #if _pointer < len(_toPlay):             #      Debug
+        #    print(_toPlay[:_pointer].decode(), _toPlay[_pointer:].decode(), "\t\t\t", counter, _pointer, _toPlay[_pointer])
 
         if remaining < 0:                       #      If everything is executed, exits.
             _runningProgram = False
@@ -409,10 +409,10 @@ def _startOrStop(arguments):                # (blockLevel,)
                 del _counterStack[-1]           #      Delete the loop's counter from stack.
                 _pointer += 2                   #      Jump to the loop's closing parentheses: ")"
 
-        if _pointer < len(_toPlay):             #      Debug
-            print(_toPlay[:_pointer].decode(), _toPlay[_pointer:].decode(), "\t\t\t", counter, _pointer, _toPlay[_pointer], "\n")
+        #if _pointer < len(_toPlay):             #      Debug
+        #    print(_toPlay[:_pointer].decode(), _toPlay[_pointer:].decode(), "\t\t\t", counter, _pointer, _toPlay[_pointer], "\n")
+        #counter += 1                            #      Debug
 
-        counter += 1                            #      Debug
         _pointer += 1
 
     return 0
@@ -560,8 +560,10 @@ def _undo(arguments):                       # (blockLevel,)
         if arguments[0] or _programParts == [0]:   # If block-level undo or no more loadable command from _programArray.
             buzzer.keyBeep("beepBoundary")
         else:
+            _commandArray = _programArray[_programParts[-2] : _programParts[-1]]
+            _commandPointer = _programParts[-1] - _programParts[-2]
+            del _programParts[-1]
             buzzer.keyBeep("beepLoaded")
-            # Move last added _commandArray from _programArray to _commandArray variable, etc...
     return 0
 
 
