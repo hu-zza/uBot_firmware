@@ -9,8 +9,8 @@ ap = network.WLAN(network.AP_IF)
 config = {
     "firmwareMajor"     : 0,
     "firmwareMinor"     : 1,
-    "firmwarePatch"     : 38,
-    "initialDateTime"   : (2021, 1, 19, 0, 20, 30, 0, 0),
+    "firmwarePatch"     : 39,
+    "initialDateTime"   : (2021, 1, 19, 0, 23, 0, 0, 0),
 
     "apActive"          : True,
     "apEssid"           : "uBot__" + hexlify(ap.config("mac"), ":").decode()[9:],
@@ -49,7 +49,7 @@ config = {
     "beepInputNeeded"   : ((71, 100, 50, 2), (64, 100, 50, 1)),
     "beepCompleted"     : ((71, 300, 50, 1), (60, 100, 50, 1)),
     "beepUndone"        : ((71, 100, 25, 2), (None, 200)),
-    "beepDeleted"       : ((71, 100, 25, 3), (60, 500, 100, 1)),
+    "beepDeleted"       : ((71, 100, 25, 3), (60, 500, 100, 1), (None, 200)),
 
     "beepInAndDecrease" : (71, 100, 0, 1),
     "beepBoundary"      : (60, 500, 150, 3),
@@ -169,7 +169,7 @@ def setup():
         f.write(firmwareComment)
         f.write(base + (
             "import ubot_debug\n"
-            "from ubot_debug import listExceptions, printException, startUart, stopUart\n\n"
+            "from ubot_debug import listExceptions, printException, startUart, stopUart, stopErrorSignal\n\n"
         ))
 
 

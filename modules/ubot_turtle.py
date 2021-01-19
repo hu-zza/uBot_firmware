@@ -22,24 +22,23 @@ _breathLength      = 0           #
 
 _endSignal         = ""          # [need config()] Sound indicates the end of program execution: buzzer.keyBeep(_endSignal)
 
-_pressedListIndex  = 0
+_pressedListIndex  = 0           #
 _pressedList       = 0           # [need config()] Low-level:  The last N (_pressLength + _maxError) buttoncheck results.
 _commandArray      = bytearray() #                 High-level: Abstract commands, result of processed button presses.
 _commandPointer    = 0           #                 Pointer for _commandArray.
 _programArray      = bytearray() #                 High-level: Result of one or more added _commandArray.
-_programPointer    = 0           #                 Pointer for _programArray.
-_programParts      = []          #                 Positions by which _programArray can be split into _commandArray(s).
+_programParts      = [0]         #                 Positions by which _programArray can be split into _commandArray(s).
 
-_loopCounter       = 0           #
+_loopCounter       = 0           #                 At loop creation this holds iteration count.
 
-_functionPosition  = [-1, -1, -1]                  # -1 : not defined, -0.1 : under definition, 0+ : defined
-                                                   # If defined, this index refer to the first command of the function,
-                                                   # instead of its curly brace "{".
+_functionPosition  = [-1, -1, -1]#                 -1 : not defined, -0.1 : under definition, 0+ : defined
+                                 #                 If defined, this index refer to the first command of the function,
+                                 #                 instead of its curly brace "{".
 
-_blockStartIndex   = 0           #
-_blockPrevStarts   = []          #
+_blockStartIndex   = 0           #                 At block (loop, fn declaration) creation, this holds block start position.
+_blockStartStack   = []          #
 _currentMapping    = 0           #
-_previousMappings  = []          #
+_mappingsStack     = []          #
 _runningProgram    = False       #
 _timer             = Timer(-1)   #                 Executes the repeated button checks.
 
@@ -266,9 +265,9 @@ def _blockStarted(newMapping):
     global _blockStartIndex
     global _currentMapping
 
-    _blockPrevStarts.append(_blockStartIndex)
+    _blockStartStack.append(_blockStartIndex)
     _blockStartIndex = _commandPointer
-    _previousMappings.append(_currentMapping)
+    _mappingsStack.append(_currentMapping)
     _currentMapping  = newMapping
     buzzer.setDefaultState(1)
     buzzer.keyBeep("beepStarted")
@@ -279,14 +278,14 @@ def _blockCompleted(deleteFlag):
     global _blockStartIndex
     global _currentMapping
 
-    if len(_previousMappings) != 0:
+    if len(_mappingsStack) != 0:
         if deleteFlag:
             _commandPointer = _blockStartIndex
 
-        _blockStartIndex = _blockPrevStarts.pop()
-        _currentMapping  = _previousMappings.pop()
+        _blockStartIndex = _blockStartStack.pop()
+        _currentMapping  = _mappingsStack.pop()
 
-        if len(_previousMappings) == 0:             # len(_previousMappings) == 0 means all blocks are closed.
+        if len(_mappingsStack) == 0:        # len(_mappingsStack) == 0 means all blocks are closed.
             buzzer.setDefaultState(0)
 
         if deleteFlag:
@@ -422,6 +421,13 @@ def _startOrStop(arguments):                # (blockLevel,)
 # COMMAND AND PROGRAM ARRAY
 
 def _addToProgramArray():
+    global _commandPointer
+    global _programArray
+    
+    _programParts.append(_programParts[-1] + _commandPointer)
+    _programArray += _commandArray[:_commandPointer]
+    _commandPointer = 0
+    buzzer.keyBeep("beepAdded")
     return 0
 
 
@@ -534,15 +540,15 @@ def _undo(arguments):                       # (blockLevel,)
         _commandPointer -= 1
         buzzer.keyBeep("beepUndone")
 
-        # If toBeUndone is a block boundary, _getOppositeBoundary returns with its pair (the beginning of the block).
+        # _getOppositeBoundary returns -1 if byte at _commandPointer is not boundary or its pair.
         boundary = _getOppositeBoundary(_commandPointer)
 
         if boundary != -1:
-            if boundary == 123:                                    # If it undoes a function declaration.
+            if boundary == 123:                                    # "{" If it undoes a function declaration, unregister:
                 _functionPosition[_commandArray[_commandPointer - 1] - 49] = -1 # Not 48! functionId - 1 = array index
             while True:                                            # General undo decreases the pointer by one, so this
                 _commandPointer -= 1                               # do...while loop can handle identic boundary pairs.
-                if _commandArray[_commandPointer] == boundary:
+                if _commandArray[_commandPointer] == boundary or _commandPointer == undoLowerBoundary:
                     break
 
             if not _isTagBoundary(_commandPointer):                # Tags (like function calling) need no keyBeep().
@@ -551,7 +557,7 @@ def _undo(arguments):                       # (blockLevel,)
         if _commandPointer == undoLowerBoundary:
             buzzer.keyBeep("beepBoundary")
     else:
-        if arguments[0] or 0 == _programPointer:      # Block level undo or no more loadable command from _programArray.
+        if arguments[0] or _programParts == [0]:   # If block-level undo or no more loadable command from _programArray.
             buzzer.keyBeep("beepBoundary")
         else:
             buzzer.keyBeep("beepLoaded")
@@ -561,7 +567,7 @@ def _undo(arguments):                       # (blockLevel,)
 
 def _delete(arguments):                     # (blockLevel,)
     global _commandPointer
-    global _programPointer
+    global _programParts
     global _functionPosition
 
     if arguments[0] == True:                # Block-level: delete only the unfinished block.
@@ -576,13 +582,13 @@ def _delete(arguments):                     # (blockLevel,)
                     _functionPosition[_commandArray[i + 1] - 49] = -1       # Not 48! functionId - 1 = array index
             _commandPointer = 0             # "Clear" _commandArray.
             buzzer.keyBeep("beepDeleted")
-        elif _programPointer != 0:          # _commandArray is "empty", but _programArray is not, "clear" it.
+        elif _programParts != [0]:          # _commandArray is "empty", but _programArray is not, "clear" it.
             _functionPosition = [-1] * len(_functionPosition)   # User may want to use higher ids first (from the
                                                                 # previously used ones). So it is not [-1, -1, -1]
-            _programPointer = 0             # "Clear" _programArray.
+            _programParts = [0]             # "Clear" _programArray.
             buzzer.keyBeep("beepDeleted")
 
-    if _commandPointer == 0 and _programPointer == 0: # If both array are "empty".
+    if _commandPointer == 0 and _programParts == [0]: # If _commandArray and _programArray are "empty".
         buzzer.keyBeep("beepBoundary")
 
     return 0

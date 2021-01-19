@@ -51,7 +51,7 @@ except Exception as e:
 
 
 try:
-    feedback = PWM(Pin(15), 1, 500)
+    errorSignal = PWM(Pin(15), 1, 500)
 except Exception as e:
     ex.append((dt.datetime(), e))
 
@@ -115,5 +115,12 @@ def stopUart():
         uos.dupterm(None, 1)
         P1.off()
         P3.off()
+    except Exception as e:
+        ex.append((dt.datetime(), e))
+
+
+def stopErrorSignal():
+    try:
+        errorSignal.deinit()
     except Exception as e:
         ex.append((dt.datetime(), e))

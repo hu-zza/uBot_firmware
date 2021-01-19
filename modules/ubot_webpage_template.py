@@ -176,7 +176,7 @@ def getDebugPanel():
 
     return result.format(
         commands = turtle._commandArray[:turtle._commandPointer].decode(),
-        program  = turtle._programArray[:turtle._programPointer].decode(),
+        program  = turtle._programArray[:turtle._programParts[-1]].decode(),
         firmware = firmwareVersion,
         freeMemory = freePercent, memoryDetails = memoryDetails,
         freeSpace = freeSpace, diskDetails = diskDetails,
