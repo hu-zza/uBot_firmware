@@ -424,8 +424,13 @@ def _addToProgramArray():
     global _commandPointer
     global _programArray
 
+    for i in range(_commandPointer):
+        if _programParts[-1] + i < len(_programArray):
+            _programArray[_programParts[-1] + i] = _commandArray[i]
+        else:
+            _programArray.append(_commandArray[i])
+
     _programParts.append(_programParts[-1] + _commandPointer)
-    _programArray += _commandArray[:_commandPointer]
     _commandPointer = 0
     buzzer.keyBeep("beepAdded")
     return 0
@@ -531,6 +536,7 @@ def _beepAndReturn(arguments):              # (keyOfBeep, returningValue)
 
 def _undo(arguments):                       # (blockLevel,)
     global _commandPointer
+    global _commandArray
     global _functionPosition
 
     # Sets the maximum range of undo in according to blockLevel flag.
@@ -560,8 +566,8 @@ def _undo(arguments):                       # (blockLevel,)
         if arguments[0] or _programParts == [0]:   # If block-level undo or no more loadable command from _programArray.
             buzzer.keyBeep("beepBoundary")
         else:
-            _commandArray = _programArray[_programParts[-2] : _programParts[-1]]
             _commandPointer = _programParts[-1] - _programParts[-2]
+            _commandArray   = _programArray[_programParts[-2] : _programParts[-1]]
             del _programParts[-1]
             buzzer.keyBeep("beepLoaded")
     return 0
