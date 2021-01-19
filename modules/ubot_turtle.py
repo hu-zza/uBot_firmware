@@ -564,21 +564,26 @@ def _delete(arguments):                     # (blockLevel,)
     global _programPointer
     global _functionPosition
 
-    if arguments[0] == True:                # Block-level
+    if arguments[0] == True:                # Block-level: delete only the unfinished block.
         _blockCompleted(True)               # buzzer.keyBeep("beepDeleted") is called inside _blockCompleted(True)
         for i in range(len(_functionPosition)): # Maybe there are user defined functions, so not range(3).
-            if _functionPosition[i] == -0.1:    # Find unfinished function, if there are any.
+            if _functionPosition[i] == -0.1:    # If this function is unfinished.
                 _functionPosition[i] = -1       # Set as undefined.
-    else:                                   # Not block-level: the whole _commandArray is affected.
-        buzzer.keyBeep("beepDeleted")
-        if _commandPointer != 0:
-            _commandPointer = 0
-            # for .... if 124 X 125 -> _functionPosition[X] = -1
-        else:
-            _programPointer = 0
-            _functionPosition = [-1] * len(_functionPosition)   # User may want to use higher ids first (from the previously used ones).
-            buzzer.keyBeep("beepBoundary")
+    else:                                   # Not block-level: the whole array is affected.
+        if _commandPointer != 0:            # _commandArray isn't "empty", so "clear" it.
+            for i in range(_commandPointer - 3):                            # Unregister functions defined in deleted range.
+                if _commandArray[i] == 124 and _commandArray[i + 2] == 125: # "|" and "}"
+                    _functionPosition[_commandArray[i + 1] - 49] = -1       # Not 48! functionId - 1 = array index
+            _commandPointer = 0             # "Clear" _commandArray.
+            buzzer.keyBeep("beepDeleted")
+        elif _programPointer != 0:          # _commandArray is "empty", but _programArray is not, "clear" it.
+            _functionPosition = [-1] * len(_functionPosition)   # User may want to use higher ids first (from the
+                                                                # previously used ones). So it is not [-1, -1, -1]
+            _programPointer = 0             # "Clear" _programArray.
+            buzzer.keyBeep("beepDeleted")
 
+    if _commandPointer == 0 and _programPointer == 0: # If both array are "empty".
+        buzzer.keyBeep("beepBoundary")
 
     return 0
 
