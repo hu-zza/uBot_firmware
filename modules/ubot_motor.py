@@ -112,6 +112,7 @@ def setDutyFactor(dutyFactor):
 
 
 def setCallback(callbackFunction, isTemporary = True):
+    global _callback
     _callback = (callbackFunction, isTemporary)
 
 
@@ -147,6 +148,7 @@ def _processMove(move):       # ((direction, duration))
 
 def _stopAndNext():
     global _processing
+    global _callback
     """
     Part of a recursive loop: _stopAndNext() - _processMove(move) - _stopAndNext() - ...
 

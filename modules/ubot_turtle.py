@@ -331,7 +331,7 @@ def _startOrStop(arguments):                # (blockLevel,)
         _pointer += _blockStartIndex + 1    # + 1 is necessary to begin at the real command.
 
     if _runningProgram and _endSignal != "":
-        motor.setCallback((lambda: buzzer.keyBeep(_endSignal), True))
+        motor.setCallback(lambda: buzzer.keyBeep(_endSignal), True)
 
 
     while _runningProgram:
