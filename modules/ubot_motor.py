@@ -163,7 +163,7 @@ def _stopAndNext():
     elif _callback != ():
         _callback[0]()
         if _callback[1]:
-            _callback == ()
+            _callback = ()
 
 
 def _setController(modeLeft = 0, modeRight = 0):        # (T1 mode, T0 mode)

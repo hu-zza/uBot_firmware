@@ -43,7 +43,7 @@ _previousMappings  = []          #
 _runningProgram    = False       #
 _timer             = Timer(-1)   #                 Executes the repeated button checks.
 
-
+_blockBoundaries   = ((40, 41), (123, 125), (126, 126)) # (("(", ")"), ("{", "}"), ("~", "~"))
 
 ################################
 ## CONFIG
@@ -78,7 +78,7 @@ def config(config):
     _turnLength   = config.get("turtleTurnLength")
     _breathLength = config.get("turtleBreathLength")
 
-    _endSignal = config.get("turtleEndSignal")
+    _endSignal    = config.get("turtleEndSignal")
 
     _pressedList  = [0] * (_pressLength + _maxError)
 
@@ -296,22 +296,111 @@ def _blockCompleted(deleteFlag):
             return False
 
 
-def _getOpeningBoundary(commandPointer):
-    values = (_commandArray[commandPointer], _commandArray[commandPointer - 2])
+def _getOppositeBoundary(commandPointer):
+    bondary = _commandArray[commandPointer]
 
-    if   values[0] == 41  and values[1] == 42:      # ")" and "*"
-        return 40                                   # "("
-    elif values[0] == 125 and values[1] == 124:     # "}" and "|"
-        return 123                                  # "{"
-    elif values[0] == 126 and values[1] == 126:     # "~" and "~"
-        return 126                                  # "~"
-    else:
-        return 0
+    for bondaryPair in _blockBoundaries:
+        if bondary == bondaryPair[0]:
+            return bondaryPair[1]
+        elif bondary == bondaryPair[1]:
+            return bondaryPair[0]
+    return -1
+
+
+def _isTagBoundary(commandPointer):
+    return _commandArray[commandPointer] == _getOppositeBoundary(commandPointer)
 
 
 
 ################################
 ## STANDARDIZED FUNCTIONS
+
+def _startOrStop(arguments):                # (blockLevel,)
+    global _runningProgram
+
+    buzzer.keyBeep("beepProcessed")
+    _runningProgram = not _runningProgram
+
+    _toPlay  = _programArray[:] + _commandArray[:_commandPointer]
+
+    _pointerStack = []
+    _pointer      = 0 if len(_commandArray) == 0 else len(_programArray)
+    _counterStack = []
+
+    if arguments[0] == True:                # Block-level
+        _pointer += _blockStartIndex + 1    # + 1 is necessary to begin at the real command.
+
+    if _runningProgram and _endSignal != "":
+        motor.setCallback((lambda: buzzer.keyBeep(_endSignal), True))
+
+
+    while _runningProgram:
+        remaining = len(_toPlay) - 1 - _pointer #      Remaining bytes in _toPlay bytearray. 0 if _toPlay[_pointer] == _toPlay[-1]
+        checkCounter = False
+
+
+        if remaining < 0:                       #      If everything is executed, exits.
+            _runningProgram = False
+
+
+        elif _toPlay[_pointer] == 40:           # "("
+
+            _pointerStack.append(_pointer)      #      Save the position of the loop's starting parentheses: "("
+
+            while _pointer < len(_toPlay) and _toPlay[_pointer] != 42: # "*"  Jump to the end of the loop's body.
+                _pointer += 1
+
+            remaining = len(_toPlay) - 1 - _pointer
+
+            if 1 <= remaining and _toPlay[_pointer] == 42:
+                _counterStack.append(_toPlay[_pointer + 1] - 48) # Counter was increased at definition by 48. b'0' == 48
+                checkCounter = True
+            else:
+                _runningProgram = False
+
+
+        elif _toPlay[_pointer] == 42:           # "*"  End of the body of the loop.
+            _counterStack[-1] -= 1              #      Decrease the loop counter.
+            checkCounter = True
+
+
+        elif _toPlay[_pointer] == 123:          # "{"  Start of a function.
+
+            while _pointer < len(_toPlay) and _toPlay[_pointer] != 125: # "}" Jump to the function's closing curly brace.
+                _pointer += 1
+
+            if _toPlay[_pointer] != 125:        #      Means the _pointer < len(_toPlay) breaks the while loop.
+                _runningProgram = False
+
+
+        elif _toPlay[_pointer] == 124:          # "|"  End of the currently executed function.
+            _pointer = _pointerStack.pop()      #      Jump back to where the function call occurred.
+
+
+        elif _toPlay[_pointer] == 126:          # "~"
+            if 2 <= remaining and _toPlay[_pointer + 2] == 126: # Double-check: 1. Enough remaining to close function call; 2. "~"
+                _pointerStack.append(_pointer + 2)              # Save the returning position as the second tilde: "~"
+                _pointer = _functionPosition[_toPlay[_pointer + 1] - 49]    # not 48! functionId - 1 = array index
+            else:                                               # Maybe it's an error, so stop execution.
+                _runningProgram = False
+
+
+        else:
+            move(_toPlay[_pointer])             # Execute the command. If it fails, it's a short (_breathLength) rest.
+
+
+        if checkCounter:
+            if 0 < _counterStack[-1]:           #      If the loop counter is greater than 0.
+                _pointer = _pointerStack[-1]    #      Jump back to the loop starting position.
+            else:
+                del _pointerStack[-1]           #      Delete the loop's starting position from stack.
+                del _counterStack[-1]           #      Delete the loop's counter from stack.
+                _pointer += 2                   #      Jump to the loop's closing parentheses: ")"
+
+        _pointer += 1
+
+    return 0
+
 
 # COMMAND AND PROGRAM ARRAY
 
@@ -411,65 +500,6 @@ def _beepAndReturn(arguments):              # (keyOfBeep, returningValue)
     return arguments[1]
 
 
-def _startOrStop(arguments):                # (blockLevel,)
-    global _runningProgram
-
-    buzzer.keyBeep("beepProcessed")
-    _runningProgram = not _runningProgram
-
-    _toPlay  = _programArray[:] + _commandArray[:_commandPointer]
-
-    _pointerStack = []
-    _pointer      = 0 if len(_commandArray) == 0 else len(_programArray)
-
-    if arguments[0] == True:                # Block-level
-        _pointer += _blockStartIndex + 1    # + 1 is necessary to begin at the real command.
-
-    if _runningProgram and _endSignal != "":
-        motor.setCallback((lambda: buzzer.keyBeep(_endSignal), True))
-
-    while _runningProgram:
-        remaining = len(_toPlay) - 1 - _pointer #      Remaining bytes in _toPlay bytearray. 0 if _toPlay[_pointer] == _toPlay[-1]
-
-        if remaining < 0:                       #      If everything is executed, exits.
-            _runningProgram = False
-
-        elif _toPlay[_pointer] == 40:           # "("
-            _pointerStack.append(_pointer)      #      Save the position of the loop's starting parentheses: "("
-
-        elif _toPlay[_pointer] == 42:           # "*"  End of the body of the loop.
-            if 2 <= remaining and _toPlay[_pointer + 2] == 41: # Double-check: 1. Enough remaining to close loop; 2. ")"
-                _toPlay[_pointer + 1] -= 1      #      Decrease the loop counter.
-
-                if 48 < _toPlay[_pointer + 1]:  #      If the loop counter is greater than 0. b'0' == 48
-                    _pointer = _pointerStack[-1]#      Jump back to the loop starting position.
-                else:
-                    del _pointerStack[-1]       #      Delete the loop starting position from stack.
-                    _pointer += 2               #      Jump to the loop's closing parentheses: ")"
-            else:                               #      Maybe it's a half-backed loop, so stop execution. (It is under
-                _runningProgram = False         #      definition, user checks its body. Should run only once.)
-
-        elif _toPlay[_pointer] == 123:          # "{"  Start of a function.
-            while _toPlay[_pointer] != 125:     #      Jump to the function's closing curly brace: "}"
-                _pointer += 1
-
-        elif _toPlay[_pointer] == 124:          # "|"  End of the currently executed function.
-            _pointer = _pointerStack.pop()      #      Jump back to where the function call occurred.
-
-        elif _toPlay[_pointer] == 126:          # "~"
-            if 2 <= remaining and _toPlay[_pointer + 2] == 126: # Double-check: 1. Enough remaining to close function call; 2. "~"
-                _pointerStack.append(_pointer + 2)              # Save the returning position as the second tilde: "~"
-                _pointer = _functionPosition[_toPlay[_pointer + 1] - 49]    # not 48! functionId - 1 = array index
-            else:                                               # Maybe it's an error, so stop execution.
-                _runningProgram = False
-
-        else:
-            move(_toPlay[_pointer])             # Execute the command. If it fails, it's a short (_breathLength) rest.
-
-        _pointer += 1
-    return 0
-
-
 def _undo(arguments):                       # (blockLevel,)
     global _commandPointer
     global _functionPosition
@@ -481,17 +511,19 @@ def _undo(arguments):                       # (blockLevel,)
         _commandPointer -= 1
         buzzer.keyBeep("beepUndone")
 
-        # If toBeUndone is a block boundary, _getOpeningBoundary returns with its pair (the beginning of the block).
-        boundary = _getOpeningBoundary(_commandPointer)
+        # If toBeUndone is a block boundary, _getOppositeBoundary returns with its pair (the beginning of the block).
+        boundary = _getOppositeBoundary(_commandPointer)
 
-        if boundary != 0:
+        if boundary != -1:
             if boundary == 123:                                    # If it undoes a function declaration.
                 _functionPosition[_commandArray[_commandPointer - 1] - 49] = -1 # not 48! functionId - 1 = array index
             while True:                                            # General undo decreases the pointer by one, so this
                 _commandPointer -= 1                               # do...while loop can handle identic boundary pairs.
                 if _commandArray[_commandPointer] == boundary:
                     break
-            buzzer.keyBeep("beepDeleted")
+
+            if not _isTagBoundary(_commandPointer):                # Tags (like function calling) need no keyBeep().
+                buzzer.keyBeep("beepDeleted")
 
         if _commandPointer == undoLowerBoundary:
             buzzer.keyBeep("beepBoundary")
