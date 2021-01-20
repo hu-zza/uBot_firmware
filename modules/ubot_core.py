@@ -5,21 +5,21 @@ from ubinascii   import hexlify
 from utime       import sleep, sleep_ms
 
 import ubot_buzzer    as buzzer
+import ubot_exception as exception
 import ubot_feedback  as feedback
 import ubot_motor     as motor
 import ubot_turtle    as turtle
 import ubot_webserver as webserver
 
 
-DT = IDT = RTC()
-CONFIG   = {}
+DT     = RTC()
+CONFIG = {}
 
 
 
 ################################
 ## IMPORT CONFIG FILES
 
-EXCEPTIONS     = []
 datetimeLoaded = True
 configLoaded   = True
 defaultsLoaded = True
@@ -29,21 +29,21 @@ try:
     import etc.datetime as datetime
 except Exception as e:
     datetimeLoaded = False
-    EXCEPTIONS.append(([], e))
+    exception.append(e)
 
 
 try:
     import etc.config as config
 except Exception as e:
     configLoaded = False
-    EXCEPTIONS.append(([], e))
+    exception.append(e)
 
 
 try:
     import etc.defaults as defaults
 except Exception as e:
     defaultsLoaded = False
-    EXCEPTIONS.append(([], e))
+    exception.append(e)
 
 
 
@@ -136,15 +136,6 @@ def executeJson(json):
 ###########
 ## CONFIG
 
-def replaceNullDT():
-    """ Adding datetime afterwards to exceptions """
-    global EXCEPTIONS
-
-    for i in range(len(EXCEPTIONS)):
-        if len(EXCEPTIONS[i][0]) == 0:                                 # If datetime is an empty collection
-            EXCEPTIONS[i] = (DT.datetime(), EXCEPTIONS[i][1])          # Reassign exception with datetime
-
-
 def saveConfig():
     try:
         with open("etc/config.py", "w") as file:
@@ -156,7 +147,7 @@ def saveConfig():
                 else:
                     file.write("{} = {}\n".format(key, value))
     except Exception as e:
-        EXCEPTIONS.append(e)
+        exception.append(e)
 
 
 def saveDateTime():
@@ -171,23 +162,8 @@ def saveToFile(fileName, mode, content):
         with open(fileName, mode) as file:
             file.write(content)
     except Exception as e:
-        EXCEPTIONS.append((DT.datetime(), e))
+        exception.append(e)
 
-
-###########
-## DEBUG
-
-def listExceptions():
-    for i in range(len(EXCEPTIONS)):
-        print("{}\t{}\t{}".format(i, EXCEPTIONS[i][0], EXCEPTIONS[i][1]))
-
-
-def printException(nr):
-    if 0 <= nr and nr < len(EXCEPTIONS):
-        print(EXCEPTIONS[nr][0])
-        sys.print_exception(EXCEPTIONS[nr][1])
-    else:
-        print("List index ({}) is out of range ({}).".format(nr, len(EXCEPTIONS)))
 
 
 ###########
@@ -216,7 +192,7 @@ if datetimeLoaded:
     try:
         DT.datetime(datetime.DT)
     except Exception as e:
-        EXCEPTIONS.append(([], e))
+        exception.append(e)
 
 
 if configLoaded or defaultsLoaded:
@@ -224,30 +200,39 @@ if configLoaded or defaultsLoaded:
         conf = "config"
     else:
         conf = "defaults"
-        EXCEPTIONS.append(([], "Can not import configuration file, default values have been loaded."))
 
     # Fetch every variable from config.py / defaults.py
     for v in dir(eval(conf)):
-        if v[0] != "_":
-            CONFIG[v] = eval("{}.{}".format(conf, v))
+        CONFIG[v] = eval("{}.{}".format(conf, v))
+
+    if conf == "defaults":
+        try:
+            CONFIG["powerOnCount"] = int(uos.listdir("log/exception")[-1][:-4]) + 1
+        except Exception as e:
+            exception.append(e)
+    else:
+        CONFIG["powerOnCount"] = CONFIG.get("powerOnCount") + 1
 
     # If etc/datetime.py is not accessible, set the DT to 'initialDateTime'.
     if not datetimeLoaded:
         DT.datetime(CONFIG["initialDateTime"])
 
-    IDT = DT.datetime()
 
-    replaceNullDT()
-else:
-    replaceNullDT()
-    EXCEPTIONS.append((DT.datetime(), "Neither the configuration file, nor the default values can be loaded."))
+exception.config(DT, CONFIG.get("powerOnCount"))
+
+
+try:
+    with open("log/datetime.py", "a") as f:
+        f.write("DT_{:010d} = {}\n".format(CONFIG.get("powerOnCount"), CONFIG.get("initialDateTime")))
+except Exception as e:
+    exception.append(e)
 
 
 if CONFIG.get("i2cActive"):
     try:
         feedback.config(CONFIG.get("i2cFreq"), Pin(CONFIG.get("i2cSda")), Pin(CONFIG.get("i2cScl")))
     except Exception as e:
-        EXCEPTIONS.append((DT.datetime(), e))
+        exception.append(e)
 
 
 ###########
@@ -299,13 +284,13 @@ AP.config(authmode = network.AUTH_WPA_WPA2_PSK)
 try:
     AP.config(essid = CONFIG.get("apEssid"))
 except Exception as e:
-    EXCEPTIONS.append((DT.datetime(), e))
+    exception.append(e)
 
 
 try:
     AP.config(password = CONFIG.get("apPassword"))
 except Exception as e:
-    EXCEPTIONS.append((DT.datetime(), e))
+    exception.append(e)
 
 
 ###########
@@ -324,7 +309,7 @@ if CONFIG.get("webReplActive"):
     try:
         webrepl.start()
     except Exception as e:
-        EXCEPTIONS.append((DT.datetime(), e))
+        exception.append(e)
 
 
 if CONFIG.get("webServerActive"):
@@ -333,9 +318,10 @@ if CONFIG.get("webServerActive"):
         socket.bind(("", 80))
         socket.listen(5)
 
-        webserver.config(socket, DT, CONFIG, EXCEPTIONS, executeJson)
+        webserver.config(socket, DT, CONFIG, executeJson)
+        saveConfig() ############################################################################### test ubot_exception
         buzzer.keyBeep("beepProcessed")
         buzzer.keyBeep("beepReady")
         webserver.start()
     except Exception as e:
-        EXCEPTIONS.append((DT.datetime(), e))
+        exception.append(e)

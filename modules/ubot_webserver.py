@@ -2,13 +2,13 @@ import gc, ujson, usocket
 
 from machine import RTC
 
+import ubot_exception        as exception
 import ubot_webpage_template as template
 
 
 _socket       = 0
 _dateTime     = 0
 _config       = 0
-_exceptions   = 0
 _jsonFunction = 0
 _connection   = 0
 _address      = 0
@@ -18,20 +18,18 @@ _address      = 0
 ################################
 ## CONFIG
 
-def config(socket, dateTime, config, exceptionList, jsonFunction):
+def config(socket, dateTime, config, jsonFunction):
     global _socket
     global _dateTime
     global _config
-    global _exceptions
     global _jsonFunction
 
     _socket       = socket
     _dateTime     = dateTime
     _config       = config
-    _exceptions   = exceptionList
     _jsonFunction = jsonFunction
 
-    template.config(config, exceptionList)
+    template.config(config)
 
 
 
@@ -48,7 +46,7 @@ def start():
             try:
                 _processSockets()
             except Exception as e:
-                _exceptions.append((_dateTime.datetime(), e))
+                exception.append(e)
 
 
 def stop(message):
@@ -59,7 +57,7 @@ def stop(message):
             _reply("JSON", "200 OK", [message])
             _config['webServerActive'] = False
         except Exception as e:
-            _exceptions.append((_dateTime.datetime(), e))
+            exception.append(e)
 
 
 
@@ -147,7 +145,7 @@ def _processGetQuery(path):
             helperLinks += "        </ul>\n"
             _reply("HTML", "404 Not Found", helperLinks)
     except Exception as e:
-        _exceptions.append((_dateTime.datetime(), e))
+        exception.append(e)
     finally:
         _connection.close()
 
@@ -162,7 +160,7 @@ def _processPostQuery(body):
 
         _reply("JSON", "200 OK", _jsonFunction(json))
     except Exception as e:
-        _exceptions.append((_dateTime.datetime(), e))
+        exception.append(e)
         _reply("JSON", "400 Bad Request", "The request body could not be parsed and processed.")
 
 

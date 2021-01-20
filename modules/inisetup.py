@@ -9,8 +9,9 @@ ap = network.WLAN(network.AP_IF)
 config = {
     "firmwareMajor"     : 0,
     "firmwareMinor"     : 1,
-    "firmwarePatch"     : 42,
-    "initialDateTime"   : (2021, 1, 20, 0, 0, 25, 0, 0),
+    "firmwarePatch"     : 43,
+    "initialDateTime"   : (2021, 1, 20, 0, 21, 0, 0, 0),
+    "powerOnCount"      : 0,
 
     "apActive"          : True,
     "apEssid"           : "uBot__" + hexlify(ap.config("mac"), ":").decode()[9:],
@@ -131,11 +132,10 @@ def setup():
     uos.mount(vfs, "/")
 
     uos.mkdir("etc")
-    uos.mkdir("home")
-    uos.mkdir("tmp")
-    uos.mkdir("home/programs")
-    uos.mkdir("tmp/programs")
-
+    uos.mkdir("program")
+    uos.mkdir("log")
+    uos.mkdir("log/exception")
+    uos.mkdir("log/executed")
 
     with open("webrepl_cfg.py", "w") as f:
         f.write("PASS = '{}'".format(config.get("webReplPassword")))
@@ -159,10 +159,7 @@ def setup():
 
     with open("boot.py", "w") as f:
         f.write(firmwareComment)
-        f.write(base + (
-            "import ubot_core\n"
-            "from ubot_debug import listExceptions, printException\n\n"
-        ))
+        f.write(base + "import ubot_core\n")
 
 
     with open("main.py", "w") as f:
@@ -178,5 +175,9 @@ def setup():
 
     saveDictionaryToFile("etc/config.py", config)
     saveDictionaryToFile("etc/defaults.py", config)
+
+    with open("log/datetime.py", "w") as f:
+        f.write("DT_0000000000 = {}\n".format(config.get("initialDateTime")))
+
 
     return vfs

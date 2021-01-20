@@ -1,22 +1,20 @@
 import gc, uos
 
-import ubot_turtle as turtle
+import ubot_exception as exception
+import ubot_turtle    as turtle
 
 
-_config     = 0
-_exceptions = 0
+_config = 0
 
 
 
 ###########
 ## CONFIG
 
-def config(config, exceptionList):
+def config(config):
     global _config
-    global _exceptions
 
     _config     = config
-    _exceptions = exceptionList
 
 
 
@@ -163,10 +161,10 @@ def getDebugPanel():
                      "                <tbody>\n")
     index = 0
 
-    for (dt, exception) in _exceptions:
+    for (dt, exc) in exception.getExceptions():
         exceptionList += "                    <tr>\n"
         exceptionList += "                        <td> {} </td><td> {}. {}. {}. {}:{}:{}.{} </td><td> {} </td>".format(
-            index, dt[0], dt[1], dt[2], dt[4], dt[5], dt[6], dt[7], exception
+            index, dt[0], dt[1], dt[2], dt[4], dt[5], dt[6], dt[7], exc
         )
         exceptionList += "                    </tr>\n"
         index += 1
