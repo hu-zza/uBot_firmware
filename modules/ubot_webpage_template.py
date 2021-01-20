@@ -136,12 +136,13 @@ def getDebugPanel():
               "        <h3>System</h3>\n"
               "            <table class='system'>\n"
               "                <tr><td> <strong>Firmware:</strong> </td><td> {firmware} </td><td>  </td></tr>\n"
+              "                <tr><td> <strong>Power on count:</strong> </td><td> {powerOnCount} </td><td>  </td></tr>\n"
+              "                <tr><td> <strong>Saved programs:</strong> </td><td> {savedPrograms} </td><td>  </td></tr>\n"
               "                <tr><td> <strong>Free memory:</strong> </td><td> {freeMemory}% </td><td> {memoryDetails} </td></tr>\n"
               "                <tr><td> <strong>Free space:</strong> </td><td> {freeSpace}% </td><td> {diskDetails} </td></tr>\n"
               "            </table>\n"
               "        <br><br><hr><hr>\n"
               "        <h3>Exceptions</h3>\n"
-              "{exceptions}"
              )
 
     firmwareVersion = "{}.{}.{}".format(
@@ -156,29 +157,14 @@ def getDebugPanel():
     freeSpace   = stat[4] * stat[0] * 100 // (stat[2] * stat[1])       # f_bavail * f_bsize * 100 // f_blocks * f_frsize
     diskDetails = "{} / {}".format(stat[4] * stat[0], stat[2] * stat[1])
 
-    exceptionList = ("            <table class='exceptions'>\n"
-                     "                <colgroup><col><col><col></colgroup>\n"
-                     "                <tbody>\n")
-    index = 0
-
-    for (dt, exc) in exception.getExceptions():
-        exceptionList += "                    <tr>\n"
-        exceptionList += "                        <td> {} </td><td> {}. {}. {}. {}:{}:{}.{} </td><td> {} </td>".format(
-            index, dt[0], dt[1], dt[2], dt[4], dt[5], dt[6], dt[7], exc
-        )
-        exceptionList += "                    </tr>\n"
-        index += 1
-
-    exceptionList += ("                </tbody>\n"
-                      "            </table>\n")
-
     return result.format(
         commands = turtle._commandArray[:turtle._commandPointer].decode(),
         program  = turtle._programArray[:turtle._programParts[-1]].decode(),
         firmware = firmwareVersion,
+        powerOnCount = _config.get("powerOnCount"),
         freeMemory = freePercent, memoryDetails = memoryDetails,
         freeSpace = freeSpace, diskDetails = diskDetails,
-        exceptions = exceptionList
+        savedPrograms = len(uos.listdir("program"))
     )
 
 

@@ -203,7 +203,8 @@ if configLoaded or defaultsLoaded:
 
     # Fetch every variable from config.py / defaults.py
     for v in dir(eval(conf)):
-        CONFIG[v] = eval("{}.{}".format(conf, v))
+        if v[0] != "_":                                                       # Do not load private and magic variables. 
+            CONFIG[v] = eval("{}.{}".format(conf, v))
 
     if conf == "defaults":
         try:

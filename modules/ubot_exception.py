@@ -58,10 +58,6 @@ def append(exception):
         _appendToList(exception)
 
 
-def getExceptions():
-    return ""
-
-
 
 ################################
 ## PRIVATE, HELPER METHODS

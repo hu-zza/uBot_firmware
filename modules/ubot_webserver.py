@@ -132,6 +132,15 @@ def _processGetQuery(path):
             for part in template.parts.get(path):
                 _connection.sendall(part())
 
+            if path == "/debug":
+                _connection.send("        <pre>")
+                with open("log/exception/{:010d}.txt".format(_config.get("powerOnCount")), "r") as file:
+                    for line in file:
+                        _connection.sendall(line)
+
+                _connection.send("        </pre>")
+
+
             _connection.sendall(template.getPageFooter())
         else:
             helperLinks = "        <ul class='links'>\n"
