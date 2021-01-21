@@ -9,8 +9,8 @@ ap = network.WLAN(network.AP_IF)
 config = {
     "firmwareMajor"     : 0,
     "firmwareMinor"     : 1,
-    "firmwarePatch"     : 44,
-    "initialDateTime"   : (2021, 1, 20, 0, 22, 20, 0, 0),
+    "firmwarePatch"     : 45,
+    "initialDateTime"   : (2021, 1, 21, 0, 1, 10, 0, 0),
     "powerOnCount"      : 0,
 
     "apActive"          : True,
@@ -135,10 +135,12 @@ def setup():
     uos.mkdir("program")
     uos.mkdir("log")
     uos.mkdir("log/exception")
-    uos.mkdir("log/executed")
+    uos.mkdir("log/datetime")
+    uos.mkdir("log/commands")
+    uos.mkdir("log/program")
 
-    with open("webrepl_cfg.py", "w") as f:
-        f.write("PASS = '{}'".format(config.get("webReplPassword")))
+    with open("webrepl_cfg.py", "w") as file:
+        file.write("PASS = '{}'".format(config.get("webReplPassword")))
 
 
     firmwareComment = "# uBot firmware {}.{}.{}\n\n".format(
@@ -157,27 +159,27 @@ def setup():
                      "# https://ubot.hu\n"
                      "#")
 
-    with open("boot.py", "w") as f:
-        f.write(firmwareComment)
-        f.write(base + "import ubot_core\n")
+    with open("boot.py", "w") as file:
+        file.write(firmwareComment)
+        file.write(base + "import ubot_core\n")
 
 
-    with open("main.py", "w") as f:
-        f.write(firmwareComment)
-        f.write(base + (
+    with open("main.py", "w") as file:
+        file.write(firmwareComment)
+        file.write(base + (
             "import ubot_debug\n"
             "from ubot_debug import listExceptions, printException, startUart, stopUart, stopErrorSignal\n\n"
         ))
 
 
-    with open("etc/datetime.py", "w") as f:
-        f.write("DT = {}".format(config.get("initialDateTime")))
+    with open("etc/datetime.py", "w") as file:
+        file.write("DT = {}".format(config.get("initialDateTime")))
 
     saveDictionaryToFile("etc/config.py", config)
     saveDictionaryToFile("etc/defaults.py", config)
 
-    with open("log/datetime.py", "w") as f:
-        f.write("DT_0000000000 = {}\n".format(config.get("initialDateTime")))
+    with open("log/datetime.py", "w") as file:
+        file.write("DT_0000000000 = {}\n".format(config.get("initialDateTime")))
 
 
     return vfs

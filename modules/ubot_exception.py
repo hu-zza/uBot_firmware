@@ -21,18 +21,18 @@ def config(dateTime, powerOnCount):
     _fileName = "log/exception/{:010d}.txt".format(powerOnCount)
 
     try:
-        with open(_fileName, "w") as f:
-            f.write("{}\nException log initialised successfully.\n\n".format(_dateTime.datetime()))
+        with open(_fileName, "w") as file:
+            file.write("{}\nException log initialised successfully.\n\n".format(_dateTime.datetime()))
     except Exception as e:
         _appendToList(e)
 
     if _exceptions != []:                                       # Use case: append() can be used before config()
         try:                                                    #           So save the possible exceptions from list.
-            with open(_fileName, "a") as f:
+            with open(_fileName, "a") as file:
                 for exception in _exceptions:
-                    f.write("{}\n".format(_dateTime.datetime()))# Exceptions appended before config() hasn't got datetime.
-                    sys.print_exception(exception[1], f)
-                    f.write("\n")
+                    file.write("{}\n".format(_dateTime.datetime())) # Exceptions appended before config() hasn't got datetime.
+                    sys.print_exception(exception[1], file)
+                    file.write("\n")
             _exceptions = []                                    # Clear the list. Maybe it will be used later.
         except Exception as e:
             _appendToList(e)
@@ -47,10 +47,10 @@ def append(exception):
 
     if _fileName != 0:
         try:
-            with open(_fileName, "a") as f:
-                f.write("{}\n".format(_dateTime.datetime()))
-                sys.print_exception(exception, f)
-                f.write("\n")
+            with open(_fileName, "a") as file:
+                file.write("{}\n".format(_dateTime.datetime()))
+                sys.print_exception(exception, file)
+                file.write("\n")
         except Exception as e:
             _appendToList(e)
             _appendToList(exception)

@@ -1,11 +1,16 @@
 import sys
 
-from machine import Pin, Timer
+from machine import Pin, RTC, Timer
 from utime   import sleep_ms
 
-import ubot_buzzer as buzzer
-import ubot_motor  as motor
+import ubot_buzzer    as buzzer
+import ubot_core      as core
+import ubot_exception as exception
+import ubot_motor     as motor
 
+
+_dateTime          = 0           # [need config()]
+_powerOnCount      = 0           # [need config()]
 
 _clockPin          = 0           # [need config()] Advances the decade counter (U3).
 _inputPin          = 0           # [need config()] Checks the returning signal from turtle HAT.
@@ -47,7 +52,9 @@ _blockBoundaries   = ((40, 41), (123, 125), (126, 126)) # (("(", ")"), ("{", "}"
 ################################
 ## CONFIG
 
-def config(config):
+def config(config, dateTime):
+    global _dateTime
+    global _powerOnCount
     global _clockPin
     global _inputPin
     global _pressLength
@@ -60,6 +67,9 @@ def config(config):
     global _endSignal
     global _pressedList
     global _currentMapping
+
+    _dateTime     = dateTime
+    _powerOnCount = config.get("powerOnCount")
 
     _clockPin = Pin(config.get("turtleClockPin"), Pin.OUT)
     _clockPin.off()
@@ -217,16 +227,19 @@ def _advanceCounter():
 ## BUTTON PRESS INTERPRETATION
 
 def _addCommand(pressed):
+    global _runningProgram
+
     try:
         if pressed == 0:                # result = 0 means, there is nothing to save to _commandArray.
             result = 0                  # Not only lack of buttonpress (pressed == 0) returns 0.
         elif _runningProgram:
-            result = _startOrStop((False,)) # Stop program execution.
+            _runningProgram = False                                         # Stop commands / program execution
+            result = _beepAndReturn(("beepProcessed", 0))                   # Beep and skip the (result) processing.
         else:
             tupleWithCallable = _currentMapping.get(pressed)                # Dictionary based switch...case
 
             if tupleWithCallable == None:                                   # Default branch
-                result = 0
+                result = 0                                                  # Skip the (result) processing.
             else:
                 if tupleWithCallable[1] == ():
                     result = tupleWithCallable[0]()
@@ -313,34 +326,64 @@ def _isTagBoundary(commandPointer):
 
 
 ################################
+## HELPER METHODS FOR LOGS
+
+def _logExecuted():
+    fileName = "{:010d}.txt".format(_powerOnCount)
+
+    try:
+        with open("log/datetime/" + fileName, "a") as file:
+            file.write("{}\n".format(_dateTime.datetime()))
+    except Exception as e:
+        exception.append(e)
+
+    try:
+        with open("log/commands/" + fileName, "a") as file:
+            file.write("{}\n".format(_commandArray[:_commandPointer].decode()))
+    except Exception as e:
+        exception.append(e)
+
+    try:
+        with open("log/program/" + fileName, "a") as file:
+            file.write("{}\n".format(_programArray[:_programParts[-1]].decode()))
+    except Exception as e:
+        exception.append(e)
+
+
+
+################################
 ## STANDARDIZED FUNCTIONS
 
-def _startOrStop(arguments):                # (blockLevel,)
+def _start(arguments):                # (blockLevel,)
     global _runningProgram
 
+    _runningProgram = True
     buzzer.keyBeep("beepProcessed")
-    _runningProgram = not _runningProgram
 
-    _toPlay  = _programArray[:] + _commandArray[:_commandPointer]
+    if arguments[0] or 0 < _commandPointer: # Executing the body of a block or the _commandArray
+        _toPlay        = _commandArray
+        _upperBoundary = _commandPointer
+    else:                                   # Executing the _programArray
+        _toPlay        = _programArray
+        _upperBoundary = _programParts[-1]
 
+    _pointer      =  _blockStartIndex + 1 if arguments[0] else 0
     _pointerStack = []
-    _pointer      = 0 if _commandPointer == 0 else len(_programArray)
     _counterStack = []
 
-    if arguments[0] == True:                # Block-level
-        _pointer += _blockStartIndex + 1    # + 1 is necessary to begin at the real command.
-
-    if _runningProgram and _endSignal != "":
+    core.saveDateTime()
+    _logExecuted()
+    if _endSignal != "":
         motor.setCallback(lambda: buzzer.keyBeep(_endSignal), True)
 
-        #counter = 0                             #      Debug
-        #print("_toPlay[:_pointer]", "_toPlay[_pointer:]", "\t\t\t", "counter", "_pointer", "_toPlay[_pointer]") # Debug
+    #counter = 0                             #      Debug
+    #print("_toPlay[:_pointer]", "_toPlay[_pointer:]", "\t\t\t", "counter", "_pointer", "_toPlay[_pointer]") # Debug
 
     while _runningProgram:
-        remaining = len(_toPlay) - 1 - _pointer #      Remaining bytes in _toPlay bytearray. 0 if _toPlay[_pointer] == _toPlay[-1]
+        remaining = _upperBoundary - 1 - _pointer #      Remaining bytes in _toPlay bytearray. 0 if _toPlay[_pointer] == _toPlay[-1]
         checkCounter = False
 
-        #if _pointer < len(_toPlay):             #      Debug
+        #if _pointer < _upperBoundary:          #      Debug
         #    print(_toPlay[:_pointer].decode(), _toPlay[_pointer:].decode(), "\t\t\t", counter, _pointer, _toPlay[_pointer])
 
         if remaining < 0:                       #      If everything is executed, exits.
@@ -351,10 +394,10 @@ def _startOrStop(arguments):                # (blockLevel,)
 
             _pointerStack.append(_pointer)      #      Save the position of the loop's starting parentheses: "("
 
-            while _pointer < len(_toPlay) and _toPlay[_pointer] != 42: # "*"  Jump to the end of the loop's body.
+            while _pointer < _upperBoundary and _toPlay[_pointer] != 42: # "*"  Jump to the end of the loop's body.
                 _pointer += 1
 
-            remaining = len(_toPlay) - 1 - _pointer
+            remaining = _upperBoundary - 1 - _pointer
 
             if 2 <= remaining and _toPlay[_pointer] == 42:       # If the loop is complete and the pointer is at the end of its body.
                 _counterStack.append(_toPlay[_pointer + 1] - 48) # Counter was increased at definition by 48. b'0' == 48
@@ -370,10 +413,10 @@ def _startOrStop(arguments):                # (blockLevel,)
 
         elif _toPlay[_pointer] == 123:          # "{"  Start of a function.
 
-            while _pointer < len(_toPlay) and _toPlay[_pointer] != 125: # "}" Jump to the function's closing curly brace.
+            while _pointer < _upperBoundary and _toPlay[_pointer] != 125: # "}" Jump to the function's closing curly brace.
                 _pointer += 1
 
-            if _toPlay[_pointer] != 125:        #      Means the _pointer < len(_toPlay) breaks the while loop.
+            if _toPlay[_pointer] != 125:        #      Means the _pointer < _upperBoundary breaks the while loop.
                 _runningProgram = False
 
 
@@ -409,7 +452,7 @@ def _startOrStop(arguments):                # (blockLevel,)
                 del _counterStack[-1]           #      Delete the loop's counter from stack.
                 _pointer += 2                   #      Jump to the loop's closing parentheses: ")"
 
-        #if _pointer < len(_toPlay):             #      Debug
+        #if _pointer < _upperBoundary:           #      Debug
         #    print(_toPlay[:_pointer].decode(), _toPlay[_pointer:].decode(), "\t\t\t", counter, _pointer, _toPlay[_pointer], "\n")
         #counter += 1                            #      Debug
 
@@ -621,7 +664,7 @@ _defaultMapping = {
     12:   (_manageFunction,    (3, False)),                         # F3
     16:   (_beepAndReturn,     ("beepProcessed", 82)),              # RIGHT
     32:   (_beepAndReturn,     ("beepProcessed", 66)),              # BACKWARD
-    64:   (_startOrStop,       (False,)),                           # START / STOP
+    64:   (_start,             (False,)),                           # START / STOP (start)
     128:  (_beepAndReturn,     ("beepProcessed", 76)),              # LEFT
     256:  (_undo,              (False,)),                           # UNDO
     512:  (_delete,            (False,)),                           # DELETE
@@ -638,7 +681,7 @@ _loopBeginMapping = {
     12:   (_manageFunction,    (3, True)),                          # F3
     16:   (_beepAndReturn,     ("beepProcessed", 82)),              # RIGHT
     32:   (_beepAndReturn,     ("beepProcessed", 66)),              # BACKWARD
-    64:   (_startOrStop,       (True,)),                            # START / STOP
+    64:   (_start,             (True,)),                            # START / STOP (block-level start)
     128:  (_beepAndReturn,     ("beepProcessed", 76)),              # LEFT
     256:  (_undo,              (True,)),                            # UNDO
     512:  (_delete,            (True,))                             # DELETE
@@ -650,7 +693,7 @@ _loopCounterMapping = {
     4:    (_createLoop,        (41,)),                              # REPEAT (end)
     16:   (_modifyLoopCounter, (1,)),                               # RIGHT
     32:   (_modifyLoopCounter, (-1,)),                              # BACKWARD
-    64:   (_checkLoopCounter,  ()),                                 # START / STOP
+    64:   (_checkLoopCounter,  ()),                                 # START / STOP (check counter)
     128:  (_modifyLoopCounter, (-1,)),                              # LEFT
     512:  (_modifyLoopCounter, (0,))                                # DELETE
 }
@@ -665,7 +708,7 @@ _functionMapping = {
     12:   (_manageFunction,    (3, True)),                          # F3
     16:   (_beepAndReturn,     ("beepProcessed", 82)),              # RIGHT
     32:   (_beepAndReturn,     ("beepProcessed", 66)),              # BACKWARD
-    64:   (_startOrStop,       (True,)),                            # START / STOP
+    64:   (_start,             (True,)),                            # START / STOP (block-level start)
     128:  (_beepAndReturn,     ("beepProcessed", 76)),              # LEFT
     256:  (_undo,              (True,)),                            # UNDO
     512:  (_delete,            (True,))                             # DELETE

@@ -138,6 +138,7 @@ def executeJson(json):
 
 def saveConfig():
     try:
+        saveDateTime()
         with open("etc/config.py", "w") as file:
 
             for key in sorted([k for k in CONFIG.keys()]):
@@ -203,7 +204,7 @@ if configLoaded or defaultsLoaded:
 
     # Fetch every variable from config.py / defaults.py
     for v in dir(eval(conf)):
-        if v[0] != "_":                                                       # Do not load private and magic variables. 
+        if v[0] != "_":                                                       # Do not load private and magic variables.
             CONFIG[v] = eval("{}.{}".format(conf, v))
 
     if conf == "defaults":
@@ -223,8 +224,8 @@ exception.config(DT, CONFIG.get("powerOnCount"))
 
 
 try:
-    with open("log/datetime.py", "a") as f:
-        f.write("DT_{:010d} = {}\n".format(CONFIG.get("powerOnCount"), CONFIG.get("initialDateTime")))
+    with open("log/datetime.py", "a") as file:
+        file.write("DT_{:010d} = {}\n".format(CONFIG.get("powerOnCount"), CONFIG.get("initialDateTime")))
 except Exception as e:
     exception.append(e)
 
@@ -242,7 +243,7 @@ if CONFIG.get("i2cActive"):
 buzzer.config(CONFIG)
 
 if CONFIG.get("turtleActive"):
-    turtle.config(CONFIG)
+    turtle.config(CONFIG, DT)
 else:
     P13 = Pin(13, Pin.OUT)
     P16 = Pin(16, Pin.IN)   # MicroPython can not handle the pull-down resistor of the GPIO16: Use PULL physical switch.
@@ -320,7 +321,7 @@ if CONFIG.get("webServerActive"):
         socket.listen(5)
 
         webserver.config(socket, DT, CONFIG, executeJson)
-        saveConfig() ############################################################################### test ubot_exception
+        saveConfig()
         buzzer.keyBeep("beepProcessed")
         buzzer.keyBeep("beepReady")
         webserver.start()
