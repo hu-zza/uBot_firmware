@@ -226,7 +226,7 @@ if configLoaded or defaultsLoaded:
 
     # If etc/datetime.py is not accessible, set the DT to 'initialDateTime'.
     if not datetimeLoaded:
-        DT.datetime(CONFIG["initialDateTime"])
+        DT.datetime(CONFIG.get("initialDateTime"))
 
 
 exception.config(DT, CONFIG.get("powerOnCount"))
@@ -234,7 +234,7 @@ exception.config(DT, CONFIG.get("powerOnCount"))
 
 try:
     with open("log/datetime.py", "a") as file:
-        file.write("DT_{:010d} = {}\n".format(CONFIG.get("powerOnCount"), CONFIG.get("initialDateTime")))
+        file.write("DT_{:010d} = {}\n".format(CONFIG.get("powerOnCount"), DT.datetime()))
 except Exception as e:
     exception.append(e)
 
