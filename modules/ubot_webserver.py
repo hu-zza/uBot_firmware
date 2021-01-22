@@ -29,7 +29,7 @@ def config(socket, dateTime, config, jsonFunction):
     _config       = config
     _jsonFunction = jsonFunction
 
-    template.config(config)
+    template.config(config, dateTime)
 
 
 
@@ -147,9 +147,10 @@ def _processGetQuery(path):
             helperLinks += "            <li>Sitemap</li>\n"
 
             for key in sorted(template.title.keys()):
-                helperLinks += "            <li><a href='{key}'>{title}</a><br><small>{host}{key}</small></li>\n".format(
-                    host = "192.168.11.1", key = key, title = template.title.get(key)
-                )
+                if key == "/" or key[1] != "_":
+                    helperLinks += "            <li><a href='{key}'>{title}</a><br><small>{host}{key}</small></li>\n".format(
+                        host = "192.168.11.1", key = key, title = template.title.get(key)
+                    )
 
             helperLinks += "        </ul>\n"
             _reply("HTML", "404 Not Found", helperLinks)
@@ -192,7 +193,7 @@ def _reply(returnFormat, httpCode, message):
             style = template.getGeneralStyle() + template.getSimpleStyle()
             str   = template.getSimplePage().format(title = httpCode, style = style, body = message)
         elif returnFormat == "JSON":
-            str   = ujson.dumps({"code" : httpCode, "message" : message})
+            str   = ujson.dumps({"code" : httpCode, "message" : message, "dateTime": _dateTime.datetime()})
 
         _connection.sendall(str)
     except Exception:

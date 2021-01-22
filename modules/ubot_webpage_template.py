@@ -4,18 +4,19 @@ import ubot_exception as exception
 import ubot_turtle    as turtle
 
 
-_config = 0
-
+_config   = 0
+_dateTime = 0
 
 
 ###########
 ## CONFIG
 
-def config(config):
+def config(config, dateTime):
     global _config
+    global _dateTime
 
     _config     = config
-
+    _dateTime   = dateTime
 
 
 ###########
@@ -244,12 +245,76 @@ def getProPanel():
            )
 
 
+def getSettingsPanel():
+    return ("        <ul class='links'>\n"
+            "            <li>Settings</li>\n"
+            "            <li><a href='_datetime'>Date & Time</a></li>\n"
+            "            <li><a href='_webrepl'>WebREPL</a></li>\n"
+            "            <li><a href='_calibration'>Calibration</a></li>\n"
+            "            <li><a href='noscript' onclick='send(\"SAVE CONFIG\");return false;'>Save config</a></li>\n"
+            "        </ul>\n"
+            )
+
+
+def getDateTimePanel():
+    dt = _dateTime.datetime()
+    return ("        <ul class='links'>\n"
+            "            <li>Date & Time</li>\n"
+            "            <li><table style='width: 100%; text-align: center;'><tr><td>{}. {:02d}. {:02d}.</td><td>{:02d} : {:02d} : {:02d}</td></tr></table></li>\n"
+            "            <li><a href='noscript' onclick='send(\"SAVE CONFIG\");return false;'>Save config</a></li>\n"
+            "            <li><a href='_settings'>Back to settings</a></li>\n"
+            "        </ul>\n"
+            ).format(dt[0], dt[1], dt[2], dt[4], dt[5], dt[6])
+
+
+def getWebReplPanel():
+    if _config.get("webReplActive"):
+        str0 = ""
+        str1 = "STOP"
+        str2 = "Stop"
+    else:
+        str0 = "in"
+        str1 = "START"
+        str2 = "Start"
+
+    return ("        <ul class='links'>\n"
+            "            <li>WebREPL</li>\n"
+            "            <li>This service is {}active.</li>\n"
+            "            <li><a href='_webrepl' onclick='send(\"{} WEBREPL\")'>{} WebREPL</a></li>\n"
+            "            <li><a href='_settings'>Back to settings</a></li>\n"
+            "        </ul>\n"
+            ).format(str0, str1, str2)
+
+
+def getCalibrationPanel():
+    mag = [_config.get("feedbackMagMin"), _config.get("feedbackMagMax")]
+
+    if mag[0] == ():
+        mag[0] = ("-", "-", "-")
+    else:
+        mag[0] = tuple(round(v, 2) for v in mag[0])
+
+    if mag[1] == ():
+        mag[1] = ("-", "-", "-")
+    else:
+        mag[1] = tuple(round(v, 2) for v in mag[1])
+
+    return ("        <ul class='links'>\n"
+            "            <li>Calibration</li>\n"
+            "            <li>Min. X: {}, Y: {}, Z: {}</li>\n"
+            "            <li>Max. X: {}, Y: {}, Z: {}</li>\n"
+            "            <li><a href='_calibration' onclick='send(\"CALIBRATE FEEDBACK\")'>Calibrate feedback</a></li>\n"
+            "            <li><a href='_settings'>Back to settings</a></li>\n"
+            "        </ul>\n"
+            ).format(mag[0][0], mag[0][1], mag[0][2], mag[1][0], mag[1][1], mag[1][2])
+
+
 _sender =  ("\n"
             "        <script>\n"
             "            function send(value) {{\n"
             "                let object = {{\n"
             "                   \"title\" : \"{title}\",\n"
-            "                   \"commandList\" : [ \"{prefix}\" + value ]\n"
+            "                   \"{container}\" : [ \"{prefix}\" + value ]\n"
             "                }}\n\n"
             "                let json = JSON.stringify(object);\n\n"
             "                let xhr = new XMLHttpRequest();\n"
@@ -261,11 +326,15 @@ _sender =  ("\n"
 
 
 def getTurtleMoveSender():
-    return _sender.format(title = "Immediate command | μBot Drive", prefix = "TURTLE_")
+    return _sender.format(title = "Immediate command | μBot Drive", container = "commandList", prefix = "TURTLE_")
 
 
 def getButtonPressSender():
-    return _sender.format(title = "Pressed button | μBot Command", prefix = "PRESS_")
+    return _sender.format(title = "Pressed button | μBot Command", container = "commandList", prefix = "PRESS_")
+
+
+def getServiceRequestSender():
+    return _sender.format(title = "Service request | μBot Settings", container = "service", prefix = "")
 
 
 
@@ -352,32 +421,44 @@ def getCrossSymbol():
 ## CATALOGS
 
 title = {
-    "/debug"    : "&microBot Debug",
-    "/drive"    : "&microBot Drive",
-    "/simple"   : "&microBot Simple",
-    "/pro"      : "&microBot Professional"
+    "/debug"        : "&microBot Debug",
+    "/_settings"    : "&microBot Settings",
+    "/_datetime"    : "&microBot Date & Time",
+    "/_webrepl"     : "&microBot WebREPL",
+    "/_calibration" : "&microBot Calibration",
+    "/drive"        : "&microBot Drive",
+    "/simple"       : "&microBot Simple",
+    "/pro"          : "&microBot Professional"
 }
 
 style = {
-    "/debug"    : (getGeneralStyle, getDebugStyle),
-    "/drive"    : (getGeneralStyle, getPanelStyle),
-    "/simple"   : (getGeneralStyle, getPanelStyle),
-    "/pro"      : (getGeneralStyle, getPanelStyle)
+    "/debug"        : (getGeneralStyle, getDebugStyle),
+    "/_settings"    : (getGeneralStyle, getSimpleStyle),
+    "/_datetime"    : (getGeneralStyle, getSimpleStyle),
+    "/_webrepl"     : (getGeneralStyle, getSimpleStyle),
+    "/_calibration" : (getGeneralStyle, getSimpleStyle),
+    "/drive"        : (getGeneralStyle, getPanelStyle),
+    "/simple"       : (getGeneralStyle, getPanelStyle),
+    "/pro"          : (getGeneralStyle, getPanelStyle)
 }
 
 parts = {
-    "/debug"    : (getDebugPanel,),
+    "/debug"        : (getDebugPanel,),
+    "/_settings"    : (getSettingsPanel, getServiceRequestSender),
+    "/_datetime"    : (getDateTimePanel, getServiceRequestSender),
+    "/_webrepl"     : (getWebReplPanel, getServiceRequestSender),
+    "/_calibration" : (getCalibrationPanel, getServiceRequestSender),
 
-    "/drive"    : (getSvgDefinitionHead, getArrowSymbol, getSvgDefinitionFooter, getDrivePanel, getTurtleMoveSender),
+    "/drive"        : (getSvgDefinitionHead, getArrowSymbol, getSvgDefinitionFooter, getDrivePanel, getTurtleMoveSender),
 
-    "/simple"   : (getSvgDefinitionHead, getArrowSymbol, getPlaySymbol, getPauseSymbol, getUndoSymbol, getCrossSymbol,
-                   getSvgDefinitionFooter, getSimplePanel, getButtonPressSender
-                  ),
+    "/simple"       : (getSvgDefinitionHead, getArrowSymbol, getPlaySymbol, getPauseSymbol, getUndoSymbol, getCrossSymbol,
+                       getSvgDefinitionFooter, getSimplePanel, getButtonPressSender
+                      ),
 
-    "/pro"      : (getSvgDefinitionHead, getArrowSymbol, getPlaySymbol, getPauseSymbol, getRepeatSymbol,
-                   getF1Symbol, getF2Symbol, getF3Symbol, getUndoSymbol, getCrossSymbol, getSvgDefinitionFooter,
-                   getProPanel, getButtonPressSender
-                  )
+    "/pro"          : (getSvgDefinitionHead, getArrowSymbol, getPlaySymbol, getPauseSymbol, getRepeatSymbol,
+                       getF1Symbol, getF2Symbol, getF3Symbol, getUndoSymbol, getCrossSymbol, getSvgDefinitionFooter,
+                       getProPanel, getButtonPressSender
+                      )
 }
 
 title["/"] = title["/simple"]

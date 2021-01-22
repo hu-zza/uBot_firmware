@@ -107,22 +107,32 @@ def executeJson(json):
                     uos.dupterm(uart, 1)
                     CONFIG['uartActive'] = True
                     results.append("UART has started.")
+
                 elif command == "STOP UART":
                     uos.dupterm(None, 1)
                     CONFIG['uartActive'] = False
                     results.append("UART has stopped.")
+
                 elif command == "START WEBREPL":
                     webrepl.start()
                     CONFIG['webReplActive'] = True
                     results.append("WebREPL has started.")
+
                 elif command == "STOP WEBREPL":
                     webrepl.stop()
                     CONFIG['webReplActive'] = False
                     results.append("WebREPL has stopped.")
+
                 elif command == "STOP WEBSERVER":
                     webserver.stop("WebServer has stopped.")
+
+                elif command == "CALIBRATE FEEDBACK":
+                    calibrateFeedback()
+                    results.append("Calibration has started. It will take 2 minutes.")
+
                 elif command == "CHECK DATETIME":
                     results.append(str(DT.datetime()))
+
                 elif command == "SAVE CONFIG":
                     saveConfig()
                     results.append("Configuration has saved.")
@@ -176,7 +186,7 @@ def calibrateFeedback():
     buzzer.keyBeep("beepAttention")
 
     try:
-        result = feedback.calibrate(60)         # Duration: 60 seconds
+        result = feedback.calibrate(120)         # Duration: 120 seconds
         if result != ():
             CONFIG["feedbackMagMin"] = result[0]
             CONFIG["feedbackMagMax"] = result[1]
