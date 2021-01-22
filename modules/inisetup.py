@@ -9,8 +9,8 @@ ap = network.WLAN(network.AP_IF)
 config = {
     "firmwareMajor"     : 0,
     "firmwareMinor"     : 1,
-    "firmwarePatch"     : 46,
-    "initialDateTime"   : (2021, 1, 22, 0, 12, 50, 0, 0),
+    "firmwarePatch"     : 47,
+    "initialDateTime"   : (2021, 1, 22, 0, 13, 15, 0, 0),
     "powerOnCount"      : 0,
 
     "apActive"          : True,
@@ -150,10 +150,8 @@ def setup():
         config.get("firmwareMajor"), config.get("firmwareMinor"), config.get("firmwarePatch")
     )
 
-    base = ("import gc\n"
-            "import sys\n\n"
-            "gc.enable()\n"
-            "core = sys.modules.get('ubot_core')\n\n")
+    gc = ("import gc\n"
+          "gc.enable()\n\n")
 
     footerComment = ("#\n"
                      "# For more information:\n"
@@ -162,17 +160,30 @@ def setup():
                      "# https://ubot.hu\n"
                      "#\n")
 
+
     with open("boot.py", "w") as file:
         file.write(firmwareComment)
-        file.write(base + "import ubot_core\n")
+        file.write(gc + "import ubot_core as core\n\n")
         file.write(footerComment)
 
 
     with open("main.py", "w") as file:
         file.write(firmwareComment)
-        file.write(base + (
-            "import ubot_debug\n"
-            "from ubot_debug import listExceptions, printException, startUart, stopUart, stopErrorSignal\n\n"
+        file.write(gc + ("import sys\n"
+                         "core = sys.modules.get('ubot_core')\n\n"
+                         "import ubot_debug\n"
+                         "from ubot_debug import listExceptions, printException, startUart, stopUart, stopErrorSignal\n\n"
+        ))
+        file.write(footerComment)
+
+
+    with open("feedback.py", "w") as file:
+        file.write(firmwareComment)
+        file.write(("import ubot_lsm303\n\n"
+                    "def config(freq, SDA, SCL):\n"
+                    "    ubot_lsm303.config(freq, SDA, SCL)\n\n"
+                    "def calibrate(duration):\n"
+                    "    return ubot_lsm303.calibrate(duration)\n\n"
         ))
         file.write(footerComment)
 

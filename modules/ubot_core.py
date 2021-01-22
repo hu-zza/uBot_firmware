@@ -4,9 +4,9 @@ from machine     import Pin, PWM, RTC, Timer, UART, WDT
 from ubinascii   import hexlify
 from utime       import sleep, sleep_ms
 
+import feedback
 import ubot_buzzer    as buzzer
 import ubot_exception as exception
-import ubot_lsm303    as feedback
 import ubot_motor     as motor
 import ubot_turtle    as turtle
 import ubot_webserver as webserver
