@@ -9,8 +9,8 @@ ap = network.WLAN(network.AP_IF)
 config = {
     "firmwareMajor"     : 0,
     "firmwareMinor"     : 1,
-    "firmwarePatch"     : 45,
-    "initialDateTime"   : (2021, 1, 21, 0, 1, 10, 0, 0),
+    "firmwarePatch"     : 46,
+    "initialDateTime"   : (2021, 1, 22, 0, 12, 50, 0, 0),
     "powerOnCount"      : 0,
 
     "apActive"          : True,
@@ -40,6 +40,9 @@ config = {
     "motorT1DutyFactor" : 1.0,
     "motorT1MinDuty"    : 500,
     "motorT1MaxDuty"    : 1023,
+
+    "feedbackMagMin"    : (),
+    "feedbackMagMax"    : (),
 
     "beepReady"         : ((60, 100, 25, 3), (71, 500, 100, 1)),
 
@@ -134,9 +137,9 @@ def setup():
     uos.mkdir("etc")
     uos.mkdir("program")
     uos.mkdir("log")
-    uos.mkdir("log/exception")
-    uos.mkdir("log/datetime")
     uos.mkdir("log/commands")
+    uos.mkdir("log/datetime")
+    uos.mkdir("log/exception")
     uos.mkdir("log/program")
 
     with open("webrepl_cfg.py", "w") as file:
@@ -157,11 +160,12 @@ def setup():
                      "#\n"
                      "# https://github.com/hu-zza/uBot\n"
                      "# https://ubot.hu\n"
-                     "#")
+                     "#\n")
 
     with open("boot.py", "w") as file:
         file.write(firmwareComment)
         file.write(base + "import ubot_core\n")
+        file.write(footerComment)
 
 
     with open("main.py", "w") as file:
@@ -170,6 +174,7 @@ def setup():
             "import ubot_debug\n"
             "from ubot_debug import listExceptions, printException, startUart, stopUart, stopErrorSignal\n\n"
         ))
+        file.write(footerComment)
 
 
     with open("etc/datetime.py", "w") as file:

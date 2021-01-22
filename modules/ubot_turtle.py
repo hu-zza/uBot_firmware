@@ -373,6 +373,7 @@ def _start(arguments):                # (blockLevel,)
 
     core.saveDateTime()
     _logExecuted()
+    
     if _endSignal != "":
         motor.setCallback(lambda: buzzer.keyBeep(_endSignal), True)
 

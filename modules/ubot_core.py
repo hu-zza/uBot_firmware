@@ -6,7 +6,7 @@ from utime       import sleep, sleep_ms
 
 import ubot_buzzer    as buzzer
 import ubot_exception as exception
-import ubot_feedback  as feedback
+import ubot_lsm303    as feedback
 import ubot_motor     as motor
 import ubot_turtle    as turtle
 import ubot_webserver as webserver
@@ -168,17 +168,26 @@ def saveToFile(fileName, mode, content):
 
 
 ###########
-## TEST
+## FEEDBACK
 
-def startLsmTest():
-    LSM303_LOG = "etc/LSM303__" + str(DT.datetime()).replace(", ", "_")
+def calibrateFeedback():
+    result = False
+    buzzer.setDefaultState(1)
+    buzzer.keyBeep("beepAttention")
 
-    for i in range(600):
-        result = feedback._test()
-        saveToFile(LSM303_LOG, "a+", str(result)+"\n")
-        print(result)
-        sleep_ms(100)
+    try:
+        result = feedback.calibrate(60)         # Duration: 60 seconds
+        if result != ():
+            CONFIG["feedbackMagMin"] = result[0]
+            CONFIG["feedbackMagMax"] = result[1]
+            saveConfig()
+            result = True
+    except Exception as e:
+        exception.append(e)
 
+    buzzer.setDefaultState(0)
+    buzzer.keyBeep("beepReady")
+    return result
 
 
 ################################
@@ -232,7 +241,7 @@ except Exception as e:
 
 if CONFIG.get("i2cActive"):
     try:
-        feedback.config(CONFIG.get("i2cFreq"), Pin(CONFIG.get("i2cSda")), Pin(CONFIG.get("i2cScl")))
+        feedback.config(CONFIG.get("i2cFreq"), CONFIG.get("i2cSda"), CONFIG.get("i2cScl"))
     except Exception as e:
         exception.append(e)
 
@@ -322,7 +331,7 @@ if CONFIG.get("webServerActive"):
 
         webserver.config(socket, DT, CONFIG, executeJson)
         saveConfig()
-        buzzer.keyBeep("beepProcessed")
+        buzzer.keyBeep("beepAttention")
         buzzer.keyBeep("beepReady")
         webserver.start()
     except Exception as e:
