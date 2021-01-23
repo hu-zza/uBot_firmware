@@ -271,7 +271,7 @@ if CONFIG.get("i2cActive"):
 buzzer.config(CONFIG)
 
 if CONFIG.get("turtleActive"):
-    turtle.config(CONFIG, DT)
+    turtle.config(CONFIG)
 else:
     P13 = Pin(13, Pin.OUT)
     P16 = Pin(16, Pin.IN)   # MicroPython can not handle the pull-down resistor of the GPIO16: Use PULL physical switch.
@@ -348,7 +348,7 @@ if CONFIG.get("webServerActive"):
         socket.bind(("", 80))
         socket.listen(5)
 
-        webserver.config(socket, DT, CONFIG, executeJson)
+        webserver.config(socket, CONFIG, executeJson)
         saveConfig()
         buzzer.keyBeep("beepAttention")
         buzzer.keyBeep("beepReady")

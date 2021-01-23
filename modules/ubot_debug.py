@@ -1,6 +1,6 @@
 import esp, gc, network, uos, sys, webrepl
 
-from machine   import Pin, PWM, RTC, UART
+from machine   import Pin, PWM, UART
 from ubinascii import hexlify
 
 import ubot_logger as logger

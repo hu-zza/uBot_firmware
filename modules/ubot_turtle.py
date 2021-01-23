@@ -9,7 +9,6 @@ import ubot_logger    as logger
 import ubot_motor     as motor
 
 
-_dateTime          = 0           # [need config()]
 _powerOnCount      = 0           # [need config()]
 
 _clockPin          = 0           # [need config()] Advances the decade counter (U3).
@@ -52,8 +51,7 @@ _blockBoundaries   = ((40, 41), (123, 125), (126, 126)) # (("(", ")"), ("{", "}"
 ################################
 ## CONFIG
 
-def config(config, dateTime):
-    global _dateTime
+def config(config):
     global _powerOnCount
     global _clockPin
     global _inputPin
@@ -68,7 +66,6 @@ def config(config, dateTime):
     global _pressedList
     global _currentMapping
 
-    _dateTime     = dateTime
     _powerOnCount = config.get("powerOnCount")
 
     _clockPin = Pin(config.get("turtleClockPin"), Pin.OUT)
@@ -333,7 +330,7 @@ def _logExecuted():
 
     try:
         with open("log/datetime/" + fileName, "a") as file:
-            file.write("{}\n".format(_dateTime.datetime()))
+            file.write("{}\n".format(logger.getDateTime()))
     except Exception as e:
         logger.append(e)
 

@@ -23,7 +23,7 @@ def config(dateTime, powerOnCount):
     _eventsFile     = "log/event/{:010d}.txt".format(powerOnCount)
     _exceptionsFile = "log/exception/{:010d}.txt".format(powerOnCount)
 
-    files = (("Event", _events, _eventsFile), ("Exception", _exceptions, _exceptionsFile))
+    files = (("Exception", _exceptions, _exceptionsFile), ("Event", _events, _eventsFile))
 
     for attr in files:
         try:
@@ -32,7 +32,6 @@ def config(dateTime, powerOnCount):
         except Exception as e:
             _appendToList(e)
 
-    for attr in files:
         if attr[1] != []:                                               # Use case: append() can be used before config(),
             try:                                                        #         so save the possible items from lists.
                 with open(attr[2], "a") as file:

@@ -5,18 +5,15 @@ import ubot_turtle as turtle
 
 
 _config   = 0
-_dateTime = 0
 
 
 ###########
 ## CONFIG
 
-def config(config, dateTime):
+def config(config):
     global _config
-    global _dateTime
 
     _config     = config
-    _dateTime   = dateTime
 
 
 ###########
@@ -253,7 +250,7 @@ def getSettingsPanel():
 
 
 def getDateTimePanel():
-    dt = _dateTime.datetime()
+    dt = logger.getDateTime()
     return ("        <ul class='links'>\n"
             "            <li>Date & Time</li>\n"
             "            <li><table style='width: 100%; text-align: center;'><tr><td>{}. {:02d}. {:02d}.</td><td>{:02d} : {:02d} : {:02d}</td></tr></table></li>\n"

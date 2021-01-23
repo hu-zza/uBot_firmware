@@ -1,13 +1,10 @@
 import gc, ujson, usocket
 
-from machine import RTC
-
 import ubot_logger           as logger
 import ubot_webpage_template as template
 
 
 _socket       = 0
-_dateTime     = 0
 _config       = 0
 _jsonFunction = 0
 _connection   = 0
@@ -18,18 +15,16 @@ _address      = 0
 ################################
 ## CONFIG
 
-def config(socket, dateTime, config, jsonFunction):
+def config(socket, config, jsonFunction):
     global _socket
-    global _dateTime
     global _config
     global _jsonFunction
 
     _socket       = socket
-    _dateTime     = dateTime
     _config       = config
     _jsonFunction = jsonFunction
 
-    template.config(config, dateTime)
+    template.config(config)
 
 
 
@@ -134,6 +129,9 @@ def _processGetQuery(path):
 
             if path == "/debug":
                 _sendRaw("log/exception/{:010d}.txt".format(_config.get("powerOnCount")))
+                _connection.send("        <br><br><hr><hr>\n")
+                _connection.send("        <h3>Events</h3>\n")
+                _sendRaw("log/event/{:010d}.txt".format(_config.get("powerOnCount")))
 
             _connection.sendall(template.getPageFooter())
         elif path[:5] == "/raw/":
@@ -195,7 +193,7 @@ def _reply(returnFormat, httpCode, message):
             style = template.getGeneralStyle() + template.getSimpleStyle()
             str   = template.getSimplePage().format(title = httpCode, style = style, body = message)
         elif returnFormat == "JSON":
-            str   = ujson.dumps({"code" : httpCode, "message" : message, "dateTime": _dateTime.datetime()})
+            str   = ujson.dumps({"code" : httpCode, "message" : message, "dateTime": logger.getDateTime()})
 
         _connection.sendall(str)
     except Exception:
