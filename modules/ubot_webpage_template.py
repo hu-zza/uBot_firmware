@@ -261,7 +261,8 @@ def getDateTimePanel():
     return ("        <ul class='links'>\n"
             "            <li>Date & Time</li>\n"
             "            <li><table style='width: 100%; text-align: center;'><tr><td>{}. {:02d}. {:02d}.</td><td>{:02d} : {:02d} : {:02d}</td></tr></table></li>\n"
-            "            <li><a href='noscript' onclick='send(\"SAVE CONFIG\");return false;'>Save config</a></li>\n"
+            "            <li><center><input type='date' id='date'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<input type='time' id='time'></center></li>\n"
+            "            <li><a href='_datetime' onclick='send(1)'>Save</a></li>\n"
             "            <li><a href='_settings'>Back to settings</a></li>\n"
             "        </ul>\n"
             ).format(dt[0], dt[1], dt[2], dt[4], dt[5], dt[6])
@@ -314,7 +315,7 @@ _sender =  ("\n"
             "            function send(value) {{\n"
             "                let object = {{\n"
             "                   \"title\" : \"{title}\",\n"
-            "                   \"{container}\" : [ \"{prefix}\" + value ]\n"
+            "                   {body}"
             "                }}\n\n"
             "                let json = JSON.stringify(object);\n\n"
             "                let xhr = new XMLHttpRequest();\n"
@@ -326,15 +327,20 @@ _sender =  ("\n"
 
 
 def getTurtleMoveSender():
-    return _sender.format(title = "Immediate command | μBot Drive", container = "commandList", prefix = "TURTLE_")
+    return _sender.format(title = "Immediate command | μBot Drive", body = "\"commandList\" : [ \"TURTLE_\" + value ]\n")
 
 
 def getButtonPressSender():
-    return _sender.format(title = "Pressed button | μBot Command", container = "commandList", prefix = "PRESS_")
+    return _sender.format(title = "Pressed button | μBot Command", body = "\"commandList\" : [ \"PRESS_\" + value ]\n")
 
 
 def getServiceRequestSender():
-    return _sender.format(title = "Service request | μBot Settings", container = "service", prefix = "")
+    return _sender.format(title = "Service request | μBot Settings", body = "\"service\" : [ value ]\n")
+
+
+def getDateTimeSender():
+    getters = "document.getElementById(\"date\").value, document.getElementById(\"time\").value"
+    return _sender.format(title = "DateTime setting | μBot Settings", body = "\"dateTime\" : [ {} ]\n".format(getters))
 
 
 
@@ -445,7 +451,7 @@ style = {
 parts = {
     "/debug"        : (getDebugPanel,),
     "/_settings"    : (getSettingsPanel, getServiceRequestSender),
-    "/_datetime"    : (getDateTimePanel, getServiceRequestSender),
+    "/_datetime"    : (getDateTimePanel, getDateTimeSender),
     "/_webrepl"     : (getWebReplPanel, getServiceRequestSender),
     "/_calibration" : (getCalibrationPanel, getServiceRequestSender),
 

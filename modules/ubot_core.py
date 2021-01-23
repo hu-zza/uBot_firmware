@@ -58,7 +58,15 @@ def executeJson(json):
     results = []
 
     if json.get("dateTime") != None:
-        DT.datetime(eval(json.get("dateTime")))
+        dateTime = json.get("dateTime")
+
+        if len(dateTime) == 8:
+            DT.datetime(dateTime)
+        elif len(dateTime) == 2:
+            date = dateTime[0].split("-")
+            time = dateTime[1].split(":")
+            DT.datetime((int(date[0]), int(date[1]), int(date[2]), 0, int(time[0]), int(time[1]), 0, 0))
+
         saveDateTime()
         results.append("New dateTime has been set.")
 
