@@ -9,8 +9,9 @@ _active = 0
 _pin    = 0
 _pwm    = 0
 
-_timerT1    = Timer(-1)
 _timer      = Timer(-1)
+_timerT1    = Timer(-1)
+_timerMotor = Timer(-1)
 _processing = False
 _moveList   = []
 _callback   = ()
@@ -195,7 +196,7 @@ def _setController(modeLeft = 0, modeRight = 0):        # (T1 mode, T0 mode)
             )
 
 
-def _driveMotor(motor = 0, mode = 0, sleep = 0):
+def _driveMotor(motor = 0, mode = 0, duration = 0):
     """
     Low-level motor (temporary) setter
 
@@ -208,12 +209,17 @@ def _driveMotor(motor = 0, mode = 0, sleep = 0):
     1     : (on,  off)  -> FORWARD
     2     : (off,  on)  -> BACKWARD
 
-    sleep : integer parameter (makes this setter temporary)
+    duration : integer parameter (makes this setter temporary)
     """
     if mode != 0:
         _pin[motor][1 - mode].on()
         _pin[motor][abs(mode - 2)].off()
-        sleep_ms(sleep)                                                     # Refactor with Timer / while (millisDiff) ?
 
-    _pin[motor][0].off()
-    _pin[motor][1].off()
+        _timerMotor.init(
+            period = duration,
+            mode = Timer.ONE_SHOT,
+            callback = lambda t:_driveMotor(0, 0)
+        )
+    else:
+        _pin[motor][0].off()
+        _pin[motor][1].off()
