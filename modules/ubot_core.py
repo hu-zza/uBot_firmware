@@ -252,6 +252,7 @@ except Exception as e:
 if CONFIG.get("i2cActive"):
     try:
         feedback.config(CONFIG.get("i2cFreq"), CONFIG.get("i2cSda"), CONFIG.get("i2cScl"))
+        feedback.setMinMaxTuples(CONFIG.get("feedbackMagMin"), CONFIG.get("feedbackMagMax"))
     except Exception as e:
         exception.append(e)
 

@@ -8,7 +8,15 @@ _I2C    = 0
 _MAP    = 0
 _LSM303 = 0
 
-
+_referenceRangeXY =  409500 / 1100
+_referenceRangeZ  =  409500 / 980
+_referenceMinXY   = -204800 / 1100
+_referenceMinZ    = -204800 / 980
+_rawMinimumTuple  = ()
+_rawMaximumTuple  = ()
+_rawRangeX = 0
+_rawRangeY = 0
+_rawRangeZ = 0
 
 ################################
 ## CONFIG
@@ -49,9 +57,41 @@ def calibrate(duration):
                 magData[2] if magData[2] > maximumTuple[2] else maximumTuple[2]
             )
 
+        setMinMaxTuples(minimumTuple, maximumTuple)
         return (minimumTuple, maximumTuple)
     else:
         return ()
+
+
+def setMinMaxTuples(minimumTuple, maximumTuple):
+    global _rawMinimumTuple
+    global _rawMaximumTuple
+    global _rawRangeX
+    global _rawRangeY
+    global _rawRangeZ
+
+    _rawMinimumTuple = minimumTuple
+    _rawMaximumTuple = maximumTuple
+
+    _rawRangeX = _rawMaximumTuple[0] - _rawMinimumTuple[0]
+    _rawRangeY = _rawMaximumTuple[1] - _rawMinimumTuple[1]
+    _rawRangeZ = _rawMaximumTuple[2] - _rawMinimumTuple[2]
+
+
+def getCorrectedMag():
+    if _rawMinimumTuple == () or _rawMaximumTuple == ():
+        return ()
+    else:
+        rawData = _readMag()
+
+        if rawData != ():
+            return (
+                (((rawData[0] - _rawMinimumTuple[0]) * _referenceRangeXY) / _rawRangeX) + _referenceMinXY,
+                (((rawData[1] - _rawMinimumTuple[1]) * _referenceRangeXY) / _rawRangeY) + _referenceMinXY,
+                (((rawData[2] - _rawMinimumTuple[2]) * _referenceRangeZ)  / _rawRangeZ) + _referenceMinZ
+            )
+        else:
+            return ()
 
 
 
@@ -62,6 +102,8 @@ def calibrate(duration):
 def _readMag():
     if _LSM303 != 0:
         return _LSM303.read_mag()
+    else:
+        return ()
 
 
 
