@@ -9,8 +9,8 @@ ap = network.WLAN(network.AP_IF)
 config = {
     "firmwareMajor"     : 0,
     "firmwareMinor"     : 1,
-    "firmwarePatch"     : 51,
-    "initialDateTime"   : (2021, 1, 22, 0, 1, 20, 0, 0),
+    "firmwarePatch"     : 52,
+    "initialDateTime"   : (2021, 1, 23, 0, 14, 10, 0, 0),
     "powerOnCount"      : 0,
 
     "apActive"          : True,
@@ -184,6 +184,9 @@ def setup():
                     "    ubot_lsm303.config(freq, SDA, SCL)\n\n"
                     "def calibrate(duration):\n"
                     "    return ubot_lsm303.calibrate(duration)\n\n"
+                    "def _testMag():\n"
+                    "    return ubot_lsm303._testMag()"
+
         ))
         file.write(footerComment)
 

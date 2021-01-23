@@ -189,19 +189,67 @@ class LSM303(object):
                                        LSM303_REGISTER_MAG_CRA_REG_M,
                                        [(rate & 0x07) << 2])
 
+
+    # MODIFIED: some logic extracted to read_raw(), some logic changed.
     def read_mag(self):
         "Read raw magnetic field in microtesla"
-        # Read as signed 16-bit big endian values
-        mag_bytes = self._bus.read_i2c_block_data(LSM303_ADDRESS_MAG,
-                                                  LSM303_REGISTER_MAG_OUT_X_H_M,
-                                                  6)
-        # MODIFIED : struct.unpack -> method import + unpack()
-        mag_raw = unpack('>hhh', bytearray(mag_bytes))
+        raw = self.read_raw()
 
         return (
-            mag_raw[0] / self._lsb_per_gauss_xy * GAUSS_TO_MICROTESLA,
-            mag_raw[2] / self._lsb_per_gauss_xy * GAUSS_TO_MICROTESLA,
-            mag_raw[1] / self._lsb_per_gauss_z * GAUSS_TO_MICROTESLA,
+            (
+                (raw[0][0] << 8 | raw[1][0]) / self._lsb_per_gauss_xy * GAUSS_TO_MICROTESLA,
+                (raw[0][2] << 8 | raw[1][2]) / self._lsb_per_gauss_xy * GAUSS_TO_MICROTESLA,
+                (raw[0][1] << 8 | raw[1][1]) / self._lsb_per_gauss_z * GAUSS_TO_MICROTESLA
+            ),
+            (
+                (raw[2][0] << 8 | raw[2][0]) / self._lsb_per_gauss_xy * GAUSS_TO_MICROTESLA,
+                (raw[2][2] << 8 | raw[2][2]) / self._lsb_per_gauss_xy * GAUSS_TO_MICROTESLA,
+                (raw[2][1] << 8 | raw[2][1]) / self._lsb_per_gauss_z * GAUSS_TO_MICROTESLA
+            ),
+            (
+                (raw[1][0] << 8 | raw[1][0]) / self._lsb_per_gauss_xy * GAUSS_TO_MICROTESLA,
+                (raw[1][2] << 8 | raw[1][2]) / self._lsb_per_gauss_xy * GAUSS_TO_MICROTESLA,
+                (raw[1][1] << 8 | raw[1][1]) / self._lsb_per_gauss_z * GAUSS_TO_MICROTESLA
+            )
         )
+
+
+    # MODIFIED: added method.
+    def read_raw(self):
+        # Read as signed 16-bit big endian values
+        xhm_bytes = self._bus.read_i2c_block_data(LSM303_ADDRESS_MAG,
+                                                  LSM303_REGISTER_MAG_OUT_X_H_M,
+                                                  6)
+        # Read as signed 16-bit big endian values
+        xlm_bytes = self._bus.read_i2c_block_data(LSM303_ADDRESS_MAG,
+                                                  LSM303_REGISTER_MAG_OUT_X_L_M,
+                                                  6)
+        # Read as signed 16-bit big endian values
+        zhm_bytes = self._bus.read_i2c_block_data(LSM303_ADDRESS_MAG,
+                                                  LSM303_REGISTER_MAG_OUT_Z_H_M,
+                                                  6)
+        # Read as signed 16-bit big endian values
+        zlm_bytes = self._bus.read_i2c_block_data(LSM303_ADDRESS_MAG,
+                                                  LSM303_REGISTER_MAG_OUT_Z_L_M,
+                                                  6)
+        # Read as signed 16-bit big endian values
+        yhm_bytes = self._bus.read_i2c_block_data(LSM303_ADDRESS_MAG,
+                                                  LSM303_REGISTER_MAG_OUT_Y_H_M,
+                                                  6)
+        # Read as signed 16-bit big endian values
+        ylm_bytes = self._bus.read_i2c_block_data(LSM303_ADDRESS_MAG,
+                                                  LSM303_REGISTER_MAG_OUT_Y_L_M,
+                                                  6)
+
+        # MODIFIED : struct.unpack -> method import + unpack()
+        xhm_raw = unpack('>hhh', bytearray(xhm_bytes))
+        xlm_raw = unpack('>hhh', bytearray(xlm_bytes))
+        zhm_raw = unpack('>hhh', bytearray(zhm_bytes))
+        zlm_raw = unpack('>hhh', bytearray(zlm_bytes))
+        yhm_raw = unpack('>hhh', bytearray(yhm_bytes))
+        ylm_raw = unpack('>hhh', bytearray(ylm_bytes))
+
+
+        return (xhm_raw, xlm_raw, zhm_raw, zlm_raw, yhm_raw, ylm_raw)
 
 # MODIFIED: excluded method _test()

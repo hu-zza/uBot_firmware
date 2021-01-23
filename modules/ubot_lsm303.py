@@ -58,12 +58,20 @@ def calibrate(duration):
 ################################
 ## TEST METHODS
 
+
+def _testMag():
+    if _LSM303 != 0:
+        return _LSM303.read_mag()
+
+
+"""
 def _test():
     if _LSM303 != 0:
         acc_data = _LSM303.read_accel()
         mag_data = _LSM303.read_mag()
         return ((acc_data[0], acc_data[1], acc_data[2]),
                 (mag_data[0], mag_data[1], mag_data[2]))
+"""
 
 
 def _testLoop():
