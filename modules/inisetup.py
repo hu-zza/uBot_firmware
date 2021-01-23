@@ -9,8 +9,8 @@ ap = network.WLAN(network.AP_IF)
 config = {
     "firmwareMajor"     : 0,
     "firmwareMinor"     : 1,
-    "firmwarePatch"     : 49,
-    "initialDateTime"   : (2021, 1, 22, 0, 22, 50, 0, 0),
+    "firmwarePatch"     : 51,
+    "initialDateTime"   : (2021, 1, 22, 0, 1, 20, 0, 0),
     "powerOnCount"      : 0,
 
     "apActive"          : True,
@@ -172,7 +172,7 @@ def setup():
         file.write(gc + ("import sys\n"
                          "core = sys.modules.get('ubot_core')\n\n"
                          "import ubot_debug\n"
-                         "from ubot_debug import listExceptions, printException, startUart, stopUart, stopErrorSignal\n\n"
+                         "from ubot_debug import listExceptions, printExceptions, startUart, stopUart, stopErrorSignal\n\n"
         ))
         file.write(footerComment)
 
@@ -193,9 +193,6 @@ def setup():
 
     saveDictionaryToFile("etc/config.py", config)
     saveDictionaryToFile("etc/defaults.py", config)
-
-    with open("log/datetime.py", "w") as file:
-        file.write("DT_0000000000 = {}\n".format(config.get("initialDateTime")))
 
 
     return vfs

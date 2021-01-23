@@ -118,7 +118,7 @@ def _processSockets():
 
 def _processGetQuery(path):
     try:
-        if (path in template.title):
+        if path in template.title:
             _connection.send("HTTP/1.1 200 OK\r\n")
             _connection.send("Content-Type: text/html\r\n")
             _connection.send("Connection: close\r\n\r\n")
@@ -133,14 +133,16 @@ def _processGetQuery(path):
                 _connection.sendall(part())
 
             if path == "/debug":
-                _connection.send("        <pre>")
-                with open("log/exception/{:010d}.txt".format(_config.get("powerOnCount")), "r") as file:
-                    for line in file:
-                        _connection.sendall(line)
+                _sendRaw("log/exception/{:010d}.txt".format(_config.get("powerOnCount")))
 
-                _connection.send("        </pre>")
-
-
+            _connection.sendall(template.getPageFooter())
+        elif path[:5] == "/raw/":
+            _connection.send("HTTP/1.1 200 OK\r\n")
+            _connection.send("Content-Type: text/html\r\n")
+            _connection.send("Connection: close\r\n\r\n")
+            _connection.sendall(template.getPageHeadStart().format("&microBot Raw | " + path[5:]))
+            _connection.sendall(template.getPageHeadEnd())
+            _sendRaw(path[5:])
             _connection.sendall(template.getPageFooter())
         else:
             helperLinks = "        <ul class='links'>\n"
@@ -200,3 +202,11 @@ def _reply(returnFormat, httpCode, message):
         print("The connection has been closed.")
     finally:
         _connection.close()
+
+def _sendRaw(path):
+    _connection.send("        <pre>\n")
+    with open(path) as file:
+        for line in file:
+            _connection.sendall(line)
+
+    _connection.send("        </pre>\n")

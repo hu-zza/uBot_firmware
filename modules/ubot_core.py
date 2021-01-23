@@ -228,7 +228,7 @@ if configLoaded or defaultsLoaded:
 
     if conf == "defaults":
         try:
-            CONFIG["powerOnCount"] = int(uos.listdir("log/exception")[-1][:-4]) + 1
+            CONFIG["powerOnCount"] = int(uos.listdir("log/exception")[-1][:-4]) + 1 # [last file][cut extension]
         except Exception as e:
             exception.append(e)
     else:
@@ -243,8 +243,8 @@ exception.config(DT, CONFIG.get("powerOnCount"))
 
 
 try:
-    with open("log/datetime.py", "a") as file:
-        file.write("DT_{:010d} = {}\n".format(CONFIG.get("powerOnCount"), DT.datetime()))
+    with open("log/datetime.txt", "a") as file:
+        file.write("{:010d}\n{}\n\n".format(CONFIG.get("powerOnCount"), DT.datetime()))
 except Exception as e:
     exception.append(e)
 

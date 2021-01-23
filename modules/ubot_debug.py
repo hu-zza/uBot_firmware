@@ -3,9 +3,7 @@ import esp, gc, network, uos, sys, webrepl
 from machine   import Pin, PWM, RTC, UART
 from ubinascii import hexlify
 
-
-dt = RTC()
-ex = []
+import ubot_exception as exception
 
 
 
@@ -20,19 +18,7 @@ esp.sleep_type(esp.SLEEP_NONE)
 try:
     core = sys.modules.get("ubot_core")
 except Exception as e:
-    ex.append((dt.datetime(), e))
-
-
-try:
-    dt = core.DT
-except Exception as e:
-    ex.append((dt.datetime(), e))
-
-
-try:
-    ex =  core.EXCEPTIONS + ex
-except Exception as e:
-    ex.append((dt.datetime(), e))
+    exception.append(e)
 
 
 try:
@@ -47,13 +33,13 @@ try:
 
     motorPins = [[P1, P3], [P4, P5]]
 except Exception as e:
-    ex.append((dt.datetime(), e))
+    exception.append(e)
 
 
 try:
     errorSignal = PWM(Pin(15), 1, 500)
 except Exception as e:
-    ex.append((dt.datetime(), e))
+    exception.append(e)
 
 
 try:
@@ -62,26 +48,26 @@ try:
     ap.ifconfig(("192.168.11.1", "255.255.255.0", "192.168.11.1", "8.8.8.8"))
     ap.config(authmode = network.AUTH_WPA_WPA2_PSK)
 except Exception as e:
-    ex.append((dt.datetime(), e))
+    exception.append(e)
 
 
 try:
     essid = "uBot__" + hexlify(ap.config("mac"), ":").decode()[9:]
     ap.config(essid = essid)
 except Exception as e:
-    ex.append((dt.datetime(), e))
+    exception.append(e)
 
 
 try:
     ap.config(password = "uBot_pwd")
 except Exception as e:
-    ex.append((dt.datetime(), e))
+    exception.append(e)
 
 
 try:
     webrepl.start(password = "uBot_REPL")
 except Exception as e:
-    ex.append((dt.datetime(), e))
+    exception.append(e)
 
 
 
@@ -89,16 +75,24 @@ except Exception as e:
 ## PUBLIC METHODS
 
 def listExceptions():
-    for i in range(len(ex)):
-        print("{}\t{}\t{}".format(i, ex[i][0], ex[i][1]))
+    exceptionFiles = uos.listdir("log/exception")
+    for fileName in exceptionFiles:
+        print("{}\t{}".format(int(fileName[:-4]), fileName))        # [:-4] strip the file extension: .txt
 
 
-def printException(nr):
-    if 0 <= nr and nr < len(ex):
-        print(ex[nr][0])
-        sys.print_exception(ex[nr][1])
+def printExceptions(nr):
+    exceptionFiles = uos.listdir("log/exception")
+    fileName = "{:010d}.txt".format(nr)
+
+    if fileName in exceptionFiles:
+        try:
+            with open("log/exception/" + fileName) as file:
+                for line in file:
+                    print(line, end="")
+        except Exception as e:
+            exception.append(e)
     else:
-        print("List index ({}) is out of range ({}).".format(nr, len(ex)))
+        print("There is no exception file with the given ordinal: {}".format(nr))
 
 
 def startUart():
@@ -107,7 +101,7 @@ def startUart():
         uart = UART(0, baudrate = 115200)
         uos.dupterm(uart, 1)
     except Exception as e:
-        ex.append((dt.datetime(), e))
+        exception.append(e)
 
 
 def stopUart():
@@ -116,11 +110,11 @@ def stopUart():
         P1.off()
         P3.off()
     except Exception as e:
-        ex.append((dt.datetime(), e))
+        exception.append(e)
 
 
 def stopErrorSignal():
     try:
         errorSignal.deinit()
     except Exception as e:
-        ex.append((dt.datetime(), e))
+        exception.append(e)
