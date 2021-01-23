@@ -38,20 +38,20 @@ from micropython import const
 # MODIFIED: 0x19 -> 0x18 ... because of the non-genuine chip maybe
 LSM303_ADDRESS_ACCEL                      = const(0x18) # 0011000x
 
-LSM303_REGISTER_ACCEL_CTRL_REG1_A         = const(0x20) #
+LSM303_REGISTER_ACCEL_CTRL_REG1_A         = const(0x20)
+"""
 LSM303_REGISTER_ACCEL_CTRL_REG2_A         = const(0x21)
 LSM303_REGISTER_ACCEL_CTRL_REG3_A         = const(0x22)
-LSM303_REGISTER_ACCEL_CTRL_REG4_A         = const(0x23) #
+"""
+LSM303_REGISTER_ACCEL_CTRL_REG4_A         = const(0x23)
+"""
 LSM303_REGISTER_ACCEL_CTRL_REG5_A         = const(0x24)
 LSM303_REGISTER_ACCEL_CTRL_REG6_A         = const(0x25)
 LSM303_REGISTER_ACCEL_REFERENCE_A         = const(0x26)
 LSM303_REGISTER_ACCEL_STATUS_REG_A        = const(0x27)
-LSM303_REGISTER_ACCEL_OUT_X_L_A           = const(0x28) #
-LSM303_REGISTER_ACCEL_OUT_X_H_A           = const(0x29)
-LSM303_REGISTER_ACCEL_OUT_Y_L_A           = const(0x2A)
-LSM303_REGISTER_ACCEL_OUT_Y_H_A           = const(0x2B)
-LSM303_REGISTER_ACCEL_OUT_Z_L_A           = const(0x2C)
-LSM303_REGISTER_ACCEL_OUT_Z_H_A           = const(0x2D)
+"""
+LSM303_REGISTER_ACCEL_OUT_X_L_A           = const(0x28)
+"""
 LSM303_REGISTER_ACCEL_FIFO_CTRL_REG_A     = const(0x2E)
 LSM303_REGISTER_ACCEL_FIFO_SRC_REG_A      = const(0x2F)
 LSM303_REGISTER_ACCEL_INT1_CFG_A          = const(0x30)
@@ -68,12 +68,14 @@ LSM303_REGISTER_ACCEL_CLICK_THS_A         = const(0x3A)
 LSM303_REGISTER_ACCEL_TIME_LIMIT_A        = const(0x3B)
 LSM303_REGISTER_ACCEL_TIME_LATENCY_A      = const(0x3C)
 LSM303_REGISTER_ACCEL_TIME_WINDOW_A       = const(0x3D)
+"""
 
 LSM303_ADDRESS_MAG                        = const(0x1E) # 0011110x
-LSM303_REGISTER_MAG_CRA_REG_M             = const(0x00) #
-LSM303_REGISTER_MAG_CRB_REG_M             = const(0x01) #
-LSM303_REGISTER_MAG_MR_REG_M              = const(0x02) #
-LSM303_REGISTER_MAG_OUT_X_H_M             = const(0x03) #
+LSM303_REGISTER_MAG_CRA_REG_M             = const(0x00)
+LSM303_REGISTER_MAG_CRB_REG_M             = const(0x01)
+LSM303_REGISTER_MAG_MR_REG_M              = const(0x02)
+LSM303_REGISTER_MAG_OUT_X_H_M             = const(0x03)
+"""
 LSM303_REGISTER_MAG_OUT_X_L_M             = const(0x04)
 LSM303_REGISTER_MAG_OUT_Z_H_M             = const(0x05)
 LSM303_REGISTER_MAG_OUT_Z_L_M             = const(0x06)
@@ -86,7 +88,7 @@ LSM303_REGISTER_MAG_IRC_REG_M             = const(0x0C)
 LSM303_REGISTER_MAG_TEMP_OUT_H_M          = const(0x31)
 LSM303_REGISTER_MAG_TEMP_OUT_L_M          = const(0x32)
 
-MAG_GAIN_1_3                              = const(0x20) # +/- 1.3 #
+MAG_GAIN_1_3                              = const(0x20) # +/- 1.3
 MAG_GAIN_1_9                              = const(0x40) # +/- 1.9
 MAG_GAIN_2_5                              = const(0x60) # +/- 2.5
 MAG_GAIN_4_0                              = const(0x80) # +/- 4.0
@@ -102,13 +104,15 @@ MAG_RATE_15                               = const(0x04) # 15 Hz
 MAG_RATE_30                               = const(0x05) # 30 Hz
 MAG_RATE_75                               = const(0x06) # 75 Hz
 MAG_RATE_220                              = const(0x07) # 210 Hz
-
+"""
 ACCEL_MS2_PER_LSB = 0.00980665 # meters/second^2 per least significant bit
 
 GAUSS_TO_MICROTESLA = 100.0
 
+
 class LSM303(object):
     "LSM303 3-axis accelerometer/magnetometer"
+
 
     def __init__(self, i2c, hires=True):
         "Initialize the sensor"
@@ -131,12 +135,25 @@ class LSM303(object):
                                            LSM303_REGISTER_ACCEL_CTRL_REG4_A,
                                            [0b00000000])
 
-        # Enable the magnetometer
+        # Enable the magnetometer (Continuous-conversion mode)
         self._bus.write_i2c_block_data(LSM303_ADDRESS_MAG,
                                        LSM303_REGISTER_MAG_MR_REG_M,
                                        [0b00000000])
 
-        self.set_mag_gain(MAG_GAIN_1_3)
+        # MODIFIED : Added block: Disable temperature sensor, minimum data rate: 75Hz
+        self._bus.write_i2c_block_data(LSM303_ADDRESS_MAG,
+                                       LSM303_REGISTER_MAG_CRA_REG_M,
+                                       [0b00011000])
+
+        # MODIFIED : Added block: Set mag gain to +-1.3
+        self._bus.write_i2c_block_data(LSM303_ADDRESS_MAG,
+                                       LSM303_REGISTER_MAG_CRB_REG_M,
+                                       [0b00100000])
+
+        # MODIFIED : Added block: Instead of 'self.set_mag_gain(MAG_GAIN_1_3)'
+        self._lsb_per_gauss_xy = const(1100)
+        self._lsb_per_gauss_z  = const(980)
+
 
     def read_accel(self):
         "Read raw acceleration in meters/second squared"
@@ -153,90 +170,23 @@ class LSM303(object):
             (accel_raw[2] >> 4) * ACCEL_MS2_PER_LSB,
         )
 
-    # MODIFIED ALL: const()
-    def set_mag_gain(self, gain):
-        "Set magnetometer gain"
-        self._gain = gain
-        if gain == MAG_GAIN_1_3:
-            self._lsb_per_gauss_xy = const(1100)
-            self._lsb_per_gauss_z  = const(980)
-        elif gain == MAG_GAIN_1_9:
-            self._lsb_per_gauss_xy = const(855)
-            self._lsb_per_gauss_z  = const(760)
-        elif gain == MAG_GAIN_2_5:
-            self._lsb_per_gauss_xy = const(670)
-            self._lsb_per_gauss_z  = const(600)
-        elif gain == MAG_GAIN_4_0:
-            self._lsb_per_gauss_xy = const(450)
-            self._lsb_per_gauss_z  = const(400)
-        elif gain == MAG_GAIN_4_7:
-            self._lsb_per_gauss_xy = const(400)
-            self._lsb_per_gauss_z  = const(355)
-        elif gain == MAG_GAIN_5_6:
-            self._lsb_per_gauss_xy = const(330)
-            self._lsb_per_gauss_z  = const(295)
-        elif gain == MAG_GAIN_8_1:
-            self._lsb_per_gauss_xy = const(230)
-            self._lsb_per_gauss_z  = const(205)
 
-        self._bus.write_i2c_block_data(LSM303_ADDRESS_MAG,
-                                       LSM303_REGISTER_MAG_CRB_REG_M,
-                                       [self._gain])
+# MODIFIED: excluded methods: set_mag_gain(self, gain), set_mag_rate(self, rate)
 
-    def set_mag_rate(self, rate):
-        "Set magnetometer rate"
-        self._bus.write_i2c_block_data(LSM303_ADDRESS_MAG,
-                                       LSM303_REGISTER_MAG_CRA_REG_M,
-                                       [(rate & 0x07) << 2])
-
-
-    # MODIFIED: some logic extracted to read_raw(), some logic changed.
     def read_mag(self):
         "Read raw magnetic field in microtesla"
-        raw = self.read_raw()
-
-        return (
-            (
-                (raw[0] << 8 | raw[1]) / self._lsb_per_gauss_xy * GAUSS_TO_MICROTESLA,
-                (raw[4] << 8 | raw[5]) / self._lsb_per_gauss_xy * GAUSS_TO_MICROTESLA,
-                (raw[2] << 8 | raw[3]) / self._lsb_per_gauss_z * GAUSS_TO_MICROTESLA
-            ),
-            (
-                raw[6][0] / self._lsb_per_gauss_xy * GAUSS_TO_MICROTESLA,
-                raw[6][2] / self._lsb_per_gauss_xy * GAUSS_TO_MICROTESLA,
-                raw[6][1] / self._lsb_per_gauss_z * GAUSS_TO_MICROTESLA
-            )
-        )
-
-
-    # MODIFIED: added method.
-    def read_raw(self):
+        # Read as signed 16-bit big endian values
         mag_bytes = self._bus.read_i2c_block_data(LSM303_ADDRESS_MAG,
                                                   LSM303_REGISTER_MAG_OUT_X_H_M,
                                                   6)
-        # Read as signed 16-bit big endian values
-        xhm_byte = self._bus.read_byte_data(LSM303_ADDRESS_MAG,
-                                            LSM303_REGISTER_MAG_OUT_X_H_M)
-        # Read as signed 16-bit big endian values
-        xlm_byte = self._bus.read_byte_data(LSM303_ADDRESS_MAG,
-                                            LSM303_REGISTER_MAG_OUT_X_L_M)
-        # Read as signed 16-bit big endian values
-        zhm_byte = self._bus.read_byte_data(LSM303_ADDRESS_MAG,
-                                            LSM303_REGISTER_MAG_OUT_Z_H_M)
-        # Read as signed 16-bit big endian values
-        zlm_byte = self._bus.read_byte_data(LSM303_ADDRESS_MAG,
-                                            LSM303_REGISTER_MAG_OUT_Z_L_M)
-        # Read as signed 16-bit big endian values
-        yhm_byte = self._bus.read_byte_data(LSM303_ADDRESS_MAG,
-                                            LSM303_REGISTER_MAG_OUT_Y_H_M)
-        # Read as signed 16-bit big endian values
-        ylm_byte = self._bus.read_byte_data(LSM303_ADDRESS_MAG,
-                                            LSM303_REGISTER_MAG_OUT_Y_L_M)
 
         # MODIFIED : struct.unpack -> method import + unpack()
         mag_raw = unpack('>hhh', bytearray(mag_bytes))
 
-
-        return (xhm_byte, xlm_byte, zhm_byte, zlm_byte, yhm_byte, ylm_byte, mag_raw)
+        return (
+            mag_raw[0] / self._lsb_per_gauss_xy * GAUSS_TO_MICROTESLA,
+            mag_raw[2] / self._lsb_per_gauss_xy * GAUSS_TO_MICROTESLA,
+            mag_raw[1] / self._lsb_per_gauss_z * GAUSS_TO_MICROTESLA,
+        )
 
 # MODIFIED: excluded method _test()

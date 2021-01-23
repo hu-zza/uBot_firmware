@@ -33,8 +33,8 @@ def calibrate(duration):
         magData = _LSM303.read_mag()
         minimumTuple = maximumTuple = (magData[0], magData[1], magData[2])
 
-        for i in range(duration * 10):
-            sleep_ms(100)
+        for i in range(duration * 100):
+            sleep_ms(10)
             magData = _LSM303.read_mag()
 
             minimumTuple = (
@@ -59,19 +59,19 @@ def calibrate(duration):
 ## TEST METHODS
 
 
-def _testMag():
+def _readMag():
     if _LSM303 != 0:
         return _LSM303.read_mag()
 
 
-"""
+
 def _test():
     if _LSM303 != 0:
         acc_data = _LSM303.read_accel()
         mag_data = _LSM303.read_mag()
         return ((acc_data[0], acc_data[1], acc_data[2]),
                 (mag_data[0], mag_data[1], mag_data[2]))
-"""
+
 
 
 def _testLoop():

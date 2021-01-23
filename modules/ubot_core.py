@@ -186,7 +186,7 @@ def calibrateFeedback():
     buzzer.keyBeep("beepAttention")
 
     try:
-        result = feedback.calibrate(120)         # Duration: 120 seconds
+        result = feedback.calibrate(60)         # Duration: 60 seconds
         if result != ():
             CONFIG["feedbackMagMin"] = result[0]
             CONFIG["feedbackMagMax"] = result[1]
