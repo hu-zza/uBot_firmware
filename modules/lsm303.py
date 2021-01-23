@@ -197,59 +197,46 @@ class LSM303(object):
 
         return (
             (
-                (raw[0][0] << 8 | raw[1][0]) / self._lsb_per_gauss_xy * GAUSS_TO_MICROTESLA,
-                (raw[0][2] << 8 | raw[1][2]) / self._lsb_per_gauss_xy * GAUSS_TO_MICROTESLA,
-                (raw[0][1] << 8 | raw[1][1]) / self._lsb_per_gauss_z * GAUSS_TO_MICROTESLA
+                (raw[0] << 8 | raw[1]) / self._lsb_per_gauss_xy * GAUSS_TO_MICROTESLA,
+                (raw[4] << 8 | raw[5]) / self._lsb_per_gauss_xy * GAUSS_TO_MICROTESLA,
+                (raw[2] << 8 | raw[3]) / self._lsb_per_gauss_z * GAUSS_TO_MICROTESLA
             ),
             (
-                (raw[2][0] << 8 | raw[2][0]) / self._lsb_per_gauss_xy * GAUSS_TO_MICROTESLA,
-                (raw[2][2] << 8 | raw[2][2]) / self._lsb_per_gauss_xy * GAUSS_TO_MICROTESLA,
-                (raw[2][1] << 8 | raw[2][1]) / self._lsb_per_gauss_z * GAUSS_TO_MICROTESLA
-            ),
-            (
-                (raw[1][0] << 8 | raw[1][0]) / self._lsb_per_gauss_xy * GAUSS_TO_MICROTESLA,
-                (raw[1][2] << 8 | raw[1][2]) / self._lsb_per_gauss_xy * GAUSS_TO_MICROTESLA,
-                (raw[1][1] << 8 | raw[1][1]) / self._lsb_per_gauss_z * GAUSS_TO_MICROTESLA
+                raw[6][0] / self._lsb_per_gauss_xy * GAUSS_TO_MICROTESLA,
+                raw[6][2] / self._lsb_per_gauss_xy * GAUSS_TO_MICROTESLA,
+                raw[6][1] / self._lsb_per_gauss_z * GAUSS_TO_MICROTESLA
             )
         )
 
 
     # MODIFIED: added method.
     def read_raw(self):
-        # Read as signed 16-bit big endian values
-        xhm_bytes = self._bus.read_i2c_block_data(LSM303_ADDRESS_MAG,
+        mag_bytes = self._bus.read_i2c_block_data(LSM303_ADDRESS_MAG,
                                                   LSM303_REGISTER_MAG_OUT_X_H_M,
                                                   6)
         # Read as signed 16-bit big endian values
-        xlm_bytes = self._bus.read_i2c_block_data(LSM303_ADDRESS_MAG,
-                                                  LSM303_REGISTER_MAG_OUT_X_L_M,
-                                                  6)
+        xhm_byte = self._bus.read_byte_data(LSM303_ADDRESS_MAG,
+                                            LSM303_REGISTER_MAG_OUT_X_H_M)
         # Read as signed 16-bit big endian values
-        zhm_bytes = self._bus.read_i2c_block_data(LSM303_ADDRESS_MAG,
-                                                  LSM303_REGISTER_MAG_OUT_Z_H_M,
-                                                  6)
+        xlm_byte = self._bus.read_byte_data(LSM303_ADDRESS_MAG,
+                                            LSM303_REGISTER_MAG_OUT_X_L_M)
         # Read as signed 16-bit big endian values
-        zlm_bytes = self._bus.read_i2c_block_data(LSM303_ADDRESS_MAG,
-                                                  LSM303_REGISTER_MAG_OUT_Z_L_M,
-                                                  6)
+        zhm_byte = self._bus.read_byte_data(LSM303_ADDRESS_MAG,
+                                            LSM303_REGISTER_MAG_OUT_Z_H_M)
         # Read as signed 16-bit big endian values
-        yhm_bytes = self._bus.read_i2c_block_data(LSM303_ADDRESS_MAG,
-                                                  LSM303_REGISTER_MAG_OUT_Y_H_M,
-                                                  6)
+        zlm_byte = self._bus.read_byte_data(LSM303_ADDRESS_MAG,
+                                            LSM303_REGISTER_MAG_OUT_Z_L_M)
         # Read as signed 16-bit big endian values
-        ylm_bytes = self._bus.read_i2c_block_data(LSM303_ADDRESS_MAG,
-                                                  LSM303_REGISTER_MAG_OUT_Y_L_M,
-                                                  6)
+        yhm_byte = self._bus.read_byte_data(LSM303_ADDRESS_MAG,
+                                            LSM303_REGISTER_MAG_OUT_Y_H_M)
+        # Read as signed 16-bit big endian values
+        ylm_byte = self._bus.read_byte_data(LSM303_ADDRESS_MAG,
+                                            LSM303_REGISTER_MAG_OUT_Y_L_M)
 
         # MODIFIED : struct.unpack -> method import + unpack()
-        xhm_raw = unpack('>hhh', bytearray(xhm_bytes))
-        xlm_raw = unpack('>hhh', bytearray(xlm_bytes))
-        zhm_raw = unpack('>hhh', bytearray(zhm_bytes))
-        zlm_raw = unpack('>hhh', bytearray(zlm_bytes))
-        yhm_raw = unpack('>hhh', bytearray(yhm_bytes))
-        ylm_raw = unpack('>hhh', bytearray(ylm_bytes))
+        mag_raw = unpack('>hhh', bytearray(mag_bytes))
 
 
-        return (xhm_raw, xlm_raw, zhm_raw, zlm_raw, yhm_raw, ylm_raw)
+        return (xhm_byte, xlm_byte, zhm_byte, zlm_byte, yhm_byte, ylm_byte, mag_raw)
 
 # MODIFIED: excluded method _test()
