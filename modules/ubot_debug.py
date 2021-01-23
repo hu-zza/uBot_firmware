@@ -3,7 +3,7 @@ import esp, gc, network, uos, sys, webrepl
 from machine   import Pin, PWM, RTC, UART
 from ubinascii import hexlify
 
-import ubot_exception as exception
+import ubot_logger as logger
 
 
 
@@ -18,7 +18,7 @@ esp.sleep_type(esp.SLEEP_NONE)
 try:
     core = sys.modules.get("ubot_core")
 except Exception as e:
-    exception.append(e)
+    logger.append(e)
 
 
 try:
@@ -33,13 +33,13 @@ try:
 
     motorPins = [[P1, P3], [P4, P5]]
 except Exception as e:
-    exception.append(e)
+    logger.append(e)
 
 
 try:
     errorSignal = PWM(Pin(15), 1, 500)
 except Exception as e:
-    exception.append(e)
+    logger.append(e)
 
 
 try:
@@ -48,26 +48,26 @@ try:
     ap.ifconfig(("192.168.11.1", "255.255.255.0", "192.168.11.1", "8.8.8.8"))
     ap.config(authmode = network.AUTH_WPA_WPA2_PSK)
 except Exception as e:
-    exception.append(e)
+    logger.append(e)
 
 
 try:
     essid = "uBot__" + hexlify(ap.config("mac"), ":").decode()[9:]
     ap.config(essid = essid)
 except Exception as e:
-    exception.append(e)
+    logger.append(e)
 
 
 try:
     ap.config(password = "uBot_pwd")
 except Exception as e:
-    exception.append(e)
+    logger.append(e)
 
 
 try:
     webrepl.start(password = "uBot_REPL")
 except Exception as e:
-    exception.append(e)
+    logger.append(e)
 
 
 
@@ -90,7 +90,7 @@ def printExceptions(nr):
                 for line in file:
                     print(line, end="")
         except Exception as e:
-            exception.append(e)
+            logger.append(e)
     else:
         print("There is no exception file with the given ordinal: {}".format(nr))
 
@@ -101,7 +101,7 @@ def startUart():
         uart = UART(0, baudrate = 115200)
         uos.dupterm(uart, 1)
     except Exception as e:
-        exception.append(e)
+        logger.append(e)
 
 
 def stopUart():
@@ -110,11 +110,11 @@ def stopUart():
         P1.off()
         P3.off()
     except Exception as e:
-        exception.append(e)
+        logger.append(e)
 
 
 def stopErrorSignal():
     try:
         errorSignal.deinit()
     except Exception as e:
-        exception.append(e)
+        logger.append(e)

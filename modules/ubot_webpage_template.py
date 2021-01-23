@@ -1,7 +1,7 @@
 import gc, uos
 
-import ubot_exception as exception
-import ubot_turtle    as turtle
+import ubot_logger as logger
+import ubot_turtle as turtle
 
 
 _config   = 0
@@ -76,10 +76,6 @@ def getDebugStyle():
     return ("            hr    { color: #EEE; }\n"
             "            table { margin: 30px; }\n"
             "            .system td { padding: 5px; border-bottom: dotted 1px #AAA; }\n"
-            "            .exceptions col:nth-child(1)   { width: 40px; }\n"
-            "            .exceptions col:nth-child(2)   { width: 250px; }\n"
-            "            .exceptions col:nth-child(3)   { width: 500px; }\n"
-            "            .exceptions tr:nth-child(even) { background: #EEE; }\n"
            )
 
 

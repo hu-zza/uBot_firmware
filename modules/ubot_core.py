@@ -6,7 +6,7 @@ from utime       import sleep, sleep_ms
 
 import feedback
 import ubot_buzzer    as buzzer
-import ubot_exception as exception
+import ubot_logger    as logger
 import ubot_motor     as motor
 import ubot_turtle    as turtle
 import ubot_webserver as webserver
@@ -29,21 +29,21 @@ try:
     import etc.datetime as datetime
 except Exception as e:
     datetimeLoaded = False
-    exception.append(e)
+    logger.append(e)
 
 
 try:
     import etc.config as config
 except Exception as e:
     configLoaded = False
-    exception.append(e)
+    logger.append(e)
 
 
 try:
     import etc.defaults as defaults
 except Exception as e:
     defaultsLoaded = False
-    exception.append(e)
+    logger.append(e)
 
 
 
@@ -166,7 +166,7 @@ def saveConfig():
                 else:
                     file.write("{} = {}\n".format(key, value))
     except Exception as e:
-        exception.append(e)
+        logger.append(e)
 
 
 def saveDateTime():
@@ -181,7 +181,7 @@ def saveToFile(fileName, mode, content):
         with open(fileName, mode) as file:
             file.write(content)
     except Exception as e:
-        exception.append(e)
+        logger.append(e)
 
 
 
@@ -201,7 +201,7 @@ def calibrateFeedback():
             saveConfig()
             result = True
     except Exception as e:
-        exception.append(e)
+        logger.append(e)
 
     buzzer.setDefaultState(0)
     buzzer.keyBeep("beepReady")
@@ -220,7 +220,7 @@ if datetimeLoaded:
     try:
         DT.datetime(datetime.DT)
     except Exception as e:
-        exception.append(e)
+        logger.append(e)
 
 
 if configLoaded or defaultsLoaded:
@@ -238,7 +238,7 @@ if configLoaded or defaultsLoaded:
         try:
             CONFIG["powerOnCount"] = int(uos.listdir("log/exception")[-1][:-4]) + 1 # [last file][cut extension]
         except Exception as e:
-            exception.append(e)
+            logger.append(e)
     else:
         CONFIG["powerOnCount"] = CONFIG.get("powerOnCount") + 1
 
@@ -247,14 +247,14 @@ if configLoaded or defaultsLoaded:
         DT.datetime(CONFIG.get("initialDateTime"))
 
 
-exception.config(DT, CONFIG.get("powerOnCount"))
+logger.config(DT, CONFIG.get("powerOnCount"))
 
 
 try:
     with open("log/datetime.txt", "a") as file:
         file.write("{:010d}\n{}\n\n".format(CONFIG.get("powerOnCount"), DT.datetime()))
 except Exception as e:
-    exception.append(e)
+    logger.append(e)
 
 
 if CONFIG.get("i2cActive"):
@@ -262,7 +262,7 @@ if CONFIG.get("i2cActive"):
         feedback.config(CONFIG.get("i2cFreq"), CONFIG.get("i2cSda"), CONFIG.get("i2cScl"))
         feedback.setMinMaxTuples(CONFIG.get("feedbackMagMin"), CONFIG.get("feedbackMagMax"))
     except Exception as e:
-        exception.append(e)
+        logger.append(e)
 
 
 ###########
@@ -314,13 +314,13 @@ AP.config(authmode = network.AUTH_WPA_WPA2_PSK)
 try:
     AP.config(essid = CONFIG.get("apEssid"))
 except Exception as e:
-    exception.append(e)
+    logger.append(e)
 
 
 try:
     AP.config(password = CONFIG.get("apPassword"))
 except Exception as e:
-    exception.append(e)
+    logger.append(e)
 
 
 ###########
@@ -339,7 +339,7 @@ if CONFIG.get("webReplActive"):
     try:
         webrepl.start()
     except Exception as e:
-        exception.append(e)
+        logger.append(e)
 
 
 if CONFIG.get("webServerActive"):
@@ -354,4 +354,4 @@ if CONFIG.get("webServerActive"):
         buzzer.keyBeep("beepReady")
         webserver.start()
     except Exception as e:
-        exception.append(e)
+        logger.append(e)

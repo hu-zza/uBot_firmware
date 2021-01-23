@@ -5,7 +5,7 @@ from utime   import sleep_ms
 
 import ubot_buzzer    as buzzer
 import ubot_core      as core
-import ubot_exception as exception
+import ubot_logger    as logger
 import ubot_motor     as motor
 
 
@@ -255,7 +255,7 @@ def _addCommand(pressed):
             else:
                 print("Wrong result: {}".format(result))
     except Exception as e:
-        sys.print_exception(e)
+        logger.append(e)
 
 
 def _addToCommandArray(command):
@@ -335,19 +335,19 @@ def _logExecuted():
         with open("log/datetime/" + fileName, "a") as file:
             file.write("{}\n".format(_dateTime.datetime()))
     except Exception as e:
-        exception.append(e)
+        logger.append(e)
 
     try:
         with open("log/commands/" + fileName, "a") as file:
             file.write("{}\n".format(_commandArray[:_commandPointer].decode()))
     except Exception as e:
-        exception.append(e)
+        logger.append(e)
 
     try:
         with open("log/program/" + fileName, "a") as file:
             file.write("{}\n".format(_programArray[:_programParts[-1]].decode()))
     except Exception as e:
-        exception.append(e)
+        logger.append(e)
 
 
 
@@ -373,7 +373,7 @@ def _start(arguments):                # (blockLevel,)
 
     core.saveDateTime()
     _logExecuted()
-    
+
     if _endSignal != "":
         motor.setCallback(lambda: buzzer.keyBeep(_endSignal), True)
 

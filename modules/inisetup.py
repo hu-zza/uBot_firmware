@@ -9,8 +9,8 @@ ap = network.WLAN(network.AP_IF)
 config = {
     "firmwareMajor"     : 0,
     "firmwareMinor"     : 1,
-    "firmwarePatch"     : 57,
-    "initialDateTime"   : (2021, 1, 23, 0, 22, 55, 0, 0),
+    "firmwarePatch"     : 58,
+    "initialDateTime"   : (2021, 1, 23, 0, 23, 50, 0, 0),
     "powerOnCount"      : 0,
 
     "apActive"          : True,
@@ -139,6 +139,7 @@ def setup():
     uos.mkdir("log")
     uos.mkdir("log/commands")
     uos.mkdir("log/datetime")
+    uos.mkdir("log/event")
     uos.mkdir("log/exception")
     uos.mkdir("log/program")
 

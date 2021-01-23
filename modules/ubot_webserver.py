@@ -2,7 +2,7 @@ import gc, ujson, usocket
 
 from machine import RTC
 
-import ubot_exception        as exception
+import ubot_logger           as logger
 import ubot_webpage_template as template
 
 
@@ -46,7 +46,7 @@ def start():
             try:
                 _processSockets()
             except Exception as e:
-                exception.append(e)
+                logger.append(e)
 
 
 def stop(message):
@@ -57,7 +57,7 @@ def stop(message):
             _reply("JSON", "200 OK", [message])
             _config['webServerActive'] = False
         except Exception as e:
-            exception.append(e)
+            logger.append(e)
 
 
 
@@ -157,7 +157,7 @@ def _processGetQuery(path):
             helperLinks += "        </ul>\n"
             _reply("HTML", "404 Not Found", helperLinks)
     except Exception as e:
-        exception.append(e)
+        logger.append(e)
     finally:
         _connection.close()
 
@@ -172,7 +172,7 @@ def _processPostQuery(body):
 
         _reply("JSON", "200 OK", _jsonFunction(json))
     except Exception as e:
-        exception.append(e)
+        logger.append(e)
         _reply("JSON", "400 Bad Request", "The request body could not be parsed and processed.")
 
 
