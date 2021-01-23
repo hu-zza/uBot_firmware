@@ -140,10 +140,10 @@ class LSM303(object):
                                        LSM303_REGISTER_MAG_MR_REG_M,
                                        [0b00000000])
 
-        # MODIFIED : Added block: Disable temperature sensor, minimum data rate: 75Hz
+        # MODIFIED : Added block: Disable temperature sensor, minimum data rate: 220Hz
         self._bus.write_i2c_block_data(LSM303_ADDRESS_MAG,
                                        LSM303_REGISTER_MAG_CRA_REG_M,
-                                       [0b00011000])
+                                       [0b00011100])
 
         # MODIFIED : Added block: Set mag gain to +-1.3
         self._bus.write_i2c_block_data(LSM303_ADDRESS_MAG,
@@ -183,10 +183,11 @@ class LSM303(object):
         # MODIFIED : struct.unpack -> method import + unpack()
         mag_raw = unpack('>hhh', bytearray(mag_bytes))
 
+        # MODIFIED : Seems like vectors are not swapped on my chip. (ICSG019A by ICStation.com)
         return (
             mag_raw[0] / self._lsb_per_gauss_xy * GAUSS_TO_MICROTESLA,
-            mag_raw[2] / self._lsb_per_gauss_xy * GAUSS_TO_MICROTESLA,
-            mag_raw[1] / self._lsb_per_gauss_z * GAUSS_TO_MICROTESLA,
+            mag_raw[1] / self._lsb_per_gauss_xy * GAUSS_TO_MICROTESLA,  # MODIFIED : mag_raw[2] -> mag_raw[1]
+            mag_raw[2] / self._lsb_per_gauss_z * GAUSS_TO_MICROTESLA,   # MODIFIED : mag_raw[1] -> mag_raw[2]
         )
 
 # MODIFIED: excluded method _test()

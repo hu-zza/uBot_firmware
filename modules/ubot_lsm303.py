@@ -1,3 +1,5 @@
+import math
+
 from machine import I2C, Pin
 from smbus   import SMBus
 from lsm303  import LSM303
@@ -73,9 +75,10 @@ def setMinMaxTuples(minimumTuple, maximumTuple):
     _rawMinimumTuple = minimumTuple
     _rawMaximumTuple = maximumTuple
 
-    _rawRangeX = _rawMaximumTuple[0] - _rawMinimumTuple[0]
-    _rawRangeY = _rawMaximumTuple[1] - _rawMinimumTuple[1]
-    _rawRangeZ = _rawMaximumTuple[2] - _rawMinimumTuple[2]
+    if minimumTuple != () and maximumTuple != ():
+        _rawRangeX = _rawMaximumTuple[0] - _rawMinimumTuple[0]
+        _rawRangeY = _rawMaximumTuple[1] - _rawMinimumTuple[1]
+        _rawRangeZ = _rawMaximumTuple[2] - _rawMinimumTuple[2]
 
 
 def getCorrectedMag():
@@ -92,6 +95,32 @@ def getCorrectedMag():
             )
         else:
             return ()
+
+
+
+def getHeading():
+    accumulated = [0, 0]    # X and Y
+    for i in range(10):
+        magData = getCorrectedMag()
+        accumulated[0] += magData[0]
+        accumulated[1] += magData[1]
+        sleep_ms(10)
+
+    avg = (accumulated[0] / 10, accumulated[1] / 10)
+
+    if avg[0] == 0:
+        if avg[1] < 0:
+            return 90
+        elif 0 < avg[1]:
+            return 270
+    else:
+        if avg[0] < 0:
+            return 180 + math.atan(avg[1] / avg[0])
+        else:
+            if 0 <= avg[1]:
+                return math.atan(avg[1] / avg[0])
+            else:
+                return 360 + math.atan(avg[1] / avg[0])
 
 
 
