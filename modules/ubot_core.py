@@ -293,8 +293,8 @@ if not CONFIG.get("i2cActive"):
 
 motor.config(
     (
-        (4, 5),                                         # Left motor
-        (0, 0) if CONFIG.get("uartActive") else (1, 3)  # Right motor
+        (4, 5),                                         # Left motor  - T1
+        (0, 0) if CONFIG.get("uartActive") else (1, 3)  # Right motor - T0
     ),
     (
         CONFIG.get("motorPeriod"),

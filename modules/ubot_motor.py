@@ -1,10 +1,11 @@
 from machine import Pin, Timer
 from utime   import sleep_ms
 
-_period = 0
-_duty   = 0
-_range  = 0
-_ratio  = 0
+_period   = 0
+_duty     = 0
+_baseDuty = 0
+_range    = 0
+_ratio    = 0
 
 _active = 0
 _pin    = 0
@@ -44,26 +45,27 @@ def config(motorPins, motorConfig):
 def configMotor(motorConfig):
     global _period
     global _duty
+    global _baseDuty
     global _range
     global _ratio
     """
-    #######################################################################################################   DEPRECATED
-    Parameter motorConfig consists of three tuples:
-    T1 (left) timer setting, T0 (right) timer setting, borders and duty factor.
+    Parameter motorConfig is a tuple consists of:
 
-    T0 and T1 have been swapped, because it's more clear: motorConfig = ((left), (right), (fine))
+        motorPeriod     :   Period time in ms for both motor (~ PWM frequency). _timerMove uses it in _setController.
+        motorDuty       :   Tuple (left duty in ms, right duty in ms). (~ PWM duty)
+        motorDutyRange  :   Tuple (min. duty in ms, max. duty in ms). setRatio uses it to prevent overrun.
+        motorRatio      :   Double value which describes the ratio between T0 (right) and T1 (left).
 
-    configMotor() swaps it back:
-
-        T0 - RIGHT MOTOR | T1 - LEFT MOTOR |             Finetuning              |
-                         |                 |                                     |
-        ( (period, duty),  (period, duty),   (min. duty, max. duty, init. factor))
-
+    In motorDuty T0 and T1 have been swapped, because it's more clear: (left, right).
     """
-    _period = motorConfig[0]
-    _duty   = [motorConfig[1][1], motorConfig[1][0]]
-    _range  = motorConfig[2]
-    _ratio  = motorConfig[3]
+    _period   = motorConfig[0]
+    _duty     = [motorConfig[1][1], motorConfig[1][0]]
+    _baseDuty = (motorConfig[1][1], motorConfig[1][0])
+    _range    = motorConfig[2]
+    _ratio    = motorConfig[3]
+
+    if _ratio != 1:
+        setRatio(ratio)
 
 
 
@@ -89,26 +91,48 @@ def move(direction = 0, duration = 500):
         _stopAndNext()
 
 
-"""
-def setDutyFactor(dutyFactor):
-    global _factor
-    \"""
-    Public function which set the dutyFactor (_factor).
-    This affects the left motor (T1) directly as you can see in _setController().
+def setRatio(ratio):
+    global _ratio
+    global _duty
+    """
+    Public function which set the T0:T1 ratio (_ratio).
+    This affects both motor by changing their duty.
     The purpose of this funtion the on-the-fly correction.
-    \"""
-    if dutyFactor < _config[2][0]:         # If parameter is less than the minimum duty factor:
-        _factor = _config[2][0]            #   - set the minimum duty f. as current duty f.
-        return _config[2][0] - dutyFactor  #   - return the difference (as a negative number)
-    elif _config[2][1] < dutyFactor:       # If the parameter is more than the maximum duty factor:
-        _factor = _config[2][1]            #   - set the maximum duty f. as current duty f.
-        return dutyFactor - _config[2][1]  #   - return the difference (as a positive number)
+    """
+    if 1 < ratio:
+        factor = (ratio - 1) / 2
+    elif 0 < ratio:
+        factor = 0 - (((1 / ratio) - 1) / 2)
     else:
-        _factor = dutyFactor
-        return 0
-"""
+        return
+
+    _duty[0] = round(_baseDuty[0] + _baseDuty[0] * factor)
+    _duty[1] = round(_baseDuty[1] - _baseDuty[1] * factor)
+
+    if 1 < ratio:
+        if _range[1] < _duty[0]:
+            _duty[0] = _range[1]
+
+        if _duty[1] < _range[0]:
+            _duty[1] = _range[0]
+    else:
+        if _range[1] < _duty[1]:
+            _duty[1] = _range[1]
+
+        if _duty[0] < _range[0]:
+            _duty[0] = _range[0]
+
+    _ratio = _duty[0] / _duty[1]
+    return _ratio
+
 
 def setCallback(callbackFunction, isTemporary = True):
+    """
+    Setter for callback. After processing every item on _moveList,
+    _stopAndNext() will call this. Use case: Beeps or other function
+    after movements. If isTemporary is True, _stopAndNext() delete
+    this after execution.
+    """
     global _callback
     _callback = (callbackFunction, isTemporary)
 
@@ -186,6 +210,7 @@ def _setController(modeLeft = 0, modeRight = 0):        # (T1 mode, T0 mode)
 
 
 def _initMotors(config):
+    """ Helper method for lambda in _setController() """
     _driveMotor(config[0][0], config[0][1], config[0][2])
     _driveMotor(config[1][0], config[1][1], config[1][2])
 
