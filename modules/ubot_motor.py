@@ -212,7 +212,7 @@ def _driveMotor(motor = 0, mode = 0, duration = 0):
         _timerMotor[motor].init(
             period = duration,
             mode = Timer.ONE_SHOT,
-            callback = lambda t:_driveMotor(0, 0)
+            callback = lambda t:_driveMotor(motor, 0)
         )
     else:
         _pin[motor][0].off()
