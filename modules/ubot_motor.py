@@ -1,8 +1,6 @@
 from machine import Pin, Timer
 from utime   import sleep_ms
 
-import ubot_logger as logger
-
 
 _factor = 0
 _config = 0
@@ -90,7 +88,7 @@ def move(direction = 0, duration = 500):
     duration    : integer parameter (length of movement in millisecond)
     """
     _moveList.append((direction, duration))
-    if 1 == len(_moveList) and not _processing:
+    if not _processing:
         _stopAndNext()
 
 
@@ -122,6 +120,29 @@ def setCallback(callbackFunction, isTemporary = True):
 ################################
 ## PRIVATE, HELPER METHODS
 
+def _stopAndNext():
+    global _processing
+    global _callback
+    """
+    Part of a recursive loop: _stopAndNext() - _processMove(move) - _stopAndNext() - ...
+
+    Stops the current, done task (movement) and checks if there is any task waiting for processing.
+    If it finds task(s), pops the first and call _processMove(move). If not, loop stops.
+    """
+    _setController(0, 0)
+
+    if 0 < len(_moveList):
+        _processing = True
+        _processMove(_moveList.pop(0))
+    else:
+        _processing = False
+
+        if _callback != ():
+            _callback[0]()
+            if _callback[1]:
+                _callback = ()
+
+
 def _processMove(move):       # ((direction, duration))
     """
     Part of a recursive loop: _stopAndNext() - _processMove(move) - _stopAndNext() - ...
@@ -148,29 +169,8 @@ def _processMove(move):       # ((direction, duration))
     )
 
 
-def _stopAndNext():
-    global _processing
-    global _callback
-    """
-    Part of a recursive loop: _stopAndNext() - _processMove(move) - _stopAndNext() - ...
-
-    Stops the current, done task (movement) and checks if there is any task waiting for processing.
-    If it finds task(s), pops the first and call _processMove(move). If not, loop stops.
-    """
-
-    _setController(0, 0)
-    _processing = False
-
-    if 0 < len(_moveList):
-        _processing = True
-        _processMove(_moveList.pop(0))
-    elif _callback != ():
-        _callback[0]()
-        if _callback[1]:
-            _callback = ()
-
-
 def _setController(modeLeft = 0, modeRight = 0):        # (T1 mode, T0 mode)
+    global _active
     """
     Sets both motor in one go. (If both are active.)
     This setter is permanent,
@@ -180,7 +180,6 @@ def _setController(modeLeft = 0, modeRight = 0):        # (T1 mode, T0 mode)
     mode = (modeRight, modeLeft)                        # Switch to lower-level order: (left, right) -> (T0 = right, T1 = left)
 
     for motor in range(2):
-        logger.append("MOTOR: {}\nActive: {}\nMode: {} Period: {} Duty: {}\n\n".format(motor, _active[motor], mode[motor], _config[motor][0], _config[motor][1]))
         if _active[motor]:
             if mode[motor] == 0:
                 _timerMove[motor].deinit()

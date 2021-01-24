@@ -9,8 +9,8 @@ ap = network.WLAN(network.AP_IF)
 config = {
     "firmwareMajor"     : 0,
     "firmwareMinor"     : 1,
-    "firmwarePatch"     : 63,
-    "initialDateTime"   : (2021, 1, 24, 0, 19, 15, 0, 0),
+    "firmwarePatch"     : 64,
+    "initialDateTime"   : (2021, 1, 24, 0, 21, 30, 0, 0),
     "powerOnCount"      : 0,
 
     "apActive"          : True,

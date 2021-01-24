@@ -13,6 +13,7 @@ _powerOnCount      = 0           # [need config()]
 
 _clockPin          = 0           # [need config()] Advances the decade counter (U3).
 _inputPin          = 0           # [need config()] Checks the returning signal from turtle HAT.
+_checkPeriod       = 0           # [need config()]
 _counterPosition   = 0           #                 The position of the decade counter (U3).
 _pressLength       = 0           # [need config()]
 _maxError          = 0           # [need config()]
@@ -55,6 +56,7 @@ def config(config):
     global _powerOnCount
     global _clockPin
     global _inputPin
+    global _checkPeriod
     global _pressLength
     global _maxError
     global _firstRepeat
@@ -75,6 +77,7 @@ def config(config):
     _inputPin.off()                                        # DEPRECATED: New PCB design (2.1) will resolve this.
     _inputPin.init(Pin.IN)                                 # DEPRECATED: New PCB design (2.1) will resolve this.
 
+    _checkPeriod  = config.get("turtleCheckPeriod")
     _pressLength  = config.get("turtlePressLength")
     _maxError     = config.get("turtleMaxError")
     _firstRepeat  = config.get("turtleFirstRepeat")
@@ -90,12 +93,7 @@ def config(config):
 
     _currentMapping = _defaultMapping
 
-    _timer.init(
-        period = config.get("turtleCheckPeriod"),
-        mode = Timer.PERIODIC,
-        callback = lambda t:_addCommand(_getValidatedPressedButton())
-    )
-
+    _startButtonChecking()
 
 
 ################################
@@ -142,6 +140,18 @@ def press(pressed):                     # pressed = 1<<buttonOrdinal
 
 ################################
 ## BUTTON PRESS PROCESSING
+
+def _startButtonChecking():
+    _timer.init(
+        period = _checkPeriod,
+        mode = Timer.PERIODIC,
+        callback = lambda t:_addCommand(_getValidatedPressedButton())
+    )
+
+
+def _stopButtonChecking():
+    _timer.deinit()
+
 
 def _getValidatedPressedButton():
     global _lastPressed
@@ -354,8 +364,9 @@ def _logExecuted():
 def _start(arguments):                # (blockLevel,)
     global _runningProgram
 
-    _runningProgram = True
     buzzer.keyBeep("beepProcessed")
+    _runningProgram = True
+    _stopButtonChecking()
 
     if arguments[0] or 0 < _commandPointer: # Executing the body of a block or the _commandArray
         _toPlay        = _commandArray
@@ -456,6 +467,7 @@ def _start(arguments):                # (blockLevel,)
 
         _pointer += 1
 
+    _startButtonChecking()
     return 0
 
 
