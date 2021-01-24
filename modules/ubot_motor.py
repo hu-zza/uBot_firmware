@@ -1,4 +1,4 @@
-from machine import Pin, PWM, Timer
+from machine import Pin, Timer
 from utime   import sleep_ms
 
 
@@ -7,11 +7,10 @@ _config = 0
 
 _active = 0
 _pin    = 0
-_pwm    = 0
 
 _timer      = Timer(-1)
-_timerT1    = Timer(-1)
-_timerMotor = Timer(-1)
+_timerMove  = [Timer(-1), Timer(-1)]
+_timerMotor = [Timer(-1), Timer(-1)]
 _processing = False
 _moveList   = []
 _callback   = ()
@@ -23,13 +22,16 @@ _callback   = ()
 def config(motorConfig, motorPins):
     global _active
     global _pin
-    global _pwm
+    """
+    T0 and T1 have been swapped, because it's more clear: motorPins = ((left pins), (right pins))
+    config() swaps it back: T0 - right (index : 0); T1 - left (index : 1)
+    """
 
-    _active = (0 not in motorPins[0], 0 not in motorPins[1])
+    _active = (0 not in motorPins[1], 0 not in motorPins[0])
 
     _pin = (
-        (Pin(motorPins[0][0], Pin.OUT), Pin(motorPins[0][1], Pin.OUT)) if _active[0] else (0, 0),
-        (Pin(motorPins[1][0], Pin.OUT), Pin(motorPins[1][1], Pin.OUT)) if _active[1] else (0, 0)
+        (Pin(motorPins[1][0], Pin.OUT), Pin(motorPins[1][1], Pin.OUT)) if _active[0] else (0, 0),   # _active has got the
+        (Pin(motorPins[0][0], Pin.OUT), Pin(motorPins[0][1], Pin.OUT)) if _active[1] else (0, 0)    # right order!
     )
 
     if _active[0]:
@@ -39,7 +41,6 @@ def config(motorConfig, motorPins):
     if _active[1]:
         _pin[1][0].off()
         _pin[1][1].off()
-        _pwm     = (PWM(Pin(motorPins[1][0])), PWM(Pin(motorPins[1][1])))
 
     configMotor(motorConfig)
 
@@ -48,27 +49,24 @@ def configMotor(motorConfig):
     global _factor
     global _config
     """
-    Parameter motorConfig consists of three tuples: T0 timer setting, T1 pwm setting, T1 duty factor and borders.
+    Parameter motorConfig consists of three tuples:
+    T1 (left) timer setting, T0 (right) timer setting, borders and duty factor.
 
-    The third of the three tuple is modified:
-        - Duty factor extracted into a "dedicated" variable (_factor).
-        - From the given minimum duty and initial duty calculates the minimum duty factor (_config[2][0]).
-        - From the given maximum duty and initial duty calculates the maximum duty factor (_config[2][1]).
-    """
+    T0 and T1 have been swapped, because it's more clear: motorConfig = ((left), (right), (fine))
 
-    _factor = motorConfig[2][0]
+    configMotor() swaps it back:
+
+        T0 - RIGHT MOTOR | T1 - LEFT MOTOR |             Finetuning              |
+                         |                 |                                     |
+        ( (period, duty),  (period, duty),   (min. duty, max. duty, init. factor))
 
     """
-        T0 - RIGHT MOTOR |     T1 - LEFT MOTOR - PWM (and finetuning)       |
-        Timer based ctrl | PWM setting |          Fine tuning settings      |
-          (~freq, ~duty) |             |                                    |
-        ((period, sleep), (freq, duty), (min. duty factor, max. duty factor))
+    _config = (motorConfig[1], motorConfig[0], motorConfig[2])
+
     """
-    _config = (
-        motorConfig[0],
-        motorConfig[1],
-        (motorConfig[2][1] / motorConfig[1][1], motorConfig[2][2] / motorConfig[1][1])
-    )
+    Duty factor extracted from the third tuple into a "dedicated" variable.
+    """
+    _factor = _config[2][2]
 
 
 
@@ -94,13 +92,14 @@ def move(direction = 0, duration = 500):
         _stopAndNext()
 
 
+"""
 def setDutyFactor(dutyFactor):
     global _factor
-    """
+    \"""
     Public function which set the dutyFactor (_factor).
     This affects the left motor (T1) directly as you can see in _setController().
     The purpose of this funtion the on-the-fly correction.
-    """
+    \"""
     if dutyFactor < _config[2][0]:         # If parameter is less than the minimum duty factor:
         _factor = _config[2][0]            #   - set the minimum duty f. as current duty f.
         return _config[2][0] - dutyFactor  #   - return the difference (as a negative number)
@@ -110,7 +109,7 @@ def setDutyFactor(dutyFactor):
     else:
         _factor = dutyFactor
         return 0
-
+"""
 
 def setCallback(callbackFunction, isTemporary = True):
     global _callback
@@ -175,25 +174,20 @@ def _setController(modeLeft = 0, modeRight = 0):        # (T1 mode, T0 mode)
     This setter is permanent,
     its only responsibility to handle PWM.
     """
-    if _active[1]:                                      # T1 - LEFT MOTOR - PWM
-        if modeLeft == 0:
-            _pwm[0].duty(0)
-            _pwm[1].duty(0)
-        else:
-            duty = round(_factor * _config[1][1])       # Duty factor * initial duty
-            _pwm[modeLeft - 1].freq(_config[1][0])
-            _pwm[modeLeft - 1].duty(duty)
 
-    if _active[0]:                                      # T0 - RIGHT MOTOR - Timer "PWM"
-        if modeRight == 0:
-            _timerT1.deinit()
-            _driveMotor(0, 0)
-        else:
-            _timerT1.init(
-                period = _config[0][0],
-                mode = Timer.PERIODIC,
-                callback = lambda t:_driveMotor(0, modeRight, _config[0][1])
-            )
+    mode = (modeRight, modeLeft)                        # Switch to lower-level order: (left, right) -> (T0 = right, T1 = left)
+
+    for motor in range(2):
+        if _active[motor]:
+            if mode[motor] == 0:
+                _timerMove[motor].deinit()
+                _driveMotor(motor, 0)
+            else:
+                _timerMove[motor].init(
+                    period = _config[motor][0],
+                    mode = Timer.PERIODIC,
+                    callback = lambda t:_driveMotor(motor, mode[motor], _config[motor][1])
+                )
 
 
 def _driveMotor(motor = 0, mode = 0, duration = 0):
@@ -215,7 +209,7 @@ def _driveMotor(motor = 0, mode = 0, duration = 0):
         _pin[motor][1 - mode].on()
         _pin[motor][abs(mode - 2)].off()
 
-        _timerMotor.init(
+        _timerMotor[motor].init(
             period = duration,
             mode = Timer.ONE_SHOT,
             callback = lambda t:_driveMotor(0, 0)
