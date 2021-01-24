@@ -1,15 +1,16 @@
 from machine import Pin, Timer
 from utime   import sleep_ms
 
-
-_factor = 0
-_config = 0
+_period = 0
+_duty   = 0
+_range  = 0
+_ratio  = 0
 
 _active = 0
 _pin    = 0
 
 _timer      = Timer(-1)
-_timerMove  = [Timer(-1), Timer(-1)]
+_timerMove  = Timer(-1)
 _timerMotor = [Timer(-1), Timer(-1)]
 _processing = False
 _moveList   = []
@@ -19,7 +20,7 @@ _callback   = ()
 ################################
 ## CONFIG
 
-def config(motorConfig, motorPins):
+def config(motorPins, motorConfig):
     global _active
     global _pin
     """
@@ -34,21 +35,19 @@ def config(motorConfig, motorPins):
         (Pin(motorPins[0][0], Pin.OUT), Pin(motorPins[0][1], Pin.OUT)) if _active[1] else (0, 0)    # right order!
     )
 
-    if _active[0]:
-        _pin[0][0].off()
-        _pin[0][1].off()
-
-    if _active[1]:
-        _pin[1][0].off()
-        _pin[1][1].off()
+    _driveMotor(0)  # Set both pin off, if motor is active.
+    _driveMotor(1)  # Set both pin off, if motor is active.
 
     configMotor(motorConfig)
 
 
 def configMotor(motorConfig):
-    global _factor
-    global _config
+    global _period
+    global _duty
+    global _range
+    global _ratio
     """
+    #######################################################################################################   DEPRECATED
     Parameter motorConfig consists of three tuples:
     T1 (left) timer setting, T0 (right) timer setting, borders and duty factor.
 
@@ -61,12 +60,10 @@ def configMotor(motorConfig):
         ( (period, duty),  (period, duty),   (min. duty, max. duty, init. factor))
 
     """
-    _config = (motorConfig[1], motorConfig[0], motorConfig[2])
-
-    """
-    Duty factor extracted from the third tuple into a "dedicated" variable.
-    """
-    _factor = _config[2][2]
+    _period = motorConfig[0]
+    _duty   = [motorConfig[1][1], motorConfig[1][0]]
+    _range  = motorConfig[2]
+    _ratio  = motorConfig[3]
 
 
 
@@ -170,26 +167,27 @@ def _processMove(move):       # ((direction, duration))
 
 
 def _setController(modeLeft = 0, modeRight = 0):        # (T1 mode, T0 mode)
-    global _active
     """
     Sets both motor in one go. (If both are active.)
     This setter is permanent,
     its only responsibility to handle PWM.
     """
 
-    mode = (modeRight, modeLeft)                        # Switch to lower-level order: (left, right) -> (T0 = right, T1 = left)
+    if modeLeft == 0 and modeRight == 0:
+        _timerMove.deinit()
+        _driveMotor(0, 0)
+        _driveMotor(1, 0)
+    else:
+        _timerMove.init(
+            period = _period,
+            mode = Timer.PERIODIC,
+            callback = lambda t:_initMotors(((0, modeRight, _duty[0]), (1, modeLeft, _duty[1])))
+        )
 
-    for motor in range(2):
-        if _active[motor]:
-            if mode[motor] == 0:
-                _timerMove[motor].deinit()
-                _driveMotor(motor, 0)
-            else:
-                _timerMove[motor].init(
-                    period = _config[motor][0],
-                    mode = Timer.PERIODIC,
-                    callback = lambda t:_driveMotor(motor, mode[motor], _config[motor][1])
-                )
+
+def _initMotors(config):
+    _driveMotor(config[0][0], config[0][1], config[0][2])
+    _driveMotor(config[1][0], config[1][1], config[1][2])
 
 
 def _driveMotor(motor = 0, mode = 0, duration = 0):
@@ -207,15 +205,16 @@ def _driveMotor(motor = 0, mode = 0, duration = 0):
 
     duration : integer parameter (makes this setter temporary)
     """
-    if mode != 0:
-        _pin[motor][1 - mode].on()
-        _pin[motor][abs(mode - 2)].off()
+    if _active[motor]:
+        if mode != 0:
+            _pin[motor][1 - mode].on()
+            _pin[motor][abs(mode - 2)].off()
 
-        _timerMotor[motor].init(
-            period = duration,
-            mode = Timer.ONE_SHOT,
-            callback = lambda t:_driveMotor(motor, 0)
-        )
-    else:
-        _pin[motor][0].off()
-        _pin[motor][1].off()
+            _timerMotor[motor].init(
+                period = duration,
+                mode = Timer.ONE_SHOT,
+                callback = lambda t:_driveMotor(motor, 0)
+            )
+        else:
+            _pin[motor][0].off()
+            _pin[motor][1].off()

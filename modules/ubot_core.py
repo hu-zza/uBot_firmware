@@ -293,13 +293,14 @@ if not CONFIG.get("i2cActive"):
 
 motor.config(
     (
-        (CONFIG.get("motorT1Period"), CONFIG.get("motorT1Duty")),                           # Left motor
-        (CONFIG.get("motorT0Period"), CONFIG.get("motorT0Duty")),                           # Right motor
-        (CONFIG.get("motorMinDuty"),  CONFIG.get("motorMaxDuty"), CONFIG.get("motorRatio")) # Finetuning
-    ),
-    (
         (4, 5),                                         # Left motor
         (0, 0) if CONFIG.get("uartActive") else (1, 3)  # Right motor
+    ),
+    (
+        CONFIG.get("motorPeriod"),
+        CONFIG.get("motorDuty"),
+        CONFIG.get("motorDutyRange"),
+        CONFIG.get("motorRatio")
     )
 )
 

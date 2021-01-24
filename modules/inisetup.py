@@ -9,8 +9,8 @@ ap = network.WLAN(network.AP_IF)
 config = {
     "firmwareMajor"     : 0,
     "firmwareMinor"     : 1,
-    "firmwarePatch"     : 64,
-    "initialDateTime"   : (2021, 1, 24, 0, 21, 30, 0, 0),
+    "firmwarePatch"     : 65,
+    "initialDateTime"   : (2021, 1, 24, 0, 22, 45, 0, 0),
     "powerOnCount"      : 0,
 
     "apActive"          : True,
@@ -33,14 +33,10 @@ config = {
     "buzzerActive"      : True,
     "buzzerPin"         : 15,
 
-    "motorT0Period"     : 20,
-    "motorT0Duty"       : 12,
-    "motorT1Period"     : 20,
-    "motorT1Duty"       : 12,
-    "motorMinDuty"      : 8,
-    "motorMaxDuty"      : 20,
-    "motorRatio"        : 1,
-
+    "motorPeriod"       : 20,
+    "motorDuty"         : (12, 12),
+    "motorDutyRange"    : (6, 18),
+    "motorRatio"        : 1.0,
 
     "feedbackMagMin"    : (),
     "feedbackMagMax"    : (),
