@@ -3,11 +3,13 @@ import uos, sys
 from machine import RTC
 
 
-_dateTime       = 0
-_events         = []
-_exceptions     = []
-_eventsFile     = 0
-_exceptionsFile = 0
+_dateTime = 0
+_fileName = 0
+                #    Name   | List |   Directory
+_logFiles = [
+                ["Exception", [], "log/exception/"],
+                ["Event",     [], "log/event/"]
+            ]
 
 
 
@@ -15,69 +17,37 @@ _exceptionsFile = 0
 ## CONFIG
 
 def config(dateTime, powerOnCount):
-    global _exceptions
     global _dateTime
-    global _exceptionsFile
+    global _fileName
+    global _logFiles
 
-    _dateTime       = dateTime
-    _eventsFile     = "log/event/{:010d}.txt".format(powerOnCount)
-    _exceptionsFile = "log/exception/{:010d}.txt".format(powerOnCount)
+    _dateTime = dateTime
+    _fileName = "{:010d}.txt".format(int(powerOnCount))
 
-    files = (("Exception", _exceptions, _exceptionsFile), ("Event", _events, _eventsFile))
-
-    for attr in files:
+    for logFile in _logFiles:
         try:
-            with open(attr[2], "w") as file:
-                file.write("{}\n{} log initialised successfully.\n\n".format(_dateTime.datetime(), attr[0]))
+            with open(logFile[2] + _fileName, "w") as file:
+                file.write("{}\n{} log initialised successfully.\n\n".format(_dateTime.datetime(), logFile[0]))
+                _saveFromList(logFile)
         except Exception as e:
             _appendToList(e)
-
-        if attr[1] != []:                                               # Use case: append() can be used before config(),
-            try:                                                        #         so save the possible items from lists.
-                with open(attr[2], "a") as file:
-                    for item in attr[1]:
-                        file.write("{}\n".format(_dateTime.datetime())) # Exceptions appended before config() hasn't got datetime.
-
-                        if isinstance(item, Exception):
-                            sys.print_exception(item, file)
-                        else:
-                            file.write("{}\n".format(item))
-
-                        file.write("\n")
-                attr[1] = []                                            # Clear the list. Maybe it will be used later.
-            except Exception as e:
-                _appendToList(e)
 
 
 
 ################################
 ## PUBLIC METHODS
 
-
 def getDateTime():
     return _dateTime.datetime()
 
 
 def append(item):
-    global _eventsFile
-    global _exceptionsFile
+    global _logFiles
 
-    if isinstance(item, Exception):
-        fileName = _exceptionsFile
-    else:
-        fileName = _eventsFile
-
-    if fileName != 0:
+    if _fileName != 0:
         try:
-            with open(fileName, "a") as file:
-                file.write("{}\n".format(_dateTime.datetime()))
-
-                if isinstance(item, Exception):
-                    sys.print_exception(item, file)
-                else:
-                    file.write("{}\n".format(item))
-
-                file.write("\n")
+            with open(_logFiles[_defineIndex(item)][2] + _fileName, "a") as file:
+                _writeOutItem(_dateTime.datetime(), file, item)
         except Exception as e:
             _appendToList(e)
             _appendToList(item)
@@ -90,18 +60,61 @@ def append(item):
 ## PRIVATE, HELPER METHODS
 
 def _appendToList(item):
-    global _events
-    global _exceptions
+    global _logFiles
 
-    if isinstance(item, Exception):
-        list = _exceptions
-    else:
-        list = _events
+    index = _defineIndex(item)
 
     try:
-        list.append((() if _dateTime == 0 else _dateTime.datetime(), item))
-        if 30 < len(list):
-            list = list[10:]
+        _logFiles[index][1].append((() if _dateTime == 0 else _dateTime.datetime(), item))
+
+        if 30 < len(_logFiles[index][1]):
+            try:
+                _saveFromList(_logFiles[index])
+            except Exception as e:
+                _logFiles[index][1] = _logFiles[index][1][10:]              # Reassign list (Delete the oldest 10 items.)
+
     except Exception as e:
         sys.print_exception(e)
-        sys.print_exception(exception)
+        if index == 0:
+            sys.print_exception(item)
+
+
+def _saveFromList(logFile, fallback = False):
+    if logFile[1] != []:                                            # If this list contains item(s).
+
+        if _fileName == 0:                                          # If filename is undefined.
+            fallback = True
+
+            fileName = "0000000000.txt" if fallback else _fileName
+            dateTime = () if _dateTime == 0 else _dateTime.datetime()
+        try:
+            with open(logFile[2] + fileName, "a") as file:
+                for item in logFile[1]:
+                    if item[0] != ():                               # The first tuple of the list item should contain datetime.
+                        _writeOutItem(item[0], file, item[1])
+                    else:                                           # If the first tuple is empty, save it with the current datetime, or ().
+                        _writeOutItem(dateTime, file, item[1])
+            logFile[1] = []                                         # Clear the list.
+        except Exception as e:
+            _appendToList(e)
+
+            if not fallback:
+                _saveFromList(logFile, True)
+
+
+def _writeOutItem(dateTime, file, item):
+    file.write("{}\n".format(dateTime))
+
+    if _defineIndex(item) == 0:
+        sys.print_exception(item, file)
+    else:
+        file.write("{}\n".format(item))
+
+    file.write("\n")
+
+
+def _defineIndex(item):
+    if isinstance(item, Exception):
+        return 0
+    else:
+        return 1

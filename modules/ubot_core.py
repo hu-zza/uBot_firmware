@@ -247,7 +247,10 @@ if configLoaded or defaultsLoaded:
         DT.datetime(CONFIG.get("initialDateTime"))
 
 
-logger.config(DT, CONFIG.get("powerOnCount"))
+try:
+        logger.config(DT, CONFIG.get("powerOnCount"))
+except Exception as e:
+    logger.append(e)
 
 
 try:

@@ -1,6 +1,8 @@
 from machine import Pin, Timer
 from utime   import sleep_ms
 
+import ubot_logger as logger
+
 
 _factor = 0
 _config = 0
@@ -178,6 +180,7 @@ def _setController(modeLeft = 0, modeRight = 0):        # (T1 mode, T0 mode)
     mode = (modeRight, modeLeft)                        # Switch to lower-level order: (left, right) -> (T0 = right, T1 = left)
 
     for motor in range(2):
+        logger.append("MOTOR: {}\nActive: {}\nMode: {} Period: {} Duty: {}\n\n".format(motor, _active[motor], mode[motor], _config[motor][0], _config[motor][1]))
         if _active[motor]:
             if mode[motor] == 0:
                 _timerMove[motor].deinit()

@@ -9,8 +9,8 @@ ap = network.WLAN(network.AP_IF)
 config = {
     "firmwareMajor"     : 0,
     "firmwareMinor"     : 1,
-    "firmwarePatch"     : 62,
-    "initialDateTime"   : (2021, 1, 23, 0, 15, 30, 0, 0),
+    "firmwarePatch"     : 63,
+    "initialDateTime"   : (2021, 1, 24, 0, 19, 15, 0, 0),
     "powerOnCount"      : 0,
 
     "apActive"          : True,
@@ -200,6 +200,19 @@ def setup():
 
     with open("etc/datetime.py", "w") as file:
         file.write("DT = {}".format(config.get("initialDateTime")))
+
+
+    with open("log/datetime.txt", "w") as file:
+        file.write("0000000000\n{}\n\n".format(config.get("initialDateTime")))
+
+
+    with open("log/exception/0000000000.txt", "w") as file:
+        file.write("{}\nFallback exception log initialised successfully.\n\n".format(config.get("initialDateTime")))
+
+
+    with open("log/event/0000000000.txt", "w") as file:
+        file.write("{}\nFallback event log initialised successfully.\n\n".format(config.get("initialDateTime")))
+
 
     saveDictionaryToFile("etc/config.py", config)
     saveDictionaryToFile("etc/defaults.py", config)
