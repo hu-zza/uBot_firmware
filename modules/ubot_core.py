@@ -4,7 +4,6 @@ from machine     import Pin, PWM, RTC, Timer, UART, WDT
 from ubinascii   import hexlify
 from utime       import sleep, sleep_ms
 
-import feedback
 import ubot_buzzer    as buzzer
 import ubot_logger    as logger
 import ubot_motor     as motor
@@ -192,17 +191,7 @@ def calibrateFeedback():
     result = False
     buzzer.setDefaultState(1)
     buzzer.keyBeep("beepAttention")
-
-    try:
-        result = feedback.calibrate(60)         # Duration: 60 seconds
-        if result != ():
-            CONFIG["feedbackMagMin"] = result[0]
-            CONFIG["feedbackMagMax"] = result[1]
-            saveConfig()
-            result = True
-    except Exception as e:
-        logger.append(e)
-
+    sleep(3)
     buzzer.setDefaultState(0)
     buzzer.keyBeep("beepReady")
     return result
@@ -251,14 +240,6 @@ try:
         logger.config(DT, CONFIG.get("powerOnCount"))
 except Exception as e:
     logger.append(e)
-
-
-if CONFIG.get("i2cActive"):
-    try:
-        feedback.config(CONFIG.get("i2cFreq"), CONFIG.get("i2cSda"), CONFIG.get("i2cScl"))
-        feedback.setMinMaxTuples(CONFIG.get("feedbackMagMin"), CONFIG.get("feedbackMagMax"))
-    except Exception as e:
-        logger.append(e)
 
 
 ###########

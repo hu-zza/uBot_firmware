@@ -9,8 +9,8 @@ ap = network.WLAN(network.AP_IF)
 config = {
     "firmwareMajor"     : 0,
     "firmwareMinor"     : 1,
-    "firmwarePatch"     : 71,
-    "initialDateTime"   : (2021, 1, 25, 0, 20, 40, 0, 0),
+    "firmwarePatch"     : 72,
+    "initialDateTime"   : (2021, 1, 25, 0, 22, 50, 0, 0),
     "powerOnCount"      : 0,
 
     "apActive"          : True,
@@ -25,7 +25,7 @@ config = {
     "uartActive"        : True,
     "watchdogActive"    : False,
 
-    "i2cActive"         : True,
+    "i2cActive"         : False,
     "i2cSda"            : 0,
     "i2cScl"            : 2,
     "i2cFreq"           : 400000,
@@ -170,25 +170,6 @@ def setup():
                          "core = sys.modules.get('ubot_core')\n\n"
                          "import ubot_debug\n"
                          "from ubot_debug import listExceptions, printExceptions, startUart, stopUart, stopErrorSignal\n\n"
-        ))
-        file.write(footerComment)
-
-
-    with open("feedback.py", "w") as file:
-        file.write(firmwareComment)
-        file.write(("import ubot_lsm303\n\n"
-                    "def config(freq, SDA, SCL):\n"
-                    "    ubot_lsm303.config(freq, SDA, SCL)\n\n"
-                    "def calibrate(duration):\n"
-                    "    return ubot_lsm303.calibrate(duration)\n\n"
-                    "def setMinMaxTuples(minimumTuple, maximumTuple):\n"
-                    "    ubot_lsm303.setMinMaxTuples(minimumTuple, maximumTuple)\n\n"
-                    "def getCorrectedMag():\n"
-                    "    return ubot_lsm303.getCorrectedMag()\n\n"
-                    "def getHeading():\n"
-                    "    return ubot_lsm303.getHeading()\n\n"
-                    "def _readMag():\n"
-                    "    return ubot_lsm303._readMag()\n\n"
         ))
         file.write(footerComment)
 
