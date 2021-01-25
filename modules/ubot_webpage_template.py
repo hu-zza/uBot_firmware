@@ -129,14 +129,13 @@ def getDebugPanel():
               "        <br><br><hr><hr>\n"
               "        <h3>System</h3>\n"
               "            <table class='system'>\n"
-              "                <tr><td> <strong>Firmware:</strong> </td><td> {firmware} </td><td>  </td></tr>\n"
               "                <tr><td> <strong>Power on count:</strong> </td><td> {powerOnCount} </td><td>  </td></tr>\n"
               "                <tr><td> <strong>Saved programs:</strong> </td><td> {savedPrograms} </td><td>  </td></tr>\n"
+              "                <tr><td> <strong>Firmware:</strong> </td><td> {firmware} </td><td>  </td></tr>\n"
               "                <tr><td> <strong>Free memory:</strong> </td><td> {freeMemory}% </td><td> {memoryDetails} </td></tr>\n"
               "                <tr><td> <strong>Free space:</strong> </td><td> {freeSpace}% </td><td> {diskDetails} </td></tr>\n"
+              "                <tr><td> <strong>System RTC:</strong> </td><td colspan='2'> {year}. {month:02d}. {day:02d}.&nbsp;&nbsp;&nbsp;{hour:02d} : {minute:02d} : {second:02d} </td></tr>\n"
               "            </table>\n"
-              "        <br><br><hr><hr>\n"
-              "        <h3>Exceptions</h3>\n"
              )
 
     firmwareVersion = "{}.{}.{}".format(
@@ -150,15 +149,18 @@ def getDebugPanel():
     stat        = uos.statvfs("/")
     freeSpace   = stat[4] * stat[0] * 100 // (stat[2] * stat[1])       # f_bavail * f_bsize * 100 // f_blocks * f_frsize
     diskDetails = "{} / {}".format(stat[4] * stat[0], stat[2] * stat[1])
+    dt = logger.getDateTime()
 
     return result.format(
         commands = turtle._commandArray[:turtle._commandPointer].decode(),
         program  = turtle._programArray[:turtle._programParts[-1]].decode(),
-        firmware = firmwareVersion,
         powerOnCount = _config.get("powerOnCount"),
+        savedPrograms = len(uos.listdir("program")),
+        firmware = firmwareVersion,
         freeMemory = freePercent, memoryDetails = memoryDetails,
         freeSpace = freeSpace, diskDetails = diskDetails,
-        savedPrograms = len(uos.listdir("program"))
+        year = dt[0], month = dt[1], day = dt[2],
+        hour = dt[4], minute = dt[5], second = dt[6]
     )
 
 

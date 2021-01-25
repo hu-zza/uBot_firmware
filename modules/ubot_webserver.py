@@ -128,10 +128,17 @@ def _processGetQuery(path):
                 _connection.sendall(part())
 
             if path == "/debug":
+                _connection.send("        <br><br><hr><hr>\n")
+                _connection.send("        <h3>Exceptions</h3>\n")
                 _sendRaw("log/exception/{:010d}.txt".format(_config.get("powerOnCount")))
+                _connection.send("        <br><hr><br>\n")
+                _sendRaw("log/exception/0000000000.txt")
+
                 _connection.send("        <br><br><hr><hr>\n")
                 _connection.send("        <h3>Events</h3>\n")
                 _sendRaw("log/event/{:010d}.txt".format(_config.get("powerOnCount")))
+                _connection.send("        <br><hr><br>\n")
+                _sendRaw("log/event/0000000000.txt")
 
             _connection.sendall(template.getPageFooter())
         elif path[:5] == "/raw/":
