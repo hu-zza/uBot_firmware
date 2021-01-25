@@ -292,6 +292,8 @@ motor.config(
         CONFIG.get("motorConfig")
 )
 
+if CONFIG.get("turtleActive"):
+    motor.setBreath(CONFIG.get("turtleBreathLength"))
 
 ###########
 ## AP

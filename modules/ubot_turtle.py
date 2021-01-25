@@ -25,7 +25,8 @@ _moveLength        = 0           #
 _turnLength        = 0           #
 _breathLength      = 0           #
 
-_endSignal         = ""          # [need config()] Sound indicates the end of program execution: buzzer.keyBeep(_endSignal)
+_stepSignal        = ""          # [need config()] Sound indicates the end of a step during execution: buzzer.keyBeep(_stepSignal)
+_endSignal         = ""          # [need config()] Sound indicates the end of program execution:       buzzer.keyBeep(_endSignal)
 
 _pressedListIndex  = 0           #
 _pressedList       = 0           # [need config()] Low-level:  The last N (_pressLength + _maxError) buttoncheck results.
@@ -64,6 +65,7 @@ def config(config):
     global _moveLength
     global _turnLength
     global _breathLength
+    global _stepSignal
     global _endSignal
     global _pressedList
     global _currentMapping
@@ -88,6 +90,7 @@ def config(config):
     _breathLength = config.get("turtleBreathLength")
 
     _endSignal    = config.get("turtleEndSignal")
+    _stepSignal   = config.get("turtleStepSignal")
 
     _pressedList  = [0] * (_pressLength + _maxError)
 
@@ -118,9 +121,6 @@ def move(direction):
     elif direction == 80:               # "P" - PAUSE
         motor.move(0, _moveLength)
 
-    if direction in (70, 66, 76, 108, 82, 114, 80):
-        motor.move(0, _breathLength)    # Pause between movements.
-
 
 def press(pressed):                     # pressed = 1<<buttonOrdinal
     if isinstance(pressed, str):
@@ -128,6 +128,10 @@ def press(pressed):                     # pressed = 1<<buttonOrdinal
 
     _logLastPressed(pressed)
     _addCommand(pressed)
+
+
+def checkButtons():
+    _addCommand(_getValidatedPressedButton())
 
 
 
@@ -145,7 +149,7 @@ def _startButtonChecking():
     _timer.init(
         period = _checkPeriod,
         mode = Timer.PERIODIC,
-        callback = lambda t:_addCommand(_getValidatedPressedButton())
+        callback = lambda t:checkButtons()
     )
 
 
@@ -240,8 +244,9 @@ def _addCommand(pressed):
         if pressed == 0:                # result = 0 means, there is nothing to save to _commandArray.
             result = 0                  # Not only lack of buttonpress (pressed == 0) returns 0.
         elif _runningProgram:
-            _runningProgram = False                                         # Stop commands / program execution
+            _runningProgram = False
             result = _beepAndReturn(("beepProcessed", 0))                   # Beep and skip the (result) processing.
+            motor.stop()                                                    # Stop commands / program execution.
         else:
             tupleWithCallable = _currentMapping.get(pressed)                # Dictionary based switch...case
 
@@ -365,6 +370,7 @@ def _start(arguments):                # (blockLevel,)
     global _runningProgram
 
     buzzer.keyBeep("beepProcessed")
+    processing      = True
     _runningProgram = True
     _stopButtonChecking()
 
@@ -382,13 +388,13 @@ def _start(arguments):                # (blockLevel,)
     core.saveDateTime()
     _logExecuted()
 
-    if _endSignal != "":
-        motor.setCallback(lambda: buzzer.keyBeep(_endSignal), True)
+    motor.setCallback(lambda: _callbackEnd(),  0, False)
+    motor.setCallback(lambda: _callbackStep(), 1, False)
 
     #counter = 0                             #      Debug
     #print("_toPlay[:_pointer]", "_toPlay[_pointer:]", "\t\t\t", "counter", "_pointer", "_toPlay[_pointer]") # Debug
 
-    while _runningProgram:
+    while processing:
         remaining = _upperBoundary - 1 - _pointer #      Remaining bytes in _toPlay bytearray. 0 if _toPlay[_pointer] == _toPlay[-1]
         checkCounter = False
 
@@ -396,7 +402,7 @@ def _start(arguments):                # (blockLevel,)
         #    print(_toPlay[:_pointer].decode(), _toPlay[_pointer:].decode(), "\t\t\t", counter, _pointer, _toPlay[_pointer])
 
         if remaining < 0:                       #      If everything is executed, exits.
-            _runningProgram = False
+            processing = False
 
 
         elif _toPlay[_pointer] == 40:           # "("  The block-level previews are excluded. (Those starts from first statement.)
@@ -412,7 +418,7 @@ def _start(arguments):                # (blockLevel,)
                 _counterStack.append(_toPlay[_pointer + 1] - 48) # Counter was increased at definition by 48. b'0' == 48
                 checkCounter = True
             else:                               #      Maybe it's an error, so stop execution.
-                _runningProgram = False
+                processing = False
 
 
         elif _toPlay[_pointer] == 42:           # "*"  End of the body of the loop.
@@ -426,7 +432,7 @@ def _start(arguments):                # (blockLevel,)
                 _pointer += 1
 
             if _toPlay[_pointer] != 125:        #      Means the _pointer < _upperBoundary breaks the while loop.
-                _runningProgram = False
+                processing = False
 
 
         elif _toPlay[_pointer] == 124:          # "|"  End of the currently executed function.
@@ -446,7 +452,7 @@ def _start(arguments):                # (blockLevel,)
                     del _pointerStack[-1]               # The function call failed, there is no need for "jump back" index.
                     _pointer += 2                       # Jump to the second tilde: "~" (Skip the whole function call.)
             else:                                       # Maybe it's an error, so stop execution.
-                _runningProgram = False
+                processing = False
 
 
         else:
@@ -658,6 +664,21 @@ def _delete(arguments):                     # (blockLevel,)
 def _customMapping():
     buzzer.keyBeep("beepLoaded")
     return 0
+
+
+
+################################
+## CALLBACK FUNCTIONS
+
+def _callbackStep():
+    if _stepSignal != "":
+        buzzer.keyBeep(_stepSignal)
+    checkButtons()
+
+
+def _callbackEnd():
+    if _endSignal != "":
+        buzzer.keyBeep(_endSignal)
 
 
 

@@ -9,8 +9,8 @@ ap = network.WLAN(network.AP_IF)
 config = {
     "firmwareMajor"     : 0,
     "firmwareMinor"     : 1,
-    "firmwarePatch"     : 68,
-    "initialDateTime"   : (2021, 1, 25, 0, 14, 45, 0, 0),
+    "firmwarePatch"     : 70,
+    "initialDateTime"   : (2021, 1, 25, 0, 20, 10, 0, 0),
     "powerOnCount"      : 0,
 
     "apActive"          : True,
@@ -33,11 +33,12 @@ config = {
     "buzzerActive"      : True,
     "buzzerPin"         : 15,
 
-    "motorConfig"       : [[10, 6], [1000, 750], [1.0, 500, 1023]],
+    "motorConfig"       : [[10, 6], [1000, 750], [1.0, 500, 1023], 0],
 
     "feedbackMagMin"    : (),
     "feedbackMagMax"    : (),
 
+    "beepStep"          : (60, 50, 0, 1),
     "beepReady"         : ((60, 100, 25, 3), (71, 500, 100, 1)),
 
     "beepProcessed"     : (64, 100, 0, 1),
@@ -62,6 +63,7 @@ config = {
     "turtleTurnLength"  : 359,
     "turtleBreathLength": 500,
     "turtleLoopChecking": 1,    #  0 - off  #  1 - simple (max. 20)  #  2 - simple (no limit)
+    "turtleStepSignal"  : "beepStep",
     "turtleEndSignal"   : "beepReady",
 
     "turtleClockPin"    : 13,
