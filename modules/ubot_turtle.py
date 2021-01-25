@@ -45,6 +45,7 @@ _blockStartIndex   = 0           #                 At block (loop, fn declaratio
 _blockStartStack   = []          #
 _currentMapping    = 0           #
 _mappingsStack     = []          #
+_processingProgram = False       #
 _runningProgram    = False       #
 _timer             = Timer(-1)   #                 Executes the repeated button checks.
 
@@ -238,13 +239,15 @@ def _advanceCounter():
 ## BUTTON PRESS INTERPRETATION
 
 def _addCommand(pressed):
+    global _processingProgram
     global _runningProgram
 
     try:
         if pressed == 0:                # result = 0 means, there is nothing to save to _commandArray.
             result = 0                  # Not only lack of buttonpress (pressed == 0) returns 0.
         elif _runningProgram:
-            _runningProgram = False
+            _processingProgram = False
+            _runningProgram    = False
             result = _beepAndReturn(("beepProcessed", 0))                   # Beep and skip the (result) processing.
             motor.stop()                                                    # Stop commands / program execution.
         else:
@@ -367,11 +370,12 @@ def _logExecuted():
 ## STANDARDIZED FUNCTIONS
 
 def _start(arguments):                # (blockLevel,)
+    global _processingProgram
     global _runningProgram
 
     buzzer.keyBeep("beepProcessed")
-    processing      = True
-    _runningProgram = True
+    _processingProgram = True
+    _runningProgram    = True
     _stopButtonChecking()
 
     if arguments[0] or 0 < _commandPointer: # Executing the body of a block or the _commandArray
@@ -394,7 +398,7 @@ def _start(arguments):                # (blockLevel,)
     #counter = 0                             #      Debug
     #print("_toPlay[:_pointer]", "_toPlay[_pointer:]", "\t\t\t", "counter", "_pointer", "_toPlay[_pointer]") # Debug
 
-    while processing:
+    while _processingProgram:
         remaining = _upperBoundary - 1 - _pointer #      Remaining bytes in _toPlay bytearray. 0 if _toPlay[_pointer] == _toPlay[-1]
         checkCounter = False
 
@@ -402,7 +406,7 @@ def _start(arguments):                # (blockLevel,)
         #    print(_toPlay[:_pointer].decode(), _toPlay[_pointer:].decode(), "\t\t\t", counter, _pointer, _toPlay[_pointer])
 
         if remaining < 0:                       #      If everything is executed, exits.
-            processing = False
+            _processingProgram = False
 
 
         elif _toPlay[_pointer] == 40:           # "("  The block-level previews are excluded. (Those starts from first statement.)
@@ -418,7 +422,7 @@ def _start(arguments):                # (blockLevel,)
                 _counterStack.append(_toPlay[_pointer + 1] - 48) # Counter was increased at definition by 48. b'0' == 48
                 checkCounter = True
             else:                               #      Maybe it's an error, so stop execution.
-                processing = False
+                _processingProgram = False
 
 
         elif _toPlay[_pointer] == 42:           # "*"  End of the body of the loop.
@@ -432,7 +436,7 @@ def _start(arguments):                # (blockLevel,)
                 _pointer += 1
 
             if _toPlay[_pointer] != 125:        #      Means the _pointer < _upperBoundary breaks the while loop.
-                processing = False
+                _processingProgram = False
 
 
         elif _toPlay[_pointer] == 124:          # "|"  End of the currently executed function.
@@ -452,7 +456,7 @@ def _start(arguments):                # (blockLevel,)
                     del _pointerStack[-1]               # The function call failed, there is no need for "jump back" index.
                     _pointer += 2                       # Jump to the second tilde: "~" (Skip the whole function call.)
             else:                                       # Maybe it's an error, so stop execution.
-                processing = False
+                _processingProgram = False
 
 
         else:
@@ -677,6 +681,12 @@ def _callbackStep():
 
 
 def _callbackEnd():
+    global _processingProgram
+    global _runningProgram
+
+    _processingProgram = False
+    _runningProgram    = False
+
     if _endSignal != "":
         buzzer.keyBeep(_endSignal)
 

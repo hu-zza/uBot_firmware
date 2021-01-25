@@ -9,8 +9,8 @@ ap = network.WLAN(network.AP_IF)
 config = {
     "firmwareMajor"     : 0,
     "firmwareMinor"     : 1,
-    "firmwarePatch"     : 70,
-    "initialDateTime"   : (2021, 1, 25, 0, 20, 10, 0, 0),
+    "firmwarePatch"     : 71,
+    "initialDateTime"   : (2021, 1, 25, 0, 20, 40, 0, 0),
     "powerOnCount"      : 0,
 
     "apActive"          : True,
@@ -38,7 +38,7 @@ config = {
     "feedbackMagMin"    : (),
     "feedbackMagMax"    : (),
 
-    "beepStep"          : (60, 50, 0, 1),
+    "beepStep"          : ((None, 200), (60, 50, 0, 1)),
     "beepReady"         : ((60, 100, 25, 3), (71, 500, 100, 1)),
 
     "beepProcessed"     : (64, 100, 0, 1),
