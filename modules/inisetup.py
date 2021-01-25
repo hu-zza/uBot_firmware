@@ -9,8 +9,8 @@ ap = network.WLAN(network.AP_IF)
 config = {
     "firmwareMajor"     : 0,
     "firmwareMinor"     : 1,
-    "firmwarePatch"     : 66,
-    "initialDateTime"   : (2021, 1, 24, 0, 23, 55, 0, 0),
+    "firmwarePatch"     : 67,
+    "initialDateTime"   : (2021, 1, 25, 0, 13, 0, 0, 0),
     "powerOnCount"      : 0,
 
     "apActive"          : True,
@@ -199,7 +199,7 @@ def setup():
 
 
     with open("log/datetime.txt", "w") as file:
-        file.write("0000000000\n{}\n\n".format(config.get("initialDateTime")))
+        file.write("{}\n0000000000.txt\n\n".format(config.get("initialDateTime")))
 
 
     with open("log/exception/0000000000.txt", "w") as file:

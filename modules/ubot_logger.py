@@ -24,6 +24,12 @@ def config(dateTime, powerOnCount):
     _dateTime = dateTime
     _fileName = "{:010d}.txt".format(int(powerOnCount))
 
+    try:
+        with open("log/datetime.txt", "a") as file:
+            file.write("{}\n{}\n\n".format(_dateTime.datetime(), _fileName))
+    except Exception as e:
+        _appendToList(e)
+
     for logFile in _logFiles:
         try:
             with open(logFile[2] + _fileName, "w") as file:
@@ -85,8 +91,8 @@ def _saveFromList(logFile, fallback = False):
         if _fileName == 0:                                          # If filename is undefined.
             fallback = True
 
-            fileName = "0000000000.txt" if fallback else _fileName
-            dateTime = () if _dateTime == 0 else _dateTime.datetime()
+        fileName = "0000000000.txt" if fallback else _fileName
+        dateTime = () if _dateTime == 0 else _dateTime.datetime()
         try:
             with open(logFile[2] + fileName, "a") as file:
                 for item in logFile[1]:
@@ -96,9 +102,11 @@ def _saveFromList(logFile, fallback = False):
                         _writeOutItem(dateTime, file, item[1])
             logFile[1] = []                                         # Clear the list.
         except Exception as e:
-            _appendToList(e)
+            sys.print_exception(e)
 
-            if not fallback:
+            if fallback:
+                raise
+            else:
                 _saveFromList(logFile, True)
 
 

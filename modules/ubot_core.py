@@ -253,13 +253,6 @@ except Exception as e:
     logger.append(e)
 
 
-try:
-    with open("log/datetime.txt", "a") as file:
-        file.write("{:010d}\n{}\n\n".format(CONFIG.get("powerOnCount"), DT.datetime()))
-except Exception as e:
-    logger.append(e)
-
-
 if CONFIG.get("i2cActive"):
     try:
         feedback.config(CONFIG.get("i2cFreq"), CONFIG.get("i2cSda"), CONFIG.get("i2cScl"))
