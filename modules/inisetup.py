@@ -9,8 +9,8 @@ ap = network.WLAN(network.AP_IF)
 config = {
     "firmwareMajor"     : 0,
     "firmwareMinor"     : 1,
-    "firmwarePatch"     : 67,
-    "initialDateTime"   : (2021, 1, 25, 0, 13, 0, 0, 0),
+    "firmwarePatch"     : 68,
+    "initialDateTime"   : (2021, 1, 25, 0, 14, 45, 0, 0),
     "powerOnCount"      : 0,
 
     "apActive"          : True,
@@ -33,10 +33,7 @@ config = {
     "buzzerActive"      : True,
     "buzzerPin"         : 15,
 
-    "motorPeriod"       : 20,
-    "motorDuty"         : (12, 12),
-    "motorDutyRange"    : (6, 18),
-    "motorRatio"        : 1.0,
+    "motorConfig"       : [[10, 6], [1000, 750], [1.0, 500, 1023]],
 
     "feedbackMagMin"    : (),
     "feedbackMagMax"    : (),
@@ -53,7 +50,7 @@ config = {
     "beepDeleted"       : ((71, 100, 25, 3), (60, 500, 100, 1), (None, 200)),
 
     "beepInAndDecrease" : (71, 100, 0, 1),
-    "beepBoundary"      : (60, 500, 150, 3),
+    "beepBoundary"      : (60, 500, 100, 2),
     "beepTooLong"       : (64, 1500, 100, 2),
 
     "beepAdded"         : ((71, 500, 50, 1), (64, 300, 50, 1), (60, 100, 50, 1)),
