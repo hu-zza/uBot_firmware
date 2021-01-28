@@ -9,8 +9,8 @@ ap = network.WLAN(network.AP_IF)
 config = {
     "firmwareMajor"     : 0,
     "firmwareMinor"     : 1,
-    "firmwarePatch"     : 78,
-    "initialDateTime"   : (2021, 1, 28, 0, 23, 30, 0, 0),
+    "firmwarePatch"     : 79,
+    "initialDateTime"   : (2021, 1, 28, 0, 23, 35, 0, 0),
     "powerOnCount"      : 0,
 
     "apActive"          : True,
@@ -36,8 +36,8 @@ config = {
     "turtleTurnLength"  : 359,
     "turtleBreathLength": 500,
     "turtleLoopChecking": 1,    #  0 - off  #  1 - simple (max. 20)  #  2 - simple (no limit)
-    "turtleStepSignal"  : "beepStep",
-    "turtleEndSignal"   : "beepReady",
+    "turtleStepSignal"  : "step",
+    "turtleEndSignal"   : "ready",
 
     "turtleClockPin"    : 13,
     "turtleInputPin"    : 16,

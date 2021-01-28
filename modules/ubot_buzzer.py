@@ -4,7 +4,7 @@ from machine import Pin, PWM
 from utime   import sleep_ms
 from ujson   import loads
 
-import ubot_logger    as logger
+import ubot_logger as logger
 
 
 _pwm          = 0
@@ -42,12 +42,12 @@ def keyBeep(key):
 
                 if isinstance(tuneList[0], list):
                     for tune in tuneList:
-                        if tune[0] == None:
+                        if tune[0] == "null":                                               # JSON mishandling by ujson
                             rest(tune[1])
                         else:
                             midiBeep(tune[0], tune[1], tune[2], tune[3])
                 else:
-                    if tuneList[0] == None:
+                    if tuneList[0] == "null":                                               # JSON mishandling by ujson
                         rest(tuneList[1])
                     else:
                         midiBeep(tuneList[0], tuneList[1], tuneList[2], tuneList[3])
