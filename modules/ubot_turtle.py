@@ -246,10 +246,10 @@ def _addCommand(pressed):
         if pressed == 0:                # result = 0 means, there is nothing to save to _commandArray.
             result = 0                  # Not only lack of buttonpress (pressed == 0) returns 0.
         elif _runningProgram:
+            motor.stop()                                                    # Stop commands / program execution.
             _processingProgram = False
             _runningProgram    = False
             result = _beepAndReturn(("beepProcessed", 0))                   # Beep and skip the (result) processing.
-            motor.stop()                                                    # Stop commands / program execution.
         else:
             tupleWithCallable = _currentMapping.get(pressed)                # Dictionary based switch...case
 
