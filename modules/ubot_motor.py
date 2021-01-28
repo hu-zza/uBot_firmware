@@ -101,6 +101,7 @@ def stop():
     "clears" the _moveList, so pending move tuples
     will not be processed (now).
     """
+    _stopProcessing()
     _resumeList = _moveList
     _moveList   = []                # Reassign instead of clear() method!
 
@@ -172,8 +173,13 @@ def _startProcessing():
         _processMove(_moveList.pop(0))
 
 
-def _stopAndNext():
+def _stopProcessing():
     global _processing
+
+    _processing = False
+
+
+def _stopAndNext():
     """
     Part of a recursive loop: _stopAndNext() - _processMove(move) - _stopAndNext() - ...
 
@@ -184,10 +190,10 @@ def _stopAndNext():
     _callCallback(1)
     sleep_ms(_breath) #############################################
 
-    if 0 < len(_moveList):
+    if _processing and 0 < len(_moveList):
         _processMove(_moveList.pop(0))
     else:
-        _processing = False
+        _stopProcessing()
         _callCallback(0)
 
 
