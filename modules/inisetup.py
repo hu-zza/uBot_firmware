@@ -9,8 +9,8 @@ ap = network.WLAN(network.AP_IF)
 config = {
     "firmwareMajor"     : 0,
     "firmwareMinor"     : 1,
-    "firmwarePatch"     : 77,
-    "initialDateTime"   : (2021, 1, 28, 0, 23, 5, 0, 0),
+    "firmwarePatch"     : 78,
+    "initialDateTime"   : (2021, 1, 28, 0, 23, 30, 0, 0),
     "powerOnCount"      : 0,
 
     "apActive"          : True,
@@ -49,17 +49,17 @@ config = {
 
 
 beeps = {
-    "step"          : "[['null', 200], [60, 50, 0, 1]]",
+    "step"          : "[[\"null\", 200], [60, 50, 0, 1]]",
     "ready"         : "[[60, 100, 25, 3], [71, 500, 100, 1]]",
 
     "processed"     : "[64, 100, 0, 1]",
-    "attention"     : "[[60, 100, 25, 1], [64, 100, 25, 1], [71, 100, 25, 1], ['null', 500]]",
+    "attention"     : "[[60, 100, 25, 1], [64, 100, 25, 1], [71, 100, 25, 1], [\"null\", 500]]",
 
     "started"       : "[[60, 300, 50, 1], [71, 100, 50, 1]]",
     "inputNeeded"   : "[[71, 100, 50, 2], [64, 100, 50, 1]]",
     "completed"     : "[[71, 300, 50, 1], [60, 100, 50, 1]]",
-    "undone"        : "[[71, 100, 25, 2], ['null', 200]]",
-    "deleted"       : "[[71, 100, 25, 3], [60, 500, 100, 1], ['null', 200]]",
+    "undone"        : "[[71, 100, 25, 2], [\"null\", 200]]",
+    "deleted"       : "[[71, 100, 25, 3], [60, 500, 100, 1], [\"null\", 200]]",
 
     "inAndDecrease" : "[71, 100, 0, 1]",
     "boundary"      : "[60, 500, 100, 2]",
@@ -190,7 +190,7 @@ def setup():
     saveDictionaryToFile("etc/defaults.py", config)
 
     for key in beeps.keys():
-        with open("{}.txt".format(key), "w") as file:
+        with open("etc/buzzer/{}.txt".format(key), "w") as file:
             file.write(beeps.get(key))
 
 

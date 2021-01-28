@@ -4,6 +4,8 @@ from machine import Pin, PWM
 from utime   import sleep_ms
 from ujson   import loads
 
+import ubot_logger    as logger
+
 
 _pwm          = 0
 _buzzerActive = 0
@@ -34,21 +36,23 @@ def keyBeep(key):
     beepFile = "{}.txt".format(key)
 
     if beepFile in uos.listdir("etc/buzzer"):
-        with open("etc/buzzer/{}".format(beepFile)) as file:
-            tuneList = loads(file.readline())
+        try:
+            with open("etc/buzzer/{}".format(beepFile)) as file:
+                tuneList = loads(file.readline())
 
-            if isinstance(tuneList[0], list):
-                for tune in tuneList:
-                    if tune[0] == None:
-                        rest(tune[1])
-                    else:
-                        midiBeep(tune[0], tune[1], tune[2], tune[3])
-            else:
-                if tuneList[0] == None:
-                    rest(tuneList[1])
+                if isinstance(tuneList[0], list):
+                    for tune in tuneList:
+                        if tune[0] == None:
+                            rest(tune[1])
+                        else:
+                            midiBeep(tune[0], tune[1], tune[2], tune[3])
                 else:
-                    midiBeep(tuneList[0], tuneList[1], tuneList[2], tuneList[3])
-
+                    if tuneList[0] == None:
+                        rest(tuneList[1])
+                    else:
+                        midiBeep(tuneList[0], tuneList[1], tuneList[2], tuneList[3])
+        except Exception as e:
+            logger.append(e)
 
 def midiBeep(noteOn = 69, duration = 100, restAround = 100, count = 1):
         freq = 440 * pow(2, (noteOn - 69) / 12)
