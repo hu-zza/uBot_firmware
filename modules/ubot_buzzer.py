@@ -1,8 +1,10 @@
+import uos
+
 from machine import Pin, PWM
-from utime   import sleep_ms, sleep_us
+from utime   import sleep_ms
+from ujson   import loads
 
 
-_config       = 0
 _pwm          = 0
 _buzzerActive = 0
 _defaultState = 0
@@ -13,44 +15,42 @@ _defaultState = 0
 ## CONFIG
 
 def config(config):
-    global _config
-    global _pwm
     global _buzzerActive
     global _defaultState
+    global _pwm
 
-    _config       = config
-    _pwm          = PWM(Pin(config.get("buzzerPin")), 0, 0)
-    _buzzerActive = config.get("buzzerActive")
+    _buzzerActive = config[0]
     _defaultState = 0
+
+    if config[0] and config[1] != None:
+        _pwm = PWM(Pin(config[1]), 0, 0)
 
 
 
 ################################
 ## PUBLIC METHODS
 
-def keyBeep(keyInConfigDictionary):
-    tuneList = _config.get(keyInConfigDictionary)
+def keyBeep(key):
+    beepFile = "{}.txt".format(key)
 
-    if tuneList != None:
-        if isinstance(tuneList[0], tuple):
-            for tune in tuneList:
-                if tune[0] == None:
-                    rest(tune[1])
-                else:
-                    midiBeep(tune[0], tune[1], tune[2], tune[3])
-        else:
-            if tuneList[0] == None:
-                rest(tuneList[1])
+    if beepFile in uos.listdir("etc/buzzer"):
+        with open("etc/buzzer/{}".format(beepFile)) as file:
+            tuneList = loads(file.readline())
+
+            if isinstance(tuneList[0], list):
+                for tune in tuneList:
+                    if tune[0] == None:
+                        rest(tune[1])
+                    else:
+                        midiBeep(tune[0], tune[1], tune[2], tune[3])
             else:
-                midiBeep(tuneList[0], tuneList[1], tuneList[2], tuneList[3])
-    else:
-        midiBeep(64)
+                if tuneList[0] == None:
+                    rest(tuneList[1])
+                else:
+                    midiBeep(tuneList[0], tuneList[1], tuneList[2], tuneList[3])
 
 
 def midiBeep(noteOn = 69, duration = 100, restAround = 100, count = 1):
-    if noteOn == None:
-        rest(duration)
-    else:
         freq = 440 * pow(2, (noteOn - 69) / 12)
         beep(freq, duration, restAround, count)
 

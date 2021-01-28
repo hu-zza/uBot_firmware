@@ -9,54 +9,27 @@ ap = network.WLAN(network.AP_IF)
 config = {
     "firmwareMajor"     : 0,
     "firmwareMinor"     : 1,
-    "firmwarePatch"     : 76,
-    "initialDateTime"   : (2021, 1, 28, 0, 20, 0, 0, 0),
+    "firmwarePatch"     : 77,
+    "initialDateTime"   : (2021, 1, 28, 0, 23, 5, 0, 0),
     "powerOnCount"      : 0,
 
     "apActive"          : True,
     "apEssid"           : "uBot__" + hexlify(ap.config("mac"), ":").decode()[9:],
     "apPassword"        : "uBot_pwd",
 
+    "uartActive"        : True,
     "webServerActive"   : True,
-
     "webReplActive"     : True,
     "webReplPassword"   : "uBot_REPL",
-
-    "uartActive"        : True,
-    "watchdogActive"    : False,
 
     "i2cActive"         : False,
     "i2cSda"            : 0,
     "i2cScl"            : 2,
     "i2cFreq"           : 400000,
 
-    "buzzerActive"      : True,
-    "buzzerPin"         : 15,
+    "buzzer"            : [True, 15],
 
     "motorConfig"       : [[10, 6], [1000, 750], [1.0, 500, 1023], 0],
-
-    "feedbackMagMin"    : (),
-    "feedbackMagMax"    : (),
-
-    "beepStep"          : ((None, 200), (60, 50, 0, 1)),
-    "beepReady"         : ((60, 100, 25, 3), (71, 500, 100, 1)),
-
-    "beepProcessed"     : (64, 100, 0, 1),
-    "beepAttention"     : ((60, 100, 25, 1), (64, 100, 25, 1), (71, 100, 25, 1), (None, 500)),
-
-    "beepStarted"       : ((60, 300, 50, 1), (71, 100, 50, 1)),
-    "beepInputNeeded"   : ((71, 100, 50, 2), (64, 100, 50, 1)),
-    "beepCompleted"     : ((71, 300, 50, 1), (60, 100, 50, 1)),
-    "beepUndone"        : ((71, 100, 25, 2), (None, 200)),
-    "beepDeleted"       : ((71, 100, 25, 3), (60, 500, 100, 1), (None, 200)),
-
-    "beepInAndDecrease" : (71, 100, 0, 1),
-    "beepBoundary"      : (60, 500, 100, 2),
-    "beepTooLong"       : (64, 1500, 100, 2),
-
-    "beepAdded"         : ((71, 500, 50, 1), (64, 300, 50, 1), (60, 100, 50, 1)),
-    "beepLoaded"        : ((60, 500, 50, 1), (64, 300, 50, 1), (71, 100, 50, 1)),
-
 
     "turtleActive"      : True,
     "turtleMoveLength"  : 890,
@@ -72,6 +45,28 @@ config = {
     "turtlePressLength" : 5,    # min. 100 ms           turtlePressLength * turtleCheckPeriod
     "turtleFirstRepeat" : 75,   # min. 1500 ms          turtleFirstRepeat * turtleCheckPeriod
     "turtleMaxError"    : 1     # max. 0.166' (16,6'%)  turtleMaxError / (turtlePressLength + turtleMaxError)
+}
+
+
+beeps = {
+    "step"          : "[['null', 200], [60, 50, 0, 1]]",
+    "ready"         : "[[60, 100, 25, 3], [71, 500, 100, 1]]",
+
+    "processed"     : "[64, 100, 0, 1]",
+    "attention"     : "[[60, 100, 25, 1], [64, 100, 25, 1], [71, 100, 25, 1], ['null', 500]]",
+
+    "started"       : "[[60, 300, 50, 1], [71, 100, 50, 1]]",
+    "inputNeeded"   : "[[71, 100, 50, 2], [64, 100, 50, 1]]",
+    "completed"     : "[[71, 300, 50, 1], [60, 100, 50, 1]]",
+    "undone"        : "[[71, 100, 25, 2], ['null', 200]]",
+    "deleted"       : "[[71, 100, 25, 3], [60, 500, 100, 1], ['null', 200]]",
+
+    "inAndDecrease" : "[71, 100, 0, 1]",
+    "boundary"      : "[60, 500, 100, 2]",
+    "tooLong"       : "[64, 1500, 100, 2]",
+
+    "added"         : "[[71, 500, 50, 1], [64, 300, 50, 1], [60, 100, 50, 1]]",
+    "loaded"        : "[[60, 500, 50, 1], [64, 300, 50, 1], [71, 100, 50, 1]]"
 }
 
 
@@ -131,6 +126,7 @@ def setup():
     uos.mount(vfs, "/")
 
     uos.mkdir("etc")
+    uos.mkdir("etc/buzzer")
     uos.mkdir("program")
     uos.mkdir("log")
     uos.mkdir("log/commands")
@@ -192,6 +188,10 @@ def setup():
 
     saveDictionaryToFile("etc/config.py", config)
     saveDictionaryToFile("etc/defaults.py", config)
+
+    for key in beeps.keys():
+        with open("{}.txt".format(key), "w") as file:
+            file.write(beeps.get(key))
 
 
     return vfs

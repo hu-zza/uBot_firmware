@@ -1,8 +1,8 @@
 import esp, gc, network, ujson, uos, usocket, sys, webrepl
 
-from machine     import Pin, PWM, RTC, Timer, UART, WDT
+from machine     import Pin, PWM, RTC, Timer, UART
 from ubinascii   import hexlify
-from utime       import sleep, sleep_ms
+from utime       import sleep_ms
 
 import ubot_buzzer    as buzzer
 import ubot_logger    as logger
@@ -190,10 +190,10 @@ def saveToFile(fileName, mode, content):
 def calibrateFeedback():
     result = False
     buzzer.setDefaultState(1)
-    buzzer.keyBeep("beepAttention")
-    sleep(3)
+    buzzer.keyBeep("attention")
+    sleep_ms(3000)
     buzzer.setDefaultState(0)
-    buzzer.keyBeep("beepReady")
+    buzzer.keyBeep("ready")
     return result
 
 
@@ -245,7 +245,7 @@ except Exception as e:
 ###########
 ## GPIO
 
-buzzer.config(CONFIG)
+buzzer.config(CONFIG.get("buzzer"))
 
 if CONFIG.get("turtleActive"):
     turtle.config(CONFIG)
@@ -301,10 +301,6 @@ except Exception as e:
 ###########
 ## GENERAL
 
-if CONFIG.get("watchdogActive"):
-    WD = WDT()
-
-
 # The REPL is attached by default to UART0, detach if not needed.
 if not CONFIG.get("uartActive"):
     uos.dupterm(None, 1)
@@ -325,8 +321,8 @@ if CONFIG.get("webServerActive"):
 
         webserver.config(socket, CONFIG, executeJson)
         saveConfig()
-        buzzer.keyBeep("beepAttention")
-        buzzer.keyBeep("beepReady")
+        buzzer.keyBeep("attention")
+        buzzer.keyBeep("ready")
         webserver.start()
     except Exception as e:
         logger.append(e)
