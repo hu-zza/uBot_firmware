@@ -476,7 +476,8 @@ def _start(arguments):                # (blockLevel,)
         #counter += 1                            #      Debug
 
         _pointer += 1
-
+        
+    _processingProgram = False
     _startButtonChecking()
     return 0
 
@@ -681,10 +682,8 @@ def _callbackStep():
 
 
 def _callbackEnd():
-    global _processingProgram
     global _runningProgram
 
-    _processingProgram = False
     _runningProgram    = False
 
     if _endSignal != "":

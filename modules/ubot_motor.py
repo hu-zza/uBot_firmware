@@ -1,5 +1,4 @@
 from machine import Pin, PWM, Timer
-from utime   import sleep_ms
 
 
 _active = 0
@@ -53,10 +52,10 @@ def configMotor(motorConfig):
         - From the given minimum duty and initial duty calculates the minimum duty factor (_config[2][0]).
         - From the given maximum duty and initial duty calculates the maximum duty factor (_config[2][1]).
 
-        T0 - RIGHT MOTOR |     T1 - LEFT MOTOR - PWM (and finetuning)      | Pause length  |
-        Timer based ctrl | PWM setting |          Fine tuning settings     | between moves |
-          (~freq, ~duty) |             |                                   |               |
-        ((period, sleep), (freq, duty), (min. duty factor, max. duty factor), breath length)
+          T0 - RIGHT MOTOR |     T1 - LEFT MOTOR - PWM (and finetuning)      | Pause length  |
+          Timer based ctrl | PWM setting |          Fine tuning settings     | between moves |
+            (~freq, ~duty) |             |                                   |               |
+        ((period, duration), (freq, duty), (min. duty factor, max. duty factor), breath length)
     """
 
     _config = (
@@ -179,37 +178,9 @@ def _stopProcessing():
     _processing = False
 
 
-def _stopAndNext():
-    """
-    Part of a recursive loop: _stopAndNext() - _processMove(move) - _stopAndNext() - ...
-
-    Stops the current, done task (movement) and checks if there is any task waiting for processing.
-    If it finds task(s), pops the first and call _processMove(move). If not, loop stops.
-    """
-    _setController(0, 0)
-    _callCallback(1)
-    sleep_ms(_breath) #############################################
-
-    if _processing and 0 < len(_moveList):
-        _processMove(_moveList.pop(0))
-    else:
-        _stopProcessing()
-        _callCallback(0)
-
-
-def _callCallback(slot = 1):
-    global _callbacks
-    """ Helper method for calling and managing callbacks. """
-
-    if _callbacks[slot] != ():
-        _callbacks[slot][0]()
-        if _callbacks[slot][1]:
-            _callbacks[slot] = ()
-
-
 def _processMove(move):       # ((direction, duration))
     """
-    Part of a recursive loop: _stopAndNext() - _processMove(move) - _stopAndNext() - ...
+    Part of a recursive loop: _processMove(move) - _stopAndInitNext() - _processNext() - _processMove(move) ...
 
     Sets the motors by _setController() according to the 'move' tuple: (direction, duration)
     After that it initialise a timer to terminate this move, and to continue processing _moveList.
@@ -229,8 +200,51 @@ def _processMove(move):       # ((direction, duration))
     _timer.init(                    # STOP AND NEXT
         period = move[1],
         mode = Timer.ONE_SHOT,
-        callback = lambda t:_stopAndNext()
+        callback = lambda t:_stopAndInitNext()
     )
+
+
+def _stopAndInitNext():
+    """
+    Part of a recursive loop: _processMove(move) - _stopAndInitNext() - _processNext() - _processMove(move) ...
+
+    Stops the current, done task (movement), calls the callback and indirectly calls _processNext() (after a while).
+    """
+    _setController(0, 0)
+    _callCallback(1)
+
+    if 0 == _breath:
+        _processNext()
+    else:
+        _timer.init(                    # STOP AND NEXT
+            period = _breath,
+            mode = Timer.ONE_SHOT,
+            callback = lambda t:_processNext()
+        )
+
+
+def _processNext():
+    """
+    Part of a recursive loop: _processMove(move) - _stopAndInitNext() - _processNext() - _processMove(move) ...
+
+    Checks if processing is active and there is any task waiting for processing.
+    If it finds task(s), pops the first and call _processMove(move). If not, loop stops.
+    """
+    if _processing and 0 < len(_moveList):
+        _processMove(_moveList.pop(0))
+    else:
+        _stopProcessing()
+        _callCallback(0)
+
+
+def _callCallback(slot = 1):
+    global _callbacks
+    """ Helper method for calling and managing callbacks. """
+
+    if _callbacks[slot] != ():
+        _callbacks[slot][0]()
+        if _callbacks[slot][1]:
+            _callbacks[slot] = ()
 
 
 def _setController(modeLeft = 0, modeRight = 0):        # ! (T1 mode, T0 mode) ! because of clarity: (left, right)
