@@ -129,6 +129,7 @@ def stopErrorSignal():
 def _stopSignalAfterLogin():
     try:
         if webrepl.client_s != None:
-            stopErrorSignal()
-    except Exception as e:
-        logger.append(e)
+            webrepl.client_s.read(1)    # Dirty hack, but there is no proper check for socket state and this throws
+            stopErrorSignal()           # OSError: [Errno 9] EBADF for closed (state = -16) sockets...
+    except Exception:
+        pass
