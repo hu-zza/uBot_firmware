@@ -5,6 +5,7 @@ from ubinascii   import hexlify
 from utime       import sleep_ms
 
 import ubot_buzzer    as buzzer
+import ubot_config    as config
 import ubot_logger    as logger
 import ubot_motor     as motor
 import ubot_turtle    as turtle
@@ -264,7 +265,7 @@ P14 = Pin(14, Pin.IN, Pin.PULL_UP)  # GPIO pin.
 P12.off()
 
 
-if not CONFIG.get("i2cActive"):
+if not config.get("i2c", "active"):
     P0 = Pin(0, Pin.IN)
     P2 = Pin(2, Pin.IN)
 

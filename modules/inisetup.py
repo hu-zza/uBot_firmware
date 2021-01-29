@@ -8,8 +8,8 @@ ap = network.WLAN(network.AP_IF)
 
 # Config dictionary initialisation
 config = {
-    "firmware"          : (0, 1, 83),
-    "initialDateTime"   : (2021, 1, 29, 0, 23, 10, 0, 0),
+    "firmware"          : (0, 1, 84),
+    "initialDateTime"   : (2021, 1, 29, 0, 23, 20, 0, 0),
     "powerOnCount"      : 0,
 
     "apActive"          : True,
@@ -20,11 +20,6 @@ config = {
     "webServerActive"   : True,
     "webReplActive"     : True,
     "webReplPassword"   : "uBot_REPL",
-
-    "i2cActive"         : False,
-    "i2cSda"            : 0,
-    "i2cScl"            : 2,
-    "i2cFreq"           : 400000,
 
     "motorConfig"       : [[10, 6], [1000, 750], [1.0, 500, 1023], 0],
 
@@ -69,8 +64,17 @@ buzzer = {
 }
 
 
+i2c = {
+    "active"    : False,
+    "sda"       : 0,
+    "scl"       : 2,
+    "freq"      : 400000
+}
+
+
 configModules = {
-    "buzzer"    : buzzer
+    "buzzer"    : buzzer,
+    "i2c"       : i2c
 }
 
 
