@@ -10,8 +10,8 @@ ap = network.WLAN(network.AP_IF)
 
 # Config dictionary initialisation
 config = {
-    "firmware"          : (0, 1, 80),
-    "initialDateTime"   : (2021, 1, 29, 0, 20, 10, 0, 0),
+    "firmware"          : (0, 1, 81),
+    "initialDateTime"   : (2021, 1, 29, 0, 21, 20, 0, 0),
     "powerOnCount"      : 0,
 
     "apActive"          : True,

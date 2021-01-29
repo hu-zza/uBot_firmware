@@ -7,16 +7,8 @@ from ujson   import loads
 import ubot_logger as logger
 
 
-_config = [False, -1]
-
-try:
-    with open("etc/buzzer/configuration.txt") as file:
-        _config = loads(file.readline())
-except Exception as e:
-    logger.append(e)
-
-_buzzerActive = _config[0]
-_pwm          = PWM(Pin(_config[1] if _config[1] != -1 else 15), 0, 0)
+_buzzerActive = True
+_pwm          = PWM(Pin(15), 0, 0)
 _defaultState = 0
 
 

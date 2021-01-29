@@ -11,6 +11,7 @@ import ubot_turtle    as turtle
 import ubot_webserver as webserver
 
 
+buzzer.keyBeep("started")
 DT     = RTC()
 CONFIG = {}
 
@@ -324,7 +325,6 @@ if CONFIG.get("webServerActive"):
 
         webserver.config(socket, CONFIG, executeJson)
         saveConfig()
-        buzzer.keyBeep("attention")
         buzzer.keyBeep("ready")
         webserver.start()
     except Exception as e:
