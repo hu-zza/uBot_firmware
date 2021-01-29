@@ -1,17 +1,15 @@
-import uos
-import network
+import network, ujson, uos
 
 from flashbdev import bdev
 from ubinascii import hexlify
-
 
 
 ap = network.WLAN(network.AP_IF)
 
 # Config dictionary initialisation
 config = {
-    "firmware"          : (0, 1, 82),
-    "initialDateTime"   : (2021, 1, 29, 0, 21, 50, 0, 0),
+    "firmware"          : (0, 1, 83),
+    "initialDateTime"   : (2021, 1, 29, 0, 23, 10, 0, 0),
     "powerOnCount"      : 0,
 
     "apActive"          : True,
@@ -48,26 +46,31 @@ config = {
 
 
 buzzer = {
-    "configuration" : "[True, 15]",
+    "configuration" : (True, 15),
 
-    "step"          : "[[null, 200], [60, 50, 0, 1]]",
-    "ready"         : "[[60, 100, 25, 3], [71, 500, 100, 1]]",
+    "step"          : ((None, 200), (60, 50, 0, 1)),
+    "ready"         : ((60, 100, 25, 3), (71, 500, 100, 1)),
 
-    "processed"     : "[64, 100, 0, 1]",
-    "attention"     : "[[60, 100, 25, 1], [64, 100, 25, 1], [71, 100, 25, 1], [null, 500]]",
+    "processed"     : (64, 100, 0, 1),
+    "attention"     : ((60, 100, 25, 1), (64, 100, 25, 1), (71, 100, 25, 1), (None, 500)),
 
-    "started"       : "[[60, 300, 50, 1], [71, 100, 50, 1]]",
-    "inputNeeded"   : "[[71, 100, 50, 2], [64, 100, 50, 1]]",
-    "completed"     : "[[71, 300, 50, 1], [60, 100, 50, 1]]",
-    "undone"        : "[[71, 100, 25, 2], [null, 200]]",
-    "deleted"       : "[[71, 100, 25, 3], [60, 500, 100, 1], [null, 200]]",
+    "started"       : ((60, 300, 50, 1), (71, 100, 50, 1)),
+    "inputNeeded"   : ((71, 100, 50, 2), (64, 100, 50, 1)),
+    "completed"     : ((71, 300, 50, 1), (60, 100, 50, 1)),
+    "undone"        : ((71, 100, 25, 2), (None, 200)),
+    "deleted"       : ((71, 100, 25, 3), (60, 500, 100, 1), (None, 200)),
 
-    "inAndDecrease" : "[71, 100, 0, 1]",
-    "boundary"      : "[60, 500, 100, 2]",
-    "tooLong"       : "[64, 1500, 100, 2]",
+    "inAndDecrease" : (71, 100, 0, 1),
+    "boundary"      : (60, 500, 100, 2),
+    "tooLong"       : (64, 1500, 100, 2),
 
-    "added"         : "[[71, 500, 50, 1], [64, 300, 50, 1], [60, 100, 50, 1]]",
-    "loaded"        : "[[60, 500, 50, 1], [64, 300, 50, 1], [71, 100, 50, 1]]"
+    "added"         : ((71, 500, 50, 1), (64, 300, 50, 1), (60, 100, 50, 1)),
+    "loaded"        : ((60, 500, 50, 1), (64, 300, 50, 1), (71, 100, 50, 1))
+}
+
+
+configModules = {
+    "buzzer"    : buzzer
 }
 
 
@@ -200,9 +203,11 @@ def setup():
     saveDictionaryToFile("etc/config.py", config)
     saveDictionaryToFile("etc/defaults.py", config)
 
-    for key in buzzer.keys():
-        with open("etc/buzzer/{}.txt".format(key), "w") as file:
-            file.write(buzzer.get(key))
+
+    for moduleName, module in configModules.items():
+        for attrName, attrValue in module.items():
+            with open("etc/{}/{}.txt".format(moduleName, attrName), "w") as file:
+                file.write("{}\n".format(ujson.dumps(attrValue)))
 
 
     return vfs

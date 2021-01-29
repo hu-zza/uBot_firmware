@@ -4,7 +4,7 @@ from machine import Pin, PWM
 from utime   import sleep_ms
 from ujson   import loads
 
-import ubot_logger as logger
+import ubot_config as config
 
 
 _buzzerActive = True
@@ -17,26 +17,21 @@ _defaultState = 0
 ## PUBLIC METHODS
 
 def keyBeep(key):
-    beepFile = "{}.txt".format(key)
+    tuneList = config.get("buzzer", key)
 
-    if beepFile in uos.listdir("etc/buzzer"):
-        try:
-            with open("etc/buzzer/{}".format(beepFile)) as file:
-                tuneList = loads(file.readline())
-
-                if isinstance(tuneList[0], list):
-                    for tune in tuneList:
-                        if tune[0] == None:
-                            rest(tune[1])
-                        else:
-                            midiBeep(tune[0], tune[1], tune[2], tune[3])
+    if tuneList != None:
+        if isinstance(tuneList[0], list):
+            for tune in tuneList:
+                if tune[0] == None:
+                    rest(tune[1])
                 else:
-                    if tuneList[0] == None:
-                        rest(tuneList[1])
-                    else:
-                        midiBeep(tuneList[0], tuneList[1], tuneList[2], tuneList[3])
-        except Exception as e:
-            logger.append(e)
+                    midiBeep(tune[0], tune[1], tune[2], tune[3])
+        else:
+            if tuneList[0] == None:
+                rest(tuneList[1])
+            else:
+                midiBeep(tuneList[0], tuneList[1], tuneList[2], tuneList[3])
+
 
 def midiBeep(noteOn = 69, duration = 100, restAround = 100, count = 1):
         freq = 440 * pow(2, (noteOn - 69) / 12)
@@ -59,17 +54,14 @@ def beep(freq = 440.0, duration = 100, restAround = 100, count = 1):
 def rest(duration = 100):
     _pwm.duty(0)
     sleep_ms(duration)
-    _pwm.duty(1023 * _defaultState)
+    _setDutyByDefaultState()
 
 
 def setDefaultState(value = 0):
     global _defaultState
 
     _defaultState = value
-    if value == 0:
-        _pwm.duty(0)
-    else:
-        _pwm.duty(1023)
+    _setDutyByDefaultState()
 
 
 
@@ -80,3 +72,7 @@ def _pwmBeep(freq = 440.0, duration = 100):
     _pwm.freq(round(freq))
     _pwm.duty(512)
     sleep_ms(duration)
+
+
+def _setDutyByDefaultState():
+    _pwm.duty(1023 * _defaultState)
