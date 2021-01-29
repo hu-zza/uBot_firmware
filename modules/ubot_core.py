@@ -59,9 +59,9 @@ def executeJson(json):
     if json.get("dateTime") != None:
         dateTime = json.get("dateTime")
 
-        if len(dateTime) == 8:
+        if len(dateTime) == 8:              # For classical tuple format
             DT.datetime(dateTime)
-        elif len(dateTime) == 2:
+        elif len(dateTime) == 2:            # For human readable format: (yyyy-mm-dd, hh:mm)
             date = dateTime[0].split("-")
             time = dateTime[1].split(":")
             DT.datetime((int(date[0]), int(date[1]), int(date[2]), 0, int(time[0]), int(time[1]), 0, 0))
@@ -71,7 +71,12 @@ def executeJson(json):
 
     if json.get("commandList") != None:
         for command in json.get("commandList"):
-            if command[0:7] == "TURTLE_":
+
+            if command[0:8] == "PROGRAM_":
+                for char in command[7:].strip():    # placeholder
+                    turtle.move(char)               # placeholder
+
+            elif command[0:7] == "TURTLE_":
                 for char in command[7:].strip():
                     turtle.move(char)
 
@@ -79,9 +84,6 @@ def executeJson(json):
                 pressedList = command[6:].strip().split(":")
                 for pressed in pressedList:
                     turtle.press(pressed)
-
-            elif command[0:6] == "SLEEP_":
-                sleep_ms(int(command[6:].strip()))
 
             elif command[0:5] == "BEEP_":
                 beepArray = command[5:].strip().split(":")
@@ -97,9 +99,12 @@ def executeJson(json):
             elif command[0:4] == "MOT_":
                 motor.move(int(command[4]), int(command[6:].strip()))
 
+            elif command[0:6] == "SLEEP_":
+                sleep_ms(int(command[6:].strip()))
+
+
             elif command[0:5] == "EXEC_": ##############################################################################
                 exec(command[5:])
-
 
             if command[0:5] == "EVAL_": ################################################################################
                 results.append("'{}' executed successfully, the result is: '{}'".format(command, eval(command[5:])))
@@ -237,15 +242,13 @@ if configLoaded or defaultsLoaded:
 
 
 try:
-        logger.config(DT, CONFIG.get("powerOnCount"))
+    logger.config(DT, CONFIG.get("powerOnCount"))
 except Exception as e:
     logger.append(e)
 
 
 ###########
 ## GPIO
-
-buzzer.config(CONFIG.get("buzzer"))
 
 if CONFIG.get("turtleActive"):
     turtle.config(CONFIG)

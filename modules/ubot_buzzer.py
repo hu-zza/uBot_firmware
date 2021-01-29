@@ -7,25 +7,17 @@ from ujson   import loads
 import ubot_logger as logger
 
 
-_pwm          = 0
-_buzzerActive = 0
+_config = [False, -1]
+
+try:
+    with open("etc/buzzer/configuration.txt") as file:
+        _config = loads(file.readline())
+except Exception as e:
+    logger.append(e)
+
+_buzzerActive = _config[0]
+_pwm          = PWM(Pin(_config[1] if _config[1] != -1 else 15), 0, 0)
 _defaultState = 0
-
-
-
-################################
-## CONFIG
-
-def config(config):
-    global _buzzerActive
-    global _defaultState
-    global _pwm
-
-    _buzzerActive = config[0]
-    _defaultState = 0
-
-    if config[0] and config[1] != None:
-        _pwm = PWM(Pin(config[1]), 0, 0)
 
 
 
@@ -42,12 +34,12 @@ def keyBeep(key):
 
                 if isinstance(tuneList[0], list):
                     for tune in tuneList:
-                        if tune[0] == "null":                                               # JSON mishandling by ujson
+                        if tune[0] == None:
                             rest(tune[1])
                         else:
                             midiBeep(tune[0], tune[1], tune[2], tune[3])
                 else:
-                    if tuneList[0] == "null":                                               # JSON mishandling by ujson
+                    if tuneList[0] == None:
                         rest(tuneList[1])
                     else:
                         midiBeep(tuneList[0], tuneList[1], tuneList[2], tuneList[3])

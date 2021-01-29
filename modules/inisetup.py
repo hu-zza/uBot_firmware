@@ -1,16 +1,17 @@
 import uos
 import network
+
 from flashbdev import bdev
 from ubinascii import hexlify
+
+
 
 ap = network.WLAN(network.AP_IF)
 
 # Config dictionary initialisation
 config = {
-    "firmwareMajor"     : 0,
-    "firmwareMinor"     : 1,
-    "firmwarePatch"     : 79,
-    "initialDateTime"   : (2021, 1, 28, 0, 23, 35, 0, 0),
+    "firmware"          : (0, 1, 80),
+    "initialDateTime"   : (2021, 1, 29, 0, 20, 10, 0, 0),
     "powerOnCount"      : 0,
 
     "apActive"          : True,
@@ -26,8 +27,6 @@ config = {
     "i2cSda"            : 0,
     "i2cScl"            : 2,
     "i2cFreq"           : 400000,
-
-    "buzzer"            : [True, 15],
 
     "motorConfig"       : [[10, 6], [1000, 750], [1.0, 500, 1023], 0],
 
@@ -48,18 +47,20 @@ config = {
 }
 
 
-beeps = {
-    "step"          : "[[\"null\", 200], [60, 50, 0, 1]]",
+buzzer = {
+    "configuration" : "[True, 15]",
+
+    "step"          : "[[null, 200], [60, 50, 0, 1]]",
     "ready"         : "[[60, 100, 25, 3], [71, 500, 100, 1]]",
 
     "processed"     : "[64, 100, 0, 1]",
-    "attention"     : "[[60, 100, 25, 1], [64, 100, 25, 1], [71, 100, 25, 1], [\"null\", 500]]",
+    "attention"     : "[[60, 100, 25, 1], [64, 100, 25, 1], [71, 100, 25, 1], [null, 500]]",
 
     "started"       : "[[60, 300, 50, 1], [71, 100, 50, 1]]",
     "inputNeeded"   : "[[71, 100, 50, 2], [64, 100, 50, 1]]",
     "completed"     : "[[71, 300, 50, 1], [60, 100, 50, 1]]",
-    "undone"        : "[[71, 100, 25, 2], [\"null\", 200]]",
-    "deleted"       : "[[71, 100, 25, 3], [60, 500, 100, 1], [\"null\", 200]]",
+    "undone"        : "[[71, 100, 25, 2], [null, 200]]",
+    "deleted"       : "[[71, 100, 25, 3], [60, 500, 100, 1], [null, 200]]",
 
     "inAndDecrease" : "[71, 100, 0, 1]",
     "boundary"      : "[60, 500, 100, 2]",
@@ -126,8 +127,18 @@ def setup():
     uos.mount(vfs, "/")
 
     uos.mkdir("etc")
+    uos.mkdir("etc/ap")
     uos.mkdir("etc/buzzer")
+    uos.mkdir("etc/i2c")
+    uos.mkdir("etc/motor")
+    uos.mkdir("etc/turtle")
+    uos.mkdir("etc/system")
+    uos.mkdir("etc/uart")
+    uos.mkdir("etc/webrepl")
+    uos.mkdir("etc/webserver")
+
     uos.mkdir("program")
+
     uos.mkdir("log")
     uos.mkdir("log/commands")
     uos.mkdir("log/datetime")
@@ -138,9 +149,9 @@ def setup():
     with open("webrepl_cfg.py", "w") as file:
         file.write("PASS = '{}'".format(config.get("webReplPassword")))
 
-
+    firmware = config.get("firmware")
     firmwareComment = "# uBot firmware {}.{}.{}\n\n".format(
-        config.get("firmwareMajor"), config.get("firmwareMinor"), config.get("firmwarePatch")
+        firmware[0], firmware[1], firmware[2]
     )
 
     gc = ("import gc\n"
@@ -189,9 +200,9 @@ def setup():
     saveDictionaryToFile("etc/config.py", config)
     saveDictionaryToFile("etc/defaults.py", config)
 
-    for key in beeps.keys():
+    for key in buzzer.keys():
         with open("etc/buzzer/{}.txt".format(key), "w") as file:
-            file.write(beeps.get(key))
+            file.write(buzzer.get(key))
 
 
     return vfs

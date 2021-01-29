@@ -138,8 +138,9 @@ def getDebugPanel():
               "            </table>\n"
              )
 
+    firmware = _config.get("firmware")
     firmwareVersion = "{}.{}.{}".format(
-        _config.get("firmwareMajor"), _config.get("firmwareMinor"), _config.get("firmwarePatch")
+        firmware[0], firmware[1], firmware[2]
     )
 
     allMem        = gc.mem_free() + gc.mem_alloc()

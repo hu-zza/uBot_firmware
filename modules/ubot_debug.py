@@ -1,6 +1,6 @@
 import esp, gc, network, uos, sys, webrepl
 
-from machine   import Pin, PWM, UART
+from machine   import Pin, PWM, Timer, UART
 from ubinascii import hexlify
 
 import ubot_logger as logger
@@ -66,6 +66,8 @@ except Exception as e:
 
 try:
     webrepl.start(password = "uBot_REPL")
+    timer = Timer(-1)
+    timer.init(period = 1000, mode = Timer.PERIODIC, callback = lambda t: _stopSignalAfterLogin())
 except Exception as e:
     logger.append(e)
 
@@ -116,5 +118,17 @@ def stopUart():
 def stopErrorSignal():
     try:
         errorSignal.deinit()
+    except Exception as e:
+        logger.append(e)
+
+
+
+################################
+## PRIVATE, HELPER METHODS
+
+def _stopSignalAfterLogin():
+    try:
+        if webrepl.client_s != None:
+            stopErrorSignal()
     except Exception as e:
         logger.append(e)
