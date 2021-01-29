@@ -1,19 +1,9 @@
 import gc, uos
 
+import ubot_config as config
 import ubot_logger as logger
 import ubot_turtle as turtle
 
-
-_config   = 0
-
-
-###########
-## CONFIG
-
-def config(config):
-    global _config
-
-    _config     = config
 
 
 ###########
@@ -138,7 +128,7 @@ def getDebugPanel():
               "            </table>\n"
              )
 
-    firmware = _config.get("firmware")
+    firmware = config.get("system", "firmware")
     firmwareVersion = "{}.{}.{}".format(
         firmware[0], firmware[1], firmware[2]
     )
@@ -155,7 +145,7 @@ def getDebugPanel():
     return result.format(
         commands = turtle._commandArray[:turtle._commandPointer].decode(),
         program  = turtle._programArray[:turtle._programParts[-1]].decode(),
-        powerOnCount = _config.get("powerOnCount"),
+        powerOnCount = config.get("system", "powerOnCount"),
         savedPrograms = len(uos.listdir("program")),
         firmware = firmwareVersion,
         freeMemory = freePercent, memoryDetails = memoryDetails,
@@ -265,7 +255,7 @@ def getDateTimePanel():
 
 
 def getWebReplPanel():
-    if _config.get("webReplActive"):
+    if config.get("webRepl", "active"):
         str0 = ""
         str1 = "STOP"
         str2 = "Stop"
@@ -284,7 +274,7 @@ def getWebReplPanel():
 
 
 def getCalibrationPanel():
-    mag = [_config.get("feedbackMagMin"), _config.get("feedbackMagMax")]
+    mag = [(), ()]
 
     if mag[0] == ():
         mag[0] = ("-", "-", "-")

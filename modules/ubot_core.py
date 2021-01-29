@@ -31,12 +31,9 @@ except Exception as e:
 
 
 
-configLoaded = True
-
 try:
-    import etc.config as oldConfig
+    import etc.config
 except Exception as e:
-    configLoaded = False
     logger.append(e)
 
 
@@ -211,24 +208,12 @@ if datetimeLoaded:
         logger.append(e)
 
 
-if configLoaded or defaultsLoaded:
-    if configLoaded:
-        conf = "oldConfig"
-    else:
-        conf = "defaults"
-
     # Fetch every variable from config.py / defaults.py
-    for v in dir(eval(conf)):
+    for v in dir(eval("etc.config")):
         if v[0] != "_":                                                       # Do not load private and magic variables.
-            CONFIG[v] = eval("{}.{}".format(conf, v))
+            CONFIG[v] = eval("{}.{}".format("etc.config", v))
 
-    if conf == "defaults":
-        try:
-            CONFIG["powerOnCount"] = int(uos.listdir("log/exception")[-1][:-4]) + 1 # [last file][cut extension]
-        except Exception as e:
-            logger.append(e)
-    else:
-        CONFIG["powerOnCount"] = CONFIG.get("powerOnCount") + 1
+    CONFIG["powerOnCount"] = CONFIG.get("powerOnCount") + 1
 
     # If etc/datetime.py is not accessible, set the DT to 'initialDateTime'.
     if not datetimeLoaded:
@@ -316,7 +301,7 @@ if CONFIG.get("webServerActive"):
         socket.bind(("", 80))
         socket.listen(5)
 
-        webserver.config(socket, CONFIG, executeJson)
+        webserver.configure(socket, executeJson)
         saveConfig()
         buzzer.keyBeep("ready")
         webserver.start()

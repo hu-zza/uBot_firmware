@@ -39,3 +39,16 @@ def _manageAttribute(dir, file, mode, value = None):
                 return file.write("{}\n".format(ujson.dumps(value)))
     except Exception as e:
         logger.append(e)
+
+"""
+TODO:
+    if conf == "defaults":
+        try:
+            CONFIG["powerOnCount"] = int(uos.listdir("log/exception")[-1][:-4]) + 1 # [last file][cut extension]
+        except Exception as e:
+            logger.append(e)
+    else:
+        CONFIG["powerOnCount"] = CONFIG.get("powerOnCount") + 1
+
+    - RTC?
+"""

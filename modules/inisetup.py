@@ -6,33 +6,10 @@ from ubinascii import hexlify
 
 AP = network.WLAN(network.AP_IF)
 
-# Config dictionary initialisation
-config = {
-    "firmware"          : (0, 1, 85),
-    "initialDateTime"   : (2021, 1, 29, 0, 23, 50, 0, 0),
-    "powerOnCount"      : 0,
-
-    "uartActive"        : True,
-    "webServerActive"   : True,
-    "webReplActive"     : True,
-    "webReplPassword"   : "uBot_REPL",
-
-    "motorConfig"       : [[10, 6], [1000, 750], [1.0, 500, 1023], 0],
-
-    "turtleActive"      : True,
-    "turtleMoveLength"  : 890,
-    "turtleTurnLength"  : 359,
-    "turtleBreathLength": 500,
-    "turtleLoopChecking": 1,    #  0 - off  #  1 - simple (max. 20)  #  2 - simple (no limit)
-    "turtleStepSignal"  : "step",
-    "turtleEndSignal"   : "ready",
-
-    "turtleClockPin"    : 13,
-    "turtleInputPin"    : 16,
-    "turtleCheckPeriod" : 20,   # ms
-    "turtlePressLength" : 5,    # min. 100 ms           turtlePressLength * turtleCheckPeriod
-    "turtleFirstRepeat" : 75,   # min. 1500 ms          turtleFirstRepeat * turtleCheckPeriod
-    "turtleMaxError"    : 1     # max. 0.166' (16,6'%)  turtleMaxError / (turtlePressLength + turtleMaxError)
+system = {
+    "firmware"          : (0, 1, 86),
+    "initialDateTime"   : (2021, 1, 30, 0, 0, 25, 0, 0),
+    "powerOnCount"      : 0
 }
 
 
@@ -78,7 +55,34 @@ i2c = {
 configModules = {
     "ap"        : ap,
     "buzzer"    : buzzer,
-    "i2c"       : i2c
+    "i2c"       : i2c,
+    "system"    : system
+}
+
+
+# Config dictionary initialisation
+config = {
+    "uartActive"        : True,
+    "webServerActive"   : True,
+    "webReplActive"     : True,
+    "webReplPassword"   : "uBot_REPL",
+
+    "motorConfig"       : [[10, 6], [1000, 750], [1.0, 500, 1023], 0],
+
+    "turtleActive"      : True,
+    "turtleMoveLength"  : 890,
+    "turtleTurnLength"  : 359,
+    "turtleBreathLength": 500,
+    "turtleLoopChecking": 1,    #  0 - off  #  1 - simple (max. 20)  #  2 - simple (no limit)
+    "turtleStepSignal"  : "step",
+    "turtleEndSignal"   : "ready",
+
+    "turtleClockPin"    : 13,
+    "turtleInputPin"    : 16,
+    "turtleCheckPeriod" : 20,   # ms
+    "turtlePressLength" : 5,    # min. 100 ms           turtlePressLength * turtleCheckPeriod
+    "turtleFirstRepeat" : 75,   # min. 1500 ms          turtleFirstRepeat * turtleCheckPeriod
+    "turtleMaxError"    : 1     # max. 0.166' (16,6'%)  turtleMaxError / (turtlePressLength + turtleMaxError)
 }
 
 
@@ -145,8 +149,8 @@ def setup():
     uos.mkdir("etc/turtle")
     uos.mkdir("etc/system")
     uos.mkdir("etc/uart")
-    uos.mkdir("etc/webrepl")
-    uos.mkdir("etc/webserver")
+    uos.mkdir("etc/webRepl")
+    uos.mkdir("etc/webServer")
 
     uos.mkdir("program")
 
@@ -160,7 +164,7 @@ def setup():
     with open("webrepl_cfg.py", "w") as file:
         file.write("PASS = '{}'".format(config.get("webReplPassword")))
 
-    firmware = config.get("firmware")
+    firmware = system.get("firmware")
     firmwareComment = "# uBot firmware {}.{}.{}\n\n".format(
         firmware[0], firmware[1], firmware[2]
     )
@@ -193,19 +197,19 @@ def setup():
 
 
     with open("etc/datetime.py", "w") as file:
-        file.write("DT = {}".format(config.get("initialDateTime")))
+        file.write("DT = {}".format(system.get("initialDateTime")))
 
 
     with open("log/datetime.txt", "w") as file:
-        file.write("{}\n0000000000.txt\n\n".format(config.get("initialDateTime")))
+        file.write("{}\n0000000000.txt\n\n".format(system.get("initialDateTime")))
 
 
     with open("log/exception/0000000000.txt", "w") as file:
-        file.write("{}\nFallback exception log initialised successfully.\n\n".format(config.get("initialDateTime")))
+        file.write("{}\nFallback exception log initialised successfully.\n\n".format(system.get("initialDateTime")))
 
 
     with open("log/event/0000000000.txt", "w") as file:
-        file.write("{}\nFallback event log initialised successfully.\n\n".format(config.get("initialDateTime")))
+        file.write("{}\nFallback event log initialised successfully.\n\n".format(system.get("initialDateTime")))
 
 
     saveDictionaryToFile("etc/config.py", config)

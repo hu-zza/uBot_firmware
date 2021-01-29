@@ -1,11 +1,11 @@
 import gc, ujson, usocket
 
+import ubot_config           as config
 import ubot_logger           as logger
 import ubot_webpage_template as template
 
 
 _socket       = 0
-_config       = 0
 _jsonFunction = 0
 _connection   = 0
 _address      = 0
@@ -15,16 +15,12 @@ _address      = 0
 ################################
 ## CONFIG
 
-def config(socket, config, jsonFunction):
+def configure(socket, jsonFunction):
     global _socket
-    global _config
     global _jsonFunction
 
     _socket       = socket
-    _config       = config
     _jsonFunction = jsonFunction
-
-    template.config(config)
 
 
 
@@ -32,12 +28,10 @@ def config(socket, config, jsonFunction):
 ## PUBLIC METHODS
 
 def start():
-    global _config
+    config.set("webServer", "active", True)
 
-    _config['webServerActive'] = True
-
-    if _config.get("apActive"):
-        while _config.get("webServerActive"):
+    if config.get("ap", "active"):
+        while config.get("webServer", "active"):
             try:
                 _processSockets()
             except Exception as e:
@@ -45,12 +39,10 @@ def start():
 
 
 def stop(message):
-    global _config
-
-    if _config.get("webServerActive"):
+    if config.get("webServer", "active"):
         try:
             _reply("JSON", "200 OK", [message])
-            _config['webServerActive'] = False
+            config.set("webServer", "active", False)
         except Exception as e:
             logger.append(e)
 
