@@ -3,6 +3,15 @@ import ujson, uos
 import ubot_logger as logger
 
 
+defaultsLoaded = True
+
+try:
+    import etc.defaults as defaults
+except Exception as e:
+    defaultsLoaded = False
+    logger.append(e)
+
+
 
 ################################
 ## PUBLIC METHODS

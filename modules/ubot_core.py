@@ -22,9 +22,6 @@ CONFIG = {}
 ## IMPORT CONFIG FILES
 
 datetimeLoaded = True
-configLoaded   = True
-defaultsLoaded = True
-
 
 try:
     import etc.datetime as datetime
@@ -33,19 +30,14 @@ except Exception as e:
     logger.append(e)
 
 
+
+configLoaded = True
+
 try:
-    import etc.config as config
+    import etc.config as oldConfig
 except Exception as e:
     configLoaded = False
     logger.append(e)
-
-
-try:
-    import etc.defaults as defaults
-except Exception as e:
-    defaultsLoaded = False
-    logger.append(e)
-
 
 
 ################################
@@ -221,7 +213,7 @@ if datetimeLoaded:
 
 if configLoaded or defaultsLoaded:
     if configLoaded:
-        conf = "config"
+        conf = "oldConfig"
     else:
         conf = "defaults"
 
@@ -286,19 +278,19 @@ if CONFIG.get("turtleActive"):
 
 AP = network.WLAN(network.AP_IF)
 
-AP.active(CONFIG.get("apActive"))
+AP.active(config.get("ap", "active"))
 AP.ifconfig(("192.168.11.1", "255.255.255.0", "192.168.11.1", "8.8.8.8"))
 AP.config(authmode = network.AUTH_WPA_WPA2_PSK)
 
 
 try:
-    AP.config(essid = CONFIG.get("apEssid"))
+    AP.config(essid = config.get("ap", "essid"))
 except Exception as e:
     logger.append(e)
 
 
 try:
-    AP.config(password = CONFIG.get("apPassword"))
+    AP.config(password = config.get("ap", "password"))
 except Exception as e:
     logger.append(e)
 

@@ -4,17 +4,13 @@ from flashbdev import bdev
 from ubinascii import hexlify
 
 
-ap = network.WLAN(network.AP_IF)
+AP = network.WLAN(network.AP_IF)
 
 # Config dictionary initialisation
 config = {
-    "firmware"          : (0, 1, 84),
-    "initialDateTime"   : (2021, 1, 29, 0, 23, 20, 0, 0),
+    "firmware"          : (0, 1, 85),
+    "initialDateTime"   : (2021, 1, 29, 0, 23, 50, 0, 0),
     "powerOnCount"      : 0,
-
-    "apActive"          : True,
-    "apEssid"           : "uBot__" + hexlify(ap.config("mac"), ":").decode()[9:],
-    "apPassword"        : "uBot_pwd",
 
     "uartActive"        : True,
     "webServerActive"   : True,
@@ -37,6 +33,13 @@ config = {
     "turtlePressLength" : 5,    # min. 100 ms           turtlePressLength * turtleCheckPeriod
     "turtleFirstRepeat" : 75,   # min. 1500 ms          turtleFirstRepeat * turtleCheckPeriod
     "turtleMaxError"    : 1     # max. 0.166' (16,6'%)  turtleMaxError / (turtlePressLength + turtleMaxError)
+}
+
+
+ap = {
+    "active"    : True,
+    "essid"     : "uBot__" + hexlify(AP.config("mac"), ":").decode()[9:],
+    "password"  : "uBot_pwd"
 }
 
 
@@ -73,6 +76,7 @@ i2c = {
 
 
 configModules = {
+    "ap"        : ap,
     "buzzer"    : buzzer,
     "i2c"       : i2c
 }
@@ -81,8 +85,8 @@ configModules = {
 ########################################################################################################################
 
 def wifi():
-    ap.ifconfig(("192.168.11.1", "255.255.255.0", "192.168.11.1", "8.8.8.8"))
-    ap.config(essid = config.get("apEssid"), authmode = network.AUTH_WPA_WPA2_PSK, password = config.get("apPassword"))
+    AP.ifconfig(("192.168.11.1", "255.255.255.0", "192.168.11.1", "8.8.8.8"))
+    AP.config(essid = ap.get("essid"), authmode = network.AUTH_WPA_WPA2_PSK, password = ap.get("password"))
 
 
 def check_bootsec():

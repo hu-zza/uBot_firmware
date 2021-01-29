@@ -56,6 +56,10 @@ try:
     ap.config(essid = essid)
 except Exception as e:
     logger.append(e)
+    try:
+        ap.config(essid = "uBot_debug")
+    except Exception as e:
+        logger.append(e)
 
 
 try:
