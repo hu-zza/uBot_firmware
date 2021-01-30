@@ -95,14 +95,13 @@ def executeJson(json):
     if json.get("service") != None:
             for command in json.get("service"):
                 if command == "START UART":
-                    uart = UART(0, 115200)
-                    uos.dupterm(uart, 1)
-                    CONFIG["uartActive"] = True
+                    uos.dupterm(UART(0, 115200), 1)
+                    config.set("uart", "active", True)
                     results.append("UART has started.")
 
                 elif command == "STOP UART":
                     uos.dupterm(None, 1)
-                    CONFIG["uartActive"] = False
+                    config.set("uart", "active", False)
                     results.append("UART has stopped.")
 
                 elif command == "START WEBREPL":
@@ -127,7 +126,10 @@ def executeJson(json):
 
 
     if len(results) == 0:
-        results = ["Processing has completed without any result."]
+        results = ["Processing has completed without any return value."]
+    else:
+        for result in results:
+            logger.append(result)
 
     return results
 
@@ -182,14 +184,14 @@ if not config.get("i2c", "active"):
 
 motor.config(
     (
-        (0, 0) if CONFIG.get("uartActive") else (1, 3), # Right motor - T0
-        (4, 5)                                          # Left motor  - T1
+        (0, 0) if config.get("uart", "active") else (1, 3), # Right motor - T0
+        (4, 5)                                              # Left motor  - T1
     ),
         CONFIG.get("motorConfig")
 )
 
-if CONFIG.get("turtleActive"):
-    motor.setBreath(CONFIG.get("turtleBreathLength"))
+if config.get("turtle", "active"):
+    motor.setBreath(config.get("turtle", "breathLength"))
 
 ###########
 ## AP
@@ -217,7 +219,7 @@ except Exception as e:
 ## GENERAL
 
 # The REPL is attached by default to UART0, detach if not needed.
-if not CONFIG.get("uartActive"):
+if not config.get("uart", "active"):
     uos.dupterm(None, 1)
 
 

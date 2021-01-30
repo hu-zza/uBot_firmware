@@ -102,10 +102,9 @@ def printExceptions(nr):
 
 
 def startUart():
-    """ You should deactivate the motor first. """
+    """ You should deactivate the motor first by the physical switch on main PCB. """
     try:
-        uart = UART(0, baudrate = 115200)
-        uos.dupterm(uart, 1)
+        uos.dupterm(UART(0, 115200), 1)
     except Exception as e:
         logger.append(e)
 
@@ -131,6 +130,7 @@ def stopErrorSignal():
 ## PRIVATE, HELPER METHODS
 
 def _stopSignalAfterLogin():
+    """ Stops the error signal, if user starts the login process. """
     try:
         if webrepl.client_s != None:
             webrepl.client_s.read(1)    # Dirty hack, but there is no proper check for socket state and this throws

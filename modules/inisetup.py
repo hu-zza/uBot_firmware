@@ -7,8 +7,8 @@ from ubinascii import hexlify
 AP = network.WLAN(network.AP_IF)
 
 system = {
-    "firmware"          : (0, 1, 90),
-    "initialDateTime"   : (2021, 1, 30, 0, 18, 55, 0, 0),
+    "firmware"          : (0, 1, 91),
+    "initialDateTime"   : (2021, 1, 30, 0, 19, 55, 0, 0),
     "powerOnCount"      : 0
 }
 
@@ -70,8 +70,13 @@ turtle = {
 }
 
 
+uart = {
+    "active"    : True
+}
+
+
 webServer = {
-    "active"   : True
+    "active"    : True
 }
 
 
@@ -87,6 +92,7 @@ configModules = {
     "i2c"       : i2c,
     "system"    : system,
     "turtle"    : turtle,
+    "uart"      : uart,
     "webRepl"   : webRepl,
     "webServer" : webServer
 }
@@ -94,7 +100,6 @@ configModules = {
 
 # Config dictionary initialisation
 config = {
-    "uartActive"        : True,
     "motorConfig"       : [[10, 6], [1000, 750], [1.0, 500, 1023], 0],
 }
 
