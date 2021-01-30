@@ -25,6 +25,7 @@ def set(module, attribute, value):
 def datetime(newDateTime = None):
     if newDateTime != None:
         dateTime.datetime(newDateTime)
+        saveDateTime()
 
     return dateTime.datetime()
 
@@ -74,7 +75,7 @@ powerOnCount += 1                                               # Increment the 
 _manageAttribute("system", "powerOnCount", "w", powerOnCount)   # and save it
 
 try:
-    logger.config(dateTime, powerOnCount)
+    logger._config(powerOnCount)
 except Exception as e:
     logger.append(e)
 

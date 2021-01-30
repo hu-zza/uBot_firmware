@@ -2,8 +2,9 @@ import uos, sys
 
 from machine import RTC
 
+import ubot_config as config
 
-_dateTime = 0
+
 _fileName = 0
                 #    Name   | List |   Directory
 _logFiles = [
@@ -16,24 +17,22 @@ _logFiles = [
 ################################
 ## CONFIG
 
-def config(dateTime, powerOnCount):
-    global _dateTime
+def _config(powerOnCount):
     global _fileName
     global _logFiles
 
-    _dateTime = dateTime
     _fileName = "{:010d}.txt".format(int(powerOnCount))
 
     try:
         with open("log/datetime.txt", "a") as file:
-            file.write("{}\n{}\n\n".format(_dateTime.datetime(), _fileName))
+            file.write("{}\n{}\n\n".format(config.datetime(), _fileName))
     except Exception as e:
         _appendToList(e)
 
     for logFile in _logFiles:
         try:
             with open(logFile[2] + _fileName, "w") as file:
-                file.write("{}\n{} log initialised successfully.\n\n".format(_dateTime.datetime(), logFile[0]))
+                file.write("{}\n{} log initialised successfully.\n\n".format(config.datetime(), logFile[0]))
                 _saveFromList(logFile)
         except Exception as e:
             _appendToList(e)
@@ -43,17 +42,13 @@ def config(dateTime, powerOnCount):
 ################################
 ## PUBLIC METHODS
 
-def getDateTime():
-    return _dateTime.datetime()
-
-
 def append(item):
     global _logFiles
 
     if _fileName != 0:
         try:
             with open(_logFiles[_defineIndex(item)][2] + _fileName, "a") as file:
-                _writeOutItem(_dateTime.datetime(), file, item)
+                _writeOutItem(config.datetime(), file, item)
         except Exception as e:
             _appendToList(e)
             _appendToList(item)
@@ -71,7 +66,7 @@ def _appendToList(item):
     index = _defineIndex(item)
 
     try:
-        _logFiles[index][1].append((() if _dateTime == 0 else _dateTime.datetime(), item))
+        _logFiles[index][1].append((config.datetime(), item))
 
         if 30 < len(_logFiles[index][1]):
             try:
@@ -92,15 +87,11 @@ def _saveFromList(logFile, fallback = False):
             fallback = True
 
         fileName = "0000000000.txt" if fallback else _fileName
-        dateTime = () if _dateTime == 0 else _dateTime.datetime()
         try:
             with open(logFile[2] + fileName, "a") as file:
                 for item in logFile[1]:
-                    if item[0] != ():                               # The first tuple of the list item should contain datetime.
-                        _writeOutItem(item[0], file, item[1])
-                    else:                                           # If the first tuple is empty, save it with the current datetime, or ().
-                        _writeOutItem(dateTime, file, item[1])
-            logFile[1] = []                                         # Clear the list.
+                    _writeOutItem(item[0], file, item[1])
+            logFile[1] = []
         except Exception as e:
             sys.print_exception(e)
 

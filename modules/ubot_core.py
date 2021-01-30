@@ -1,12 +1,12 @@
-import esp, gc, network, ujson, uos, usocket, sys, webrepl
+import esp, gc, network, ujson, uos, usocket, webrepl
 
 from machine     import Pin, UART
 from ubinascii   import hexlify
 from utime       import sleep_ms
 
-import ubot_buzzer    as buzzer
 import ubot_config    as config
 import ubot_logger    as logger
+import ubot_buzzer    as buzzer
 import ubot_motor     as motor
 import ubot_turtle    as turtle
 import ubot_webserver as webserver
@@ -47,7 +47,6 @@ def executeJson(json):
             time = dateTime[1].split(":")
             config.datetime((int(date[0]), int(date[1]), int(date[2]), 0, int(time[0]), int(time[1]), 0, 0))
 
-        saveDateTime()
         results.append("New dateTime has been set.")
 
     if json.get("commandList") != None:
@@ -126,33 +125,11 @@ def executeJson(json):
                 elif command == "CHECK DATETIME":
                     results.append(str(config.datetime()))
 
-                elif command == "SAVE CONFIG":
-                    saveConfig()
-                    results.append("Configuration has saved.")
 
     if len(results) == 0:
         results = ["Processing has completed without any result."]
 
     return results
-
-
-###########
-## CONFIG
-
-def saveConfig():
-    try:
-        saveDateTime()
-        with open("etc/config.py", "w") as file:
-
-            for key in sorted([k for k in CONFIG.keys()]):
-                value = CONFIG.get(key)
-                if isinstance(value, str):
-                    file.write("{} = '{}'\n".format(key, value))
-                else:
-                    file.write("{} = {}\n".format(key, value))
-    except Exception as e:
-        logger.append(e)
-
 
 
 ###########
@@ -258,7 +235,6 @@ if config.get("webServer", "active"):
         socket.listen(5)
 
         webserver.configure(socket, executeJson)
-        saveConfig()
         buzzer.keyBeep("ready")
         webserver.start()
     except Exception as e:

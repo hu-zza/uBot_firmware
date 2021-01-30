@@ -7,8 +7,8 @@ from ubinascii import hexlify
 AP = network.WLAN(network.AP_IF)
 
 system = {
-    "firmware"          : (0, 1, 87),
-    "initialDateTime"   : (2021, 1, 30, 0, 1, 15, 0, 0),
+    "firmware"          : (0, 1, 88),
+    "initialDateTime"   : (2021, 1, 30, 0, 1, 50, 0, 0),
     "powerOnCount"      : 0
 }
 

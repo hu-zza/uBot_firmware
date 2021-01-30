@@ -192,7 +192,7 @@ def _reply(returnFormat, httpCode, message):
             style = template.getGeneralStyle() + template.getSimpleStyle()
             str   = template.getSimplePage().format(title = httpCode, style = style, body = message)
         elif returnFormat == "JSON":
-            str   = ujson.dumps({"code" : httpCode, "message" : message, "dateTime": logger.getDateTime()})
+            str   = ujson.dumps({"code" : httpCode, "message" : message, "dateTime": config.datetime()})
 
         _connection.sendall(str)
     except Exception:

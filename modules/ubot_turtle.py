@@ -1,7 +1,6 @@
 from machine import Pin, Timer
 
 import ubot_buzzer    as buzzer
-import ubot_core      as core
 import ubot_logger    as logger
 import ubot_motor     as motor
 
@@ -345,7 +344,7 @@ def _logExecuted():
 
     try:
         with open("log/datetime/" + fileName, "a") as file:
-            file.write("{}\n".format(logger.getDateTime()))
+            file.write("{}\n".format(config.datetime()))
     except Exception as e:
         logger.append(e)
 
@@ -386,7 +385,7 @@ def _start(arguments):                # (blockLevel,)
     _pointerStack = []
     _counterStack = []
 
-    core.saveDateTime()
+    config.saveDateTime()
     _logExecuted()
 
     motor.setCallback(lambda: _callbackEnd(),  0, False)

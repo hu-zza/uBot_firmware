@@ -1,7 +1,6 @@
 import gc, uos
 
 import ubot_config as config
-import ubot_logger as logger
 import ubot_turtle as turtle
 
 
@@ -140,7 +139,7 @@ def getDebugPanel():
     stat        = uos.statvfs("/")
     freeSpace   = stat[4] * stat[0] * 100 // (stat[2] * stat[1])       # f_bavail * f_bsize * 100 // f_blocks * f_frsize
     diskDetails = "{} / {}".format(stat[4] * stat[0], stat[2] * stat[1])
-    dt = logger.getDateTime()
+    dt = config.datetime()
 
     return result.format(
         commands = turtle._commandArray[:turtle._commandPointer].decode(),
@@ -243,7 +242,7 @@ def getSettingsPanel():
 
 
 def getDateTimePanel():
-    dt = logger.getDateTime()
+    dt = config.datetime()
     return ("        <ul class='links'>\n"
             "            <li>Date & Time</li>\n"
             "            <li><table style='width: 100%; text-align: center;'><tr><td>{}. {:02d}. {:02d}.</td><td>{:02d} : {:02d} : {:02d}</td></tr></table></li>\n"
