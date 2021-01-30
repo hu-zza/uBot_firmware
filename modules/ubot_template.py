@@ -236,7 +236,6 @@ def getSettingsPanel():
             "            <li><a href='_datetime'>Date & Time</a></li>\n"
             "            <li><a href='_webrepl'>WebREPL</a></li>\n"
             "            <li><a href='_calibration'>Calibration</a></li>\n"
-            "            <li><a href='noscript' onclick='send(\"SAVE CONFIG\");return false;'>Save config</a></li>\n"
             "        </ul>\n"
             )
 

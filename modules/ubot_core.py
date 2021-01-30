@@ -97,22 +97,22 @@ def executeJson(json):
                 if command == "START UART":
                     uart = UART(0, 115200)
                     uos.dupterm(uart, 1)
-                    CONFIG['uartActive'] = True
+                    CONFIG["uartActive"] = True
                     results.append("UART has started.")
 
                 elif command == "STOP UART":
                     uos.dupterm(None, 1)
-                    CONFIG['uartActive'] = False
+                    CONFIG["uartActive"] = False
                     results.append("UART has stopped.")
 
                 elif command == "START WEBREPL":
                     webrepl.start()
-                    CONFIG['webReplActive'] = True
+                    config.set("webRepl", "active", True)
                     results.append("WebREPL has started.")
 
                 elif command == "STOP WEBREPL":
                     webrepl.stop()
-                    CONFIG['webReplActive'] = False
+                    config.set("webRepl", "active", False)
                     results.append("WebREPL has stopped.")
 
                 elif command == "STOP WEBSERVER":
@@ -221,7 +221,7 @@ if not CONFIG.get("uartActive"):
     uos.dupterm(None, 1)
 
 
-if CONFIG.get("webReplActive"):
+if config.get("webRepl", "active"):
     try:
         webrepl.start()
     except Exception as e:

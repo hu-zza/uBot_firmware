@@ -1,8 +1,8 @@
-import gc, ujson, usocket
+import gc, ujson, uos, usocket
 
-import ubot_config           as config
-import ubot_logger           as logger
-import ubot_webpage_template as template
+import ubot_config   as config
+import ubot_logger   as logger
+import ubot_template as template
 
 
 _socket       = 0
@@ -203,8 +203,13 @@ def _reply(returnFormat, httpCode, message):
 
 def _sendRaw(path):
     _connection.send("        <pre>\n")
-    with open(path) as file:
-        for line in file:
-            _connection.sendall(line)
+
+    if path[-1] == "/":
+        for fileName in uos.listdir(path):
+            _connection.send("{}<br>\n".format(fileName))
+    else:
+        with open(path) as file:
+            for line in file:
+                _connection.sendall(line)
 
     _connection.send("        </pre>\n")

@@ -7,8 +7,8 @@ from ubinascii import hexlify
 AP = network.WLAN(network.AP_IF)
 
 system = {
-    "firmware"          : (0, 1, 89),
-    "initialDateTime"   : (2021, 1, 30, 0, 15, 30, 0, 0),
+    "firmware"          : (0, 1, 90),
+    "initialDateTime"   : (2021, 1, 30, 0, 18, 55, 0, 0),
     "powerOnCount"      : 0
 }
 
@@ -75,12 +75,19 @@ webServer = {
 }
 
 
+webRepl = {
+    "active"    : True,
+    "password"  : "uBot_REPL"
+}
+
+
 configModules = {
     "ap"        : ap,
     "buzzer"    : buzzer,
     "i2c"       : i2c,
     "system"    : system,
     "turtle"    : turtle,
+    "webRepl"   : webRepl,
     "webServer" : webServer
 }
 
@@ -88,9 +95,6 @@ configModules = {
 # Config dictionary initialisation
 config = {
     "uartActive"        : True,
-    "webReplActive"     : True,
-    "webReplPassword"   : "uBot_REPL",
-
     "motorConfig"       : [[10, 6], [1000, 750], [1.0, 500, 1023], 0],
 }
 
@@ -189,22 +193,24 @@ def setup():
 
     with open("webrepl_cfg.py", "w") as file:
         file.write(firmwareComment)
-        file.write("PASS = '{}'".format(config.get("webReplPassword")))
+        file.write("PASS = '{}'\n\n".format(webRepl.get("password")))
         file.write(footerComment)
 
 
     with open("boot.py", "w") as file:
         file.write(firmwareComment)
-        file.write(gc + "import ubot_core as core\n\n")
+        file.write(gc)
+        file.write("import ubot_core as core\n\n")
         file.write(footerComment)
 
 
     with open("main.py", "w") as file:
         file.write(firmwareComment)
-        file.write(gc + ("import sys\n"
-                         "core = sys.modules.get('ubot_core')\n\n"
-                         "import ubot_debug\n"
-                         "from ubot_debug import listExceptions, printExceptions, startUart, stopUart, stopErrorSignal\n\n"
+        file.write(gc)
+        file.write(("import sys\n"
+                    "core = sys.modules.get('ubot_core')\n\n"
+                    "import ubot_debug\n"
+                    "from ubot_debug import listExceptions, printExceptions, startUart, stopUart, stopErrorSignal\n\n"
         ))
         file.write(footerComment)
 
