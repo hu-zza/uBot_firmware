@@ -15,31 +15,6 @@ _logFiles = [
 
 
 ################################
-## CONFIG
-
-def _config(powerOnCount):
-    global _fileName
-    global _logFiles
-
-    _fileName = "{:010d}.txt".format(int(powerOnCount))
-
-    try:
-        with open("log/datetime.txt", "a") as file:
-            file.write("{}\n{}\n\n".format(config.datetime(), _fileName))
-    except Exception as e:
-        _appendToList(e)
-
-    for logFile in _logFiles:
-        try:
-            with open(logFile[2] + _fileName, "w") as file:
-                file.write("{}\n{} log initialised successfully.\n\n".format(config.datetime(), logFile[0]))
-                _saveFromList(logFile)
-        except Exception as e:
-            _appendToList(e)
-
-
-
-################################
 ## PUBLIC METHODS
 
 def append(item):
@@ -117,3 +92,24 @@ def _defineIndex(item):
         return 0
     else:
         return 1
+
+
+
+################################
+## INITIALISATION
+
+_fileName = "{:010d}.txt".format(int(config.get("system", "powerOnCount")))
+
+try:
+    with open("log/datetime.txt", "a") as file:
+        file.write("{}\n{}\n\n".format(config.datetime(), _fileName))
+except Exception as e:
+    _appendToList(e)
+
+for logFile in _logFiles:
+    try:
+        with open(logFile[2] + _fileName, "w") as file:
+            file.write("{}\n{} log initialised successfully.\n\n".format(config.datetime(), logFile[0]))
+            _saveFromList(logFile)
+    except Exception as e:
+        _appendToList(e)

@@ -2,11 +2,6 @@ import ujson, uos
 
 from machine import RTC
 
-import ubot_logger as logger
-
-
-dateTime = RTC()
-
 
 
 ################################
@@ -53,31 +48,58 @@ def _manageAttribute(dir, file, mode, value = None):
         logger.append(e)
 
 
+def _readOrThrow(dir, file):
+    with open("etc/{}/{}.txt".format(dir, file), "r") as file:
+        return ujson.loads(file.readline())
+
+
 
 ################################
 ## INITIALISATION
 
+initExceptions = []
+
+dateTime       = RTC()
+dateTimeSource = "factory default"
+
 try:
     import etc.datetime
     dateTime.datetime(etc.datetime.DT)
+    dateTimeSource = "etc.datetime module"
 except Exception as e:
-    logger.append(e)
+    initExceptions.append(e)
 
-    initialDateTime = get("system", "initialDateTime")
-    if initialDateTime != None:
+    try:
+        initialDateTime = _readOrThrow("system", "initialDateTime")
         dateTime.datetime(initialDateTime)
+        dateTimeSource = "firmware default"
+    except Exception as e:
+        initExceptions.append(e)
 
 
-powerOnCount = get("system", "powerOnCount")
-if powerOnCount == None:
+powerOnCount       = 0
+powerOnCountSource = "firmware default"
+
+try:
+    powerOnCount       = _readOrThrow("system", "powerOnCount")
+    powerOnCountSource = "configuration file (etc/system)"
+except Exception as e:
+    initExceptions.append(e)
+
     powerOnCount = int(uos.listdir("log/exception")[-1][:-4])   # [last file][cut extension]
+    powerOnCountSource = "guessing based on filenames"
+
 powerOnCount += 1                                               # Increment the counter
 _manageAttribute("system", "powerOnCount", "w", powerOnCount)   # and save it
 
-try:
-    logger._config(powerOnCount)
-except Exception as e:
+
+import ubot_logger as logger
+
+for exception in initExceptions:
     logger.append(e)
+
+logger.append("System RTC has been set. Source: {}".format(dateTimeSource))
+logger.append("'Power on count' has been set. Source: {}".format(powerOnCountSource))
 
 
 

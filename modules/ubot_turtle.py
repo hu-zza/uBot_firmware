@@ -1,8 +1,9 @@
 from machine import Pin, Timer
 
-import ubot_buzzer    as buzzer
-import ubot_logger    as logger
-import ubot_motor     as motor
+import ubot_config  as config
+import ubot_buzzer  as buzzer
+import ubot_logger  as logger
+import ubot_motor   as motor
 
 
 _powerOnCount      = 0           # [need config()]
@@ -47,53 +48,6 @@ _timer             = Timer(-1)   #                 Executes the repeated button 
 
 _blockBoundaries   = ((40, 41), (123, 125), (126, 126)) # (("(", ")"), ("{", "}"), ("~", "~"))
 
-################################
-## CONFIG
-
-def config(config):
-    global _powerOnCount
-    global _clockPin
-    global _inputPin
-    global _checkPeriod
-    global _pressLength
-    global _maxError
-    global _firstRepeat
-    global _loopChecking
-    global _moveLength
-    global _turnLength
-    global _breathLength
-    global _stepSignal
-    global _endSignal
-    global _pressedList
-    global _currentMapping
-
-    _powerOnCount = config.get("powerOnCount")
-
-    _clockPin = Pin(config.get("turtleClockPin"), Pin.OUT)
-    _clockPin.off()
-
-    _inputPin = Pin(config.get("turtleInputPin"), Pin.OUT) # FUTURE: _inputPin = Pin(16, Pin.IN)
-    _inputPin.off()                                        # DEPRECATED: New PCB design (2.1) will resolve this.
-    _inputPin.init(Pin.IN)                                 # DEPRECATED: New PCB design (2.1) will resolve this.
-
-    _checkPeriod  = config.get("turtleCheckPeriod")
-    _pressLength  = config.get("turtlePressLength")
-    _maxError     = config.get("turtleMaxError")
-    _firstRepeat  = config.get("turtleFirstRepeat")
-    _loopChecking = config.get("turtleLoopChecking")
-
-    _moveLength   = config.get("turtleMoveLength")
-    _turnLength   = config.get("turtleTurnLength")
-    _breathLength = config.get("turtleBreathLength")
-
-    _endSignal    = config.get("turtleEndSignal")
-    _stepSignal   = config.get("turtleStepSignal")
-
-    _pressedList  = [0] * (_pressLength + _maxError)
-
-    _currentMapping = _defaultMapping
-
-    _startButtonChecking()
 
 
 ################################
@@ -749,3 +703,37 @@ _functionMapping = {
     256:  (_undo,              (True,)),                            # UNDO
     512:  (_delete,            (True,))                             # DELETE
 }
+
+
+
+################################
+## INITIALISATION
+
+_powerOnCount = config.get("system", "powerOnCount")
+
+_clockPin = Pin(config.get("turtle", "clockPin"), Pin.OUT)
+_clockPin.off()
+
+_inputPin = Pin(config.get("turtle", "inputPin"), Pin.OUT) # FUTURE: _inputPin = Pin(16, Pin.IN)
+_inputPin.off()                                            # DEPRECATED: New PCB design (2.1) will resolve this.
+_inputPin.init(Pin.IN)                                     # DEPRECATED: New PCB design (2.1) will resolve this.
+
+_checkPeriod  = config.get("turtle", "checkPeriod")
+_pressLength  = config.get("turtle", "pressLength")
+_maxError     = config.get("turtle", "maxError")
+_firstRepeat  = config.get("turtle", "firstRepeat")
+_loopChecking = config.get("turtle", "loopChecking")
+
+_moveLength   = config.get("turtle", "moveLength")
+_turnLength   = config.get("turtle", "turnLength")
+_breathLength = config.get("turtle", "breathLength")
+
+_endSignal    = config.get("turtle", "endSignal")
+_stepSignal   = config.get("turtle", "stepSignal")
+
+_pressedList  = [0] * (_pressLength + _maxError)
+
+_currentMapping = _defaultMapping
+
+_startButtonChecking()
+    

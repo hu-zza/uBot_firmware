@@ -7,8 +7,8 @@ from ubinascii import hexlify
 AP = network.WLAN(network.AP_IF)
 
 system = {
-    "firmware"          : (0, 1, 88),
-    "initialDateTime"   : (2021, 1, 30, 0, 1, 50, 0, 0),
+    "firmware"          : (0, 1, 89),
+    "initialDateTime"   : (2021, 1, 30, 0, 15, 30, 0, 0),
     "powerOnCount"      : 0
 }
 
@@ -52,6 +52,24 @@ i2c = {
 }
 
 
+turtle = {
+    "active"      : True,
+    "moveLength"  : 890,
+    "turnLength"  : 359,
+    "breathLength": 500,
+    "loopChecking": 1,    #  0 - off  #  1 - simple (max. 20)  #  2 - simple (no limit)
+    "stepSignal"  : "step",
+    "endSignal"   : "ready",
+
+    "clockPin"    : 13,
+    "inputPin"    : 16,
+    "checkPeriod" : 20,   # ms
+    "pressLength" : 5,    # min. 100 ms           turtlePressLength * turtleCheckPeriod
+    "firstRepeat" : 75,   # min. 1500 ms          turtleFirstRepeat * turtleCheckPeriod
+    "maxError"    : 1     # max. 0.166' (16,6'%)  turtleMaxError / (turtlePressLength + turtleMaxError)
+}
+
+
 webServer = {
     "active"   : True
 }
@@ -62,6 +80,7 @@ configModules = {
     "buzzer"    : buzzer,
     "i2c"       : i2c,
     "system"    : system,
+    "turtle"    : turtle,
     "webServer" : webServer
 }
 
@@ -73,21 +92,6 @@ config = {
     "webReplPassword"   : "uBot_REPL",
 
     "motorConfig"       : [[10, 6], [1000, 750], [1.0, 500, 1023], 0],
-
-    "turtleActive"      : True,
-    "turtleMoveLength"  : 890,
-    "turtleTurnLength"  : 359,
-    "turtleBreathLength": 500,
-    "turtleLoopChecking": 1,    #  0 - off  #  1 - simple (max. 20)  #  2 - simple (no limit)
-    "turtleStepSignal"  : "step",
-    "turtleEndSignal"   : "ready",
-
-    "turtleClockPin"    : 13,
-    "turtleInputPin"    : 16,
-    "turtleCheckPeriod" : 20,   # ms
-    "turtlePressLength" : 5,    # min. 100 ms           turtlePressLength * turtleCheckPeriod
-    "turtleFirstRepeat" : 75,   # min. 1500 ms          turtleFirstRepeat * turtleCheckPeriod
-    "turtleMaxError"    : 1     # max. 0.166' (16,6'%)  turtleMaxError / (turtlePressLength + turtleMaxError)
 }
 
 
