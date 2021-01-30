@@ -6,12 +6,9 @@ from ubinascii import hexlify
 
 AP = network.WLAN(network.AP_IF)
 
-system = {
-    "firmware"          : (0, 1, 91),
-    "initialDateTime"   : (2021, 1, 30, 0, 19, 55, 0, 0),
-    "powerOnCount"      : 0
-}
 
+################################
+## CONFIG SUBDICTIONARIES
 
 ap = {
     "active"    : True,
@@ -52,6 +49,26 @@ i2c = {
 }
 
 
+motor = {
+    "active"        : True,
+    "T0Period"      : 10,
+    "T0Duration"    : 6,
+    "T1Frequency"   : 1000,
+    "T1Duty"        : 750,
+    "T1DutyFactor"  : 1.0,
+    "T1MinDuty"     : 500,
+    "T1MaxDuty"     : 1023,
+    "breathLength"  : 0
+}
+
+
+system = {
+    "firmware"          : (0, 1, 92),
+    "initialDateTime"   : (2021, 1, 30, 0, 22, 20, 0, 0),
+    "powerOnCount"      : 0
+}
+
+
 turtle = {
     "active"      : True,
     "moveLength"  : 890,
@@ -86,21 +103,19 @@ webRepl = {
 }
 
 
+################################
+## CONFIG DICTIONARY
+
 configModules = {
     "ap"        : ap,
     "buzzer"    : buzzer,
     "i2c"       : i2c,
+    "motor"     : motor,
     "system"    : system,
     "turtle"    : turtle,
     "uart"      : uart,
     "webRepl"   : webRepl,
     "webServer" : webServer
-}
-
-
-# Config dictionary initialisation
-config = {
-    "motorConfig"       : [[10, 6], [1000, 750], [1.0, 500, 1023], 0],
 }
 
 
@@ -141,16 +156,6 @@ programming).
         time.sleep(3)
 
 
-def saveDictionaryToFile(fileName, dictionary):
-    with open(fileName, "w") as file:
-        for key in sorted([k for k in dictionary.keys()]):
-            value = dictionary.get(key)
-            if isinstance(value, str):
-                file.write("{} = '{}'\n".format(key, value))
-            else:
-                file.write("{} = {}\n".format(key, value))
-
-
 
 def setup():
     check_bootsec()
@@ -159,13 +164,14 @@ def setup():
     vfs = uos.VfsLfs2(bdev)
     uos.mount(vfs, "/")
 
+
     uos.mkdir("etc")
     uos.mkdir("etc/ap")
     uos.mkdir("etc/buzzer")
     uos.mkdir("etc/i2c")
     uos.mkdir("etc/motor")
-    uos.mkdir("etc/turtle")
     uos.mkdir("etc/system")
+    uos.mkdir("etc/turtle")
     uos.mkdir("etc/uart")
     uos.mkdir("etc/webRepl")
     uos.mkdir("etc/webServer")
@@ -236,14 +242,11 @@ def setup():
         file.write("{}\nFallback event log initialised successfully.\n\n".format(system.get("initialDateTime")))
 
 
-    saveDictionaryToFile("etc/config.py", config)
-    saveDictionaryToFile("etc/defaults.py", config)
-
-
     for moduleName, module in configModules.items():
         for attrName, attrValue in module.items():
             with open("etc/{}/{}.txt".format(moduleName, attrName), "w") as file:
                 file.write("{}\n".format(ujson.dumps(attrValue)))
-
+            with open("etc/{}/{}.def".format(moduleName, attrName), "w") as file:
+                file.write("{}\n".format(ujson.dumps(attrValue)))
 
     return vfs

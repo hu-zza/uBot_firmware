@@ -1,4 +1,4 @@
-import esp, gc, network, uos, sys, webrepl
+import esp, network, uos, sys, webrepl
 
 from machine   import Pin, PWM, Timer, UART
 from ubinascii import hexlify
@@ -10,7 +10,6 @@ import ubot_logger as logger
 ################################
 ## INITIALISATION
 
-gc.enable()
 esp.osdebug(None)
 esp.sleep_type(esp.SLEEP_NONE)
 

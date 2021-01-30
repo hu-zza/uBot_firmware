@@ -5,21 +5,20 @@ import ubot_logger   as logger
 import ubot_template as template
 
 
-_socket       = 0
 _jsonFunction = 0
 _connection   = 0
 _address      = 0
-
+_socket       = usocket.socket(usocket.AF_INET, usocket.SOCK_STREAM)
+_socket.bind(("", 80))
+_socket.listen(5)
 
 
 ################################
 ## CONFIG
 
-def configure(socket, jsonFunction):
-    global _socket
+def setJsonCallback(jsonFunction):
     global _jsonFunction
 
-    _socket       = socket
     _jsonFunction = jsonFunction
 
 

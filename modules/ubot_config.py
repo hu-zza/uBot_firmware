@@ -96,21 +96,7 @@ _manageAttribute("system", "powerOnCount", "w", powerOnCount)   # and save it
 import ubot_logger as logger
 
 for exception in initExceptions:
-    logger.append(e)
+    logger.append(exception)
 
 logger.append("System RTC has been set. Source: {}".format(dateTimeSource))
 logger.append("'Power on count' has been set. Source: {}".format(powerOnCountSource))
-
-
-
-"""
-TODO:
-
-defaultsLoaded = True
-
-try:
-    import etc.defaults as defaults
-except Exception as e:
-    defaultsLoaded = False
-    logger.append(e)
-"""

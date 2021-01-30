@@ -52,10 +52,21 @@ def configMotor(motorConfig):
         - From the given minimum duty and initial duty calculates the minimum duty factor (_config[2][0]).
         - From the given maximum duty and initial duty calculates the maximum duty factor (_config[2][1]).
 
+
+    The starting point (motorConfig):
+
           T0 - RIGHT MOTOR |     T1 - LEFT MOTOR - PWM (and finetuning)      | Pause length  |
           Timer based ctrl | PWM setting |          Fine tuning settings     | between moves |
             (~freq, ~duty) |             |                                   |               |
-        ((period, duration), (freq, duty), (min. duty factor, max. duty factor), breath length)
+        ((period, duration), (freq, duty), (duty factor, min. duty, max. duty), breath length)
+
+        
+    The result (_config):
+
+          T0 - RIGHT MOTOR |     T1 - LEFT MOTOR - PWM (and finetuning)       |
+          Timer based ctrl | PWM setting |          Fine tuning settings      |
+            (~freq, ~duty) |             |                                    |
+        ((period, duration), (freq, duty), (min. duty factor, max. duty factor))
     """
 
     _config = (
