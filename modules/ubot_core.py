@@ -1,6 +1,6 @@
 import esp, gc, network, ujson, uos, usocket, sys, webrepl
 
-from machine     import Pin, PWM, RTC, Timer, UART
+from machine     import Pin, UART
 from ubinascii   import hexlify
 from utime       import sleep_ms
 
@@ -13,7 +13,6 @@ import ubot_webserver as webserver
 
 
 buzzer.keyBeep("started")
-DT     = RTC()
 CONFIG = {}
 
 
@@ -21,16 +20,7 @@ CONFIG = {}
 ################################
 ## IMPORT CONFIG FILES
 
-datetimeLoaded = True
-
-try:
-    import etc.datetime as datetime
-except Exception as e:
-    datetimeLoaded = False
-    logger.append(e)
-
-
-
+# DEPRECATED
 try:
     import etc.config
 except Exception as e:
@@ -51,11 +41,11 @@ def executeJson(json):
         dateTime = json.get("dateTime")
 
         if len(dateTime) == 8:              # For classical tuple format
-            DT.datetime(dateTime)
+            config.datetime(dateTime)
         elif len(dateTime) == 2:            # For human readable format: (yyyy-mm-dd, hh:mm)
             date = dateTime[0].split("-")
             time = dateTime[1].split(":")
-            DT.datetime((int(date[0]), int(date[1]), int(date[2]), 0, int(time[0]), int(time[1]), 0, 0))
+            config.datetime((int(date[0]), int(date[1]), int(date[2]), 0, int(time[0]), int(time[1]), 0, 0))
 
         saveDateTime()
         results.append("New dateTime has been set.")
@@ -134,7 +124,7 @@ def executeJson(json):
                     results.append("Calibration has started. It will take 2 minutes.")
 
                 elif command == "CHECK DATETIME":
-                    results.append(str(DT.datetime()))
+                    results.append(str(config.datetime()))
 
                 elif command == "SAVE CONFIG":
                     saveConfig()
@@ -164,21 +154,6 @@ def saveConfig():
         logger.append(e)
 
 
-def saveDateTime():
-    saveToFile("etc/datetime.py", "w", "DT = {}".format(DT.datetime()))
-
-
-###########
-## HELPER
-
-def saveToFile(fileName, mode, content):
-    try:
-        with open(fileName, mode) as file:
-            file.write(content)
-    except Exception as e:
-        logger.append(e)
-
-
 
 ###########
 ## FEEDBACK
@@ -201,29 +176,10 @@ esp.osdebug(None)
 esp.sleep_type(esp.SLEEP_NONE)
 
 
-if datetimeLoaded:
-    try:
-        DT.datetime(datetime.DT)
-    except Exception as e:
-        logger.append(e)
-
-
-    # Fetch every variable from config.py / defaults.py
-    for v in dir(eval("etc.config")):
-        if v[0] != "_":                                                       # Do not load private and magic variables.
-            CONFIG[v] = eval("{}.{}".format("etc.config", v))
-
-    CONFIG["powerOnCount"] = CONFIG.get("powerOnCount") + 1
-
-    # If etc/datetime.py is not accessible, set the DT to 'initialDateTime'.
-    if not datetimeLoaded:
-        DT.datetime(CONFIG.get("initialDateTime"))
-
-
-try:
-    logger.config(DT, CONFIG.get("powerOnCount"))
-except Exception as e:
-    logger.append(e)
+# Fetch every variable from config.py / defaults.py
+for v in dir(eval("etc.config")):
+    if v[0] != "_":                                                       # Do not load private and magic variables.
+        CONFIG[v] = eval("{}.{}".format("etc.config", v))
 
 
 ###########
@@ -295,7 +251,7 @@ if CONFIG.get("webReplActive"):
         logger.append(e)
 
 
-if CONFIG.get("webServerActive"):
+if config.get("webServer", "active"):
     try:
         socket = usocket.socket(usocket.AF_INET, usocket.SOCK_STREAM)
         socket.bind(("", 80))

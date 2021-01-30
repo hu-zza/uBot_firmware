@@ -1,15 +1,11 @@
 import ujson, uos
 
+from machine import RTC
+
 import ubot_logger as logger
 
 
-defaultsLoaded = True
-
-try:
-    import etc.defaults as defaults
-except Exception as e:
-    defaultsLoaded = False
-    logger.append(e)
+dateTime = RTC()
 
 
 
@@ -26,6 +22,21 @@ def set(module, attribute, value):
     return _manageAttribute(module, attribute, "w", value)
 
 
+def datetime(newDateTime = None):
+    if newDateTime != None:
+        dateTime.datetime(newDateTime)
+
+    return dateTime.datetime()
+
+
+def saveDateTime():
+    try:
+        with open("etc/datetime.py", "w") as file:
+            file.write("DT = {}".format(dateTime.datetime()))
+    except Exception as e:
+        logger.append(e)
+
+
 
 ################################
 ## PRIVATE, HELPER METHODS
@@ -40,15 +51,43 @@ def _manageAttribute(dir, file, mode, value = None):
     except Exception as e:
         logger.append(e)
 
+
+
+################################
+## INITIALISATION
+
+try:
+    import etc.datetime
+    dateTime.datetime(etc.datetime.DT)
+except Exception as e:
+    logger.append(e)
+
+    initialDateTime = get("system", "initialDateTime")
+    if initialDateTime != None:
+        dateTime.datetime(initialDateTime)
+
+
+powerOnCount = get("system", "powerOnCount")
+if powerOnCount == None:
+    powerOnCount = int(uos.listdir("log/exception")[-1][:-4])   # [last file][cut extension]
+powerOnCount += 1                                               # Increment the counter
+_manageAttribute("system", "powerOnCount", "w", powerOnCount)   # and save it
+
+try:
+    logger.config(dateTime, powerOnCount)
+except Exception as e:
+    logger.append(e)
+
+
+
 """
 TODO:
-    if conf == "defaults":
-        try:
-            CONFIG["powerOnCount"] = int(uos.listdir("log/exception")[-1][:-4]) + 1 # [last file][cut extension]
-        except Exception as e:
-            logger.append(e)
-    else:
-        CONFIG["powerOnCount"] = CONFIG.get("powerOnCount") + 1
 
-    - RTC?
+defaultsLoaded = True
+
+try:
+    import etc.defaults as defaults
+except Exception as e:
+    defaultsLoaded = False
+    logger.append(e)
 """

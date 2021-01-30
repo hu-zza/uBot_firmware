@@ -122,13 +122,13 @@ def _processGetQuery(path):
             if path == "/debug":
                 _connection.send("        <br><br><hr><hr>\n")
                 _connection.send("        <h3>Exceptions</h3>\n")
-                _sendRaw("log/exception/{:010d}.txt".format(_config.get("powerOnCount")))
+                _sendRaw("log/exception/{:010d}.txt".format(config.get("system", "powerOnCount")))
                 _connection.send("        <br><hr><br>\n")
                 _sendRaw("log/exception/0000000000.txt")
 
                 _connection.send("        <br><br><hr><hr>\n")
                 _connection.send("        <h3>Events</h3>\n")
-                _sendRaw("log/event/{:010d}.txt".format(_config.get("powerOnCount")))
+                _sendRaw("log/event/{:010d}.txt".format(config.get("system", "powerOnCount")))
                 _connection.send("        <br><hr><br>\n")
                 _sendRaw("log/event/0000000000.txt")
 
@@ -199,6 +199,7 @@ def _reply(returnFormat, httpCode, message):
         print("The connection has been closed.")
     finally:
         _connection.close()
+
 
 def _sendRaw(path):
     _connection.send("        <pre>\n")

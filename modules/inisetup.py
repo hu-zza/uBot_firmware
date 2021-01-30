@@ -7,8 +7,8 @@ from ubinascii import hexlify
 AP = network.WLAN(network.AP_IF)
 
 system = {
-    "firmware"          : (0, 1, 86),
-    "initialDateTime"   : (2021, 1, 30, 0, 0, 25, 0, 0),
+    "firmware"          : (0, 1, 87),
+    "initialDateTime"   : (2021, 1, 30, 0, 1, 15, 0, 0),
     "powerOnCount"      : 0
 }
 
@@ -52,18 +52,23 @@ i2c = {
 }
 
 
+webServer = {
+    "active"   : True
+}
+
+
 configModules = {
     "ap"        : ap,
     "buzzer"    : buzzer,
     "i2c"       : i2c,
-    "system"    : system
+    "system"    : system,
+    "webServer" : webServer
 }
 
 
 # Config dictionary initialisation
 config = {
     "uartActive"        : True,
-    "webServerActive"   : True,
     "webReplActive"     : True,
     "webReplPassword"   : "uBot_REPL",
 
@@ -161,8 +166,6 @@ def setup():
     uos.mkdir("log/exception")
     uos.mkdir("log/program")
 
-    with open("webrepl_cfg.py", "w") as file:
-        file.write("PASS = '{}'".format(config.get("webReplPassword")))
 
     firmware = system.get("firmware")
     firmwareComment = "# uBot firmware {}.{}.{}\n\n".format(
@@ -178,6 +181,12 @@ def setup():
                      "# https://github.com/hu-zza/uBot\n"
                      "# https://ubot.hu\n"
                      "#\n")
+
+
+    with open("webrepl_cfg.py", "w") as file:
+        file.write(firmwareComment)
+        file.write("PASS = '{}'".format(config.get("webReplPassword")))
+        file.write(footerComment)
 
 
     with open("boot.py", "w") as file:
