@@ -60,7 +60,7 @@ def configMotor(motorConfig):
             (~freq, ~duty) |             |                                   |               |
         ((period, duration), (freq, duty), (duty factor, min. duty, max. duty), breath length)
 
-        
+
     The result (_config):
 
           T0 - RIGHT MOTOR |     T1 - LEFT MOTOR - PWM (and finetuning)       |
@@ -147,7 +147,7 @@ def setFactor(factor = 1):
         return 0
 
 
-def setCallback(callbackFunction, slot = 0, isTemporary = True):
+def setCallback(slot, callbackFunction, isTemporary = False):
     global _callbacks
     """
     Setter for callbacks.
@@ -161,6 +161,12 @@ def setCallback(callbackFunction, slot = 0, isTemporary = True):
     this after execution.
     """
     _callbacks[slot] = (callbackFunction, isTemporary)
+
+
+def deleteCallback(slot = 0):
+    global _callbacks
+    """ Delete the callback from the specified slot. """
+    _callbacks[slot] = ()
 
 
 def setBreath(breathLength):

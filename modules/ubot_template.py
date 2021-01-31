@@ -312,11 +312,11 @@ _sender =  ("\n"
 
 
 def getTurtleMoveSender():
-    return _sender.format(title = "Immediate command | μBot Drive", logging = "false", body = "\"command\" : [ \"TURTLE_\" + value ]\n")
+    return _sender.format(title = "Immediate command | μBot Drive", logging = "false", body = "\"command\" : [ \"STEP \" + value ]\n")
 
 
 def getButtonPressSender():
-    return _sender.format(title = "Pressed button | μBot Command", logging = "false", body = "\"command\" : [ \"PRESS_\" + value ]\n")
+    return _sender.format(title = "Pressed button | μBot Command", logging = "false", body = "\"command\" : [ \"PRESS \" + value ]\n")
 
 
 def getServiceRequestSender():

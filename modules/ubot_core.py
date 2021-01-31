@@ -47,30 +47,30 @@ def executeJson(json):
     if json.get("command"):
         for command in json.get("command"):
 
-            if command[0:6] == "PRESS_":
+            if command[:6] == "PRESS ":
                 pressedList = command[6:].strip().split(":")
                 for pressed in pressedList:
                     turtle.press(pressed)
 
-            elif command[0:7] == "TURTLE_":
-                for char in command[7:].strip():
+            elif command[:5] == "STEP ":
+                for char in command[5:].strip():
                     turtle.move(char)
 
-            elif command[0:5] == "BEEP_":
+            elif command[:5] == "BEEP ":
                 beepArray = command[5:].strip().split(":")
                 buzzer.beep(int(beepArray[0]), int(beepArray[1]), int(beepArray[2]))
 
-            elif command[0:5] == "MIDI_":
+            elif command[:5] == "MIDI ":
                 beepArray = command[5:].strip().split(":")
                 buzzer.midiBeep(int(beepArray[0]), int(beepArray[1]), int(beepArray[2]))
 
-            elif command[0:5] == "REST_":
+            elif command[:5] == "REST ":
                 buzzer.rest(int(command[5:].strip()))
 
-            elif command[0:4] == "MOT_":
+            elif command[:4] == "MOT ":
                 motor.move(int(command[4]), int(command[6:].strip()))
 
-            elif command[0:6] == "SLEEP_":
+            elif command[:6] == "SLEEP ":
                 sleep_ms(int(command[6:].strip()))
 
 

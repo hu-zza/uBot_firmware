@@ -348,8 +348,7 @@ def _start(arguments):                # (blockLevel,)
     config.saveDateTime()
     _logExecuted()
 
-    motor.setCallback(lambda: _callbackEnd(),  0, False)
-    motor.setCallback(lambda: _callbackStep(), 1, False)
+    motor.setCallback(0, lambda: _callbackEnd(), True)      # Set as temporary, because not every execution need it.
 
     #counter = 0                             #      Debug
     #print("_toPlay[:_pointer]", "_toPlay[_pointer:]", "\t\t\t", "counter", "_pointer", "_toPlay[_pointer]") # Debug
@@ -434,6 +433,7 @@ def _start(arguments):                # (blockLevel,)
         _pointer += 1
 
     _processingProgram = False
+
     _startButtonChecking()
     return 0
 
@@ -716,5 +716,7 @@ _functionMapping = {
 ## LAST PART OF INITIALISATION
 
 _currentMapping = _defaultMapping
+
+motor.setCallback(1, lambda: _callbackStep())
 
 _startButtonChecking()
