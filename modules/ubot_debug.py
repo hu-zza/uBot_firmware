@@ -2,6 +2,7 @@ import esp, network, uos, sys, webrepl
 
 from machine   import Pin, PWM, Timer, UART
 from ubinascii import hexlify
+from utime     import sleep_ms
 
 import ubot_logger as logger
 
@@ -10,21 +11,31 @@ import ubot_logger as logger
 ################################
 ## INITIALISATION
 
-esp.osdebug(None)
-esp.sleep_type(esp.SLEEP_NONE)
-
+_uartState = 0
 
 try:
-    core = sys.modules.get("ubot_core")
+    esp.osdebug(None)
+    esp.sleep_type(esp.SLEEP_NONE)
 except Exception as e:
     logger.append(e)
 
 
 try:
-    P1 = Pin(1, Pin.OUT)    # UART0 + Connected to the  2nd pin of the motor driver (SN754410). T0 terminal (M3, M6)
-    P3 = Pin(3, Pin.OUT)    # UART0 + Connected to the  7th pin of the motor driver (SN754410). T0 terminal (M3, M6)
-    P4 = Pin(4, Pin.OUT)    #         Connected to the 10th pin of the motor driver (SN754410). T1 terminal (M11, M14)
-    P5 = Pin(5, Pin.OUT)    #         Connected to the 15th pin of the motor driver (SN754410). T1 terminal (M11, M14)
+    signal = PWM(Pin(15), 1, 500)
+except Exception as e:
+    logger.append(e)
+
+
+try:
+    P1 = Pin(1, Pin.OUT)     # UART0 + Connected to the  2nd pin of the motor driver (SN754410). T0 terminal (M3, M6)
+    P3 = Pin(3, Pin.OUT)     # UART0 + Connected to the  7th pin of the motor driver (SN754410). T0 terminal (M3, M6)
+    P4 = Pin(4, Pin.OUT)     #         Connected to the 10th pin of the motor driver (SN754410). T1 terminal (M11, M14)
+    P5 = Pin(5, Pin.OUT)     #         Connected to the 15th pin of the motor driver (SN754410). T1 terminal (M11, M14)
+
+    P16 = Pin(16, Pin.OUT)   # FUTURE: P16 = Pin(16, Pin.IN)
+    P16.off()                # DEPRECATED: New PCB design (2.1) will resolve this.
+    P16.init(Pin.IN)         # DEPRECATED: New PCB design (2.1) will resolve this.
+
     P1.off()
     P3.off()
     P4.off()
@@ -36,7 +47,7 @@ except Exception as e:
 
 
 try:
-    errorSignal = PWM(Pin(15), 1, 500)
+    sys.modules.get("ubot_turtle")._stopButtonChecking()
 except Exception as e:
     logger.append(e)
 
@@ -69,57 +80,94 @@ except Exception as e:
 
 try:
     webrepl.start(password = "uBot_REPL")
-    timer = Timer(-1)
-    timer.init(period = 1000, mode = Timer.PERIODIC, callback = lambda t: _stopSignalAfterLogin())
 except Exception as e:
     logger.append(e)
 
+
+try:
+    timer = Timer(-1)
+    timer.init(period = 1000, mode = Timer.PERIODIC, callback = lambda t: _periodicalChecks())
+except Exception as e:
+    logger.append(e)
 
 
 ################################
 ## PUBLIC METHODS
 
 def listExceptions():
+    stopSignal()
     exceptionFiles = uos.listdir("log/exception")
+    print()
     for fileName in exceptionFiles:
         print("{}\t{}".format(int(fileName[:-4]), fileName))        # [:-4] strip the file extension: .txt
+    print()
 
 
-def printExceptions(nr):
-    exceptionFiles = uos.listdir("log/exception")
-    fileName = "{:010d}.txt".format(nr)
-
-    if fileName in exceptionFiles:
-        try:
-            with open("log/exception/" + fileName) as file:
-                for line in file:
-                    print(line, end="")
-        except Exception as e:
-            logger.append(e)
+def printExceptions(nr = None):
+    stopSignal()
+    if nr == None:
+        print(("\nThis function needs one parameter,\n"
+               "the ordinal of a specific exception log.\n"
+               "You can list ordinals and file names with\n"
+               "listExceptions() command.\n")
+             )
     else:
-        print("There is no exception file with the given ordinal: {}".format(nr))
+        exceptionFiles = uos.listdir("log/exception")
+        fileName = "{:010d}.txt".format(nr)
+
+        if fileName in exceptionFiles:
+            try:
+                print()
+                with open("log/exception/" + fileName) as file:
+                    for line in file:
+                        print(line, end="")
+                print()
+            except Exception as e:
+                logger.append(e)
+        else:
+            print("\nThere is no exception file with the given ordinal: {}\n".format(nr))
 
 
 def startUart():
-    """ You should deactivate the motor first by the physical switch on main PCB. """
-    try:
-        uos.dupterm(UART(0, 115200), 1)
-    except Exception as e:
-        logger.append(e)
+    global _uartState
+
+    if _uartState == 0:
+        print(("\nPlease check that you deactivated the motor driver\n"
+               "by the physical switch on main PCB.\n"
+               "After that, call this method again.\n")
+             )
+        _uartState += 1
+    elif _uartState == 1:
+        try:
+            uos.dupterm(UART(0, 115200), 1)
+            stopSignal()
+            _uartState += 1
+            print("\nThe UART has been started.\n")
+        except Exception as e:
+            logger.append(e)
+    else:
+        print("\nThe UART is already active.\n")
 
 
 def stopUart():
-    try:
-        uos.dupterm(None, 1)
-        P1.off()
-        P3.off()
-    except Exception as e:
-        logger.append(e)
+    global _uartState
+
+    if _uartState == 0:
+        print("\nThe UART is already stopped.\n")
+    else:
+        try:
+            uos.dupterm(None, 1)
+            P1.off()
+            P3.off()
+            _uartState = 0
+            print("\nThe UART has been stopped.\n")
+        except Exception as e:
+            logger.append(e)
 
 
-def stopErrorSignal():
+def stopSignal():
     try:
-        errorSignal.deinit()
+        signal.duty(0)
     except Exception as e:
         logger.append(e)
 
@@ -128,11 +176,28 @@ def stopErrorSignal():
 ################################
 ## PRIVATE, HELPER METHODS
 
-def _stopSignalAfterLogin():
+def _periodicalChecks():
+    if _uartState < 2:
+        _checkButtonPress()
+    _stopSignalAtLogin()
+
+
+def _checkButtonPress():
+    # pseudo pull-down           # DEPRECATED: New PCB design (2.1) will resolve this.
+    if P16.value() == 1:         # DEPRECATED: New PCB design (2.1) will resolve this.
+        P16.init(Pin.OUT)        # DEPRECATED: New PCB design (2.1) will resolve this.
+        P16.off()                # DEPRECATED: New PCB design (2.1) will resolve this.
+        P16.init(Pin.IN)         # DEPRECATED: New PCB design (2.1) will resolve this.
+
+    if P16.value() == 1:
+        startUart()
+
+
+def _stopSignalAtLogin():
     """ Stops the error signal, if user starts the login process. """
     try:
         if webrepl.client_s != None:
             webrepl.client_s.read(1)    # Dirty hack, but there is no proper check for socket state and this throws
-            stopErrorSignal()           # OSError: [Errno 9] EBADF for closed (state = -16) sockets...
+            stopSignal()                # OSError: [Errno 9] EBADF for closed (state = -16) sockets...
     except Exception:
         pass

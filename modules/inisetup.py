@@ -63,8 +63,8 @@ motor = {
 
 
 system = {
-    "firmware"      : (0, 1, 95),
-    "initDateTime"  : (2021, 1, 31, 0, 13, 10, 0, 0),
+    "firmware"      : (0, 1, 96),
+    "initDateTime"  : (2021, 1, 31, 0, 16, 45, 0, 0),
     "powerOnCount"  : 0
 }
 
@@ -78,8 +78,6 @@ turtle = {
     "stepSignal"    : "step",
     "endSignal"     : "ready",
 
-    "clockPin"      : 13,
-    "inputPin"      : 16,
     "checkPeriod"   : 20,   # ms
     "pressLength"   : 5,    # min. 100 ms           turtlePressLength * turtleCheckPeriod
     "firstRepeat"   : 75,   # min. 1500 ms          turtleFirstRepeat * turtleCheckPeriod
@@ -88,7 +86,7 @@ turtle = {
 
 
 uart = {
-    "active"        : True
+    "active"        : False
 }
 
 
@@ -229,7 +227,7 @@ def setup():
         file.write(("import sys\n"
                     "core = sys.modules.get('ubot_core')\n\n"
                     "import ubot_debug\n"
-                    "from ubot_debug import listExceptions, printExceptions, startUart, stopUart, stopErrorSignal\n\n"
+                    "from ubot_debug import listExceptions, printExceptions, startUart, stopUart, stopSignal\n\n"
         ))
         file.write(footerComment)
 

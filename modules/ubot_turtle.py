@@ -1,53 +1,59 @@
 from machine import Pin, Timer
 
-import ubot_config  as config
-import ubot_buzzer  as buzzer
-import ubot_logger  as logger
-import ubot_motor   as motor
+import ubot_config as config
+import ubot_buzzer as buzzer
+import ubot_logger as logger
+import ubot_motor  as motor
 
 
-_powerOnCount      = 0           # [need config()]
+_powerOnCount = config.get("system", "powerOnCount")
 
-_clockPin          = 0           # [need config()] Advances the decade counter (U3).
-_inputPin          = 0           # [need config()] Checks the returning signal from turtle HAT.
-_checkPeriod       = 0           # [need config()]
-_counterPosition   = 0           #                 The position of the decade counter (U3).
-_pressLength       = 0           # [need config()]
-_maxError          = 0           # [need config()]
+_clockPin = Pin(13, Pin.OUT)                                # Advances the decade counter (U3).
+_clockPin.off()
+                                                            # Checks the returning signal from turtle HAT.
+_inputPin = Pin(16, Pin.OUT)                                # FUTURE: _inputPin = Pin(16, Pin.IN)
+_inputPin.off()                                             # DEPRECATED: New PCB design (2.1) will resolve this.
+_inputPin.init(Pin.IN)                                      # DEPRECATED: New PCB design (2.1) will resolve this.
 
-_lastPressed       = [0, 0]      #                 Inside: [last pressed button, elapsed (button check) cycles]
-_firstRepeat       = 0           # [need config()]
-_loopChecking      = 0           # [need config()]
-_moveLength        = 0           #
-_turnLength        = 0           #
-_breathLength      = 0           #
+_checkPeriod  = config.get("turtle", "checkPeriod")
+_counterPosition = 0                                        # The position of the decade counter (U3).
 
-_stepSignal        = ""          # [need config()] Sound indicates the end of a step during execution: buzzer.keyBeep(_stepSignal)
-_endSignal         = ""          # [need config()] Sound indicates the end of program execution:       buzzer.keyBeep(_endSignal)
+_pressLength  = config.get("turtle", "pressLength")
+_maxError     = config.get("turtle", "maxError")
+_lastPressed  = [0, 0]                                      # Inside: [last pressed button, elapsed (button check) cycles]
+_firstRepeat  = config.get("turtle", "firstRepeat")
 
-_pressedListIndex  = 0           #
-_pressedList       = 0           # [need config()] Low-level:  The last N (_pressLength + _maxError) buttoncheck results.
-_commandArray      = bytearray() #                 High-level: Abstract commands, result of processed button presses.
-_commandPointer    = 0           #                 Pointer for _commandArray.
-_programArray      = bytearray() #                 High-level: Result of one or more added _commandArray.
-_programParts      = [0]         #                 Positions by which _programArray can be split into _commandArray(s).
+_loopChecking = config.get("turtle", "loopChecking")
 
-_loopCounter       = 0           #                 At loop creation this holds iteration count.
+_moveLength   = config.get("turtle", "moveLength")
+_turnLength   = config.get("turtle", "turnLength")
+_breathLength = config.get("turtle", "breathLength")
 
-_functionPosition  = [-1, -1, -1]#                 -1 : not defined, -0.1 : under definition, 0+ : defined
-                                 #                 If defined, this index refer to the first command of the function,
-                                 #                 instead of its curly brace "{".
+_endSignal    = config.get("turtle", "endSignal")           # Sound indicates the end of a step during execution: buzzer.keyBeep(_stepSignal)
+_stepSignal   = config.get("turtle", "stepSignal")          # Sound indicates the end of program execution:       buzzer.keyBeep(_endSignal)
 
-_blockStartIndex   = 0           #                 At block (loop, fn declaration) creation, this holds block start position.
-_blockStartStack   = []          #
-_currentMapping    = 0           #
-_mappingsStack     = []          #
-_processingProgram = False       #
-_runningProgram    = False       #
-_timer             = Timer(-1)   #                 Executes the repeated button checks.
+_pressedListIndex = 0
+_pressedList  = [0] * (_pressLength + _maxError)            # Low-level:  The last N (_pressLength + _maxError) buttoncheck results.
 
-_blockBoundaries   = ((40, 41), (123, 125), (126, 126)) # (("(", ")"), ("{", "}"), ("~", "~"))
+_commandArray   = bytearray()                               # High-level: Abstract commands, result of processed button presses.
+_commandPointer = 0                                         # Pointer for _commandArray.
+_programArray   = bytearray()                               # High-level: Result of one or more added _commandArray.
+_programParts   = [0]                                       # Positions by which _programArray can be split into _commandArray(s).
 
+_loopCounter    = 0                                         # At loop creation this holds iteration count.
+
+_functionPosition = [-1, -1, -1]                            # -1 : not defined, -0.1 : under definition, 0+ : defined
+                                                            # If defined, this index the first command of the function,
+                                                            # refer to the first command of the function, instead of its curly brace "{".
+
+_blockStartIndex   = 0                                      # At block (loop, fn declaration) creation, this holds block start position.
+_blockStartStack   = []
+_mappingsStack     = []
+_processingProgram = False
+_runningProgram    = False
+_timer             = Timer(-1)                              # Executes the repeated button checks.
+
+_blockBoundaries   = ((40, 41), (123, 125), (126, 126))     # (("(", ")"), ("{", "}"), ("~", "~"))
 
 
 ################################
@@ -707,31 +713,7 @@ _functionMapping = {
 
 
 ################################
-## INITIALISATION
-
-_powerOnCount = config.get("system", "powerOnCount")
-
-_clockPin = Pin(config.get("turtle", "clockPin"), Pin.OUT)
-_clockPin.off()
-
-_inputPin = Pin(config.get("turtle", "inputPin"), Pin.OUT) # FUTURE: _inputPin = Pin(16, Pin.IN)
-_inputPin.off()                                            # DEPRECATED: New PCB design (2.1) will resolve this.
-_inputPin.init(Pin.IN)                                     # DEPRECATED: New PCB design (2.1) will resolve this.
-
-_checkPeriod  = config.get("turtle", "checkPeriod")
-_pressLength  = config.get("turtle", "pressLength")
-_maxError     = config.get("turtle", "maxError")
-_firstRepeat  = config.get("turtle", "firstRepeat")
-_loopChecking = config.get("turtle", "loopChecking")
-
-_moveLength   = config.get("turtle", "moveLength")
-_turnLength   = config.get("turtle", "turnLength")
-_breathLength = config.get("turtle", "breathLength")
-
-_endSignal    = config.get("turtle", "endSignal")
-_stepSignal   = config.get("turtle", "stepSignal")
-
-_pressedList  = [0] * (_pressLength + _maxError)
+## LAST PART OF INITIALISATION
 
 _currentMapping = _defaultMapping
 
