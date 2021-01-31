@@ -119,17 +119,18 @@ def _processGetQuery(path):
                 _connection.write(part())
 
             if path == "/debug":
-                _connection.write("        <br><br><hr><hr>\n")
-                _connection.write("        <h3>Exceptions</h3>\n")
-                _sendRaw("log/exception/{:010d}.txt".format(config.get("system", "powerOnCount")))
-                _connection.write("        <br><hr><br>\n")
-                _sendRaw("log/exception/0000000000.txt")
+                logFiles = (
+                    ("Exceptions",  "log/exception/"),
+                    ("Events",      "log/event/"),
+                    ("Objects",     "log/object/")
+                )
 
-                _connection.write("        <br><br><hr><hr>\n")
-                _connection.write("        <h3>Events</h3>\n")
-                _sendRaw("log/event/{:010d}.txt".format(config.get("system", "powerOnCount")))
-                _connection.write("        <br><hr><br>\n")
-                _sendRaw("log/event/0000000000.txt")
+                for logFile in logFiles:
+                    _connection.write("        <br><br><hr><hr>\n")
+                    _connection.write("        <h3>{}</h3>\n".format(logFile[0]))
+                    _sendRaw("{}{:010d}.txt".format(logFile[1], config.get("system", "powerOnCount")))
+                    _connection.write("        <br><hr><br>\n")
+                    _sendRaw("{}0000000000.txt".format(logFile[1]))
 
             _connection.write(template.getPageFooter())
         elif path[:5] == "/raw/":

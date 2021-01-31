@@ -27,6 +27,7 @@ if config.get("webServer", "active"):
 def executeJson(json):
     if json.get("logging"):
         logger.append("Incoming JSON object. Title: {}".format(json.get("title")))
+        logger.append(json)
 
     results = []
 

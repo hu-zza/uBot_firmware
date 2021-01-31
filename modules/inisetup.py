@@ -63,8 +63,8 @@ motor = {
 
 
 system = {
-    "firmware"          : (0, 1, 93),
-    "initialDateTime"   : (2021, 1, 31, 0, 1, 25, 0, 0),
+    "firmware"          : (0, 1, 94),
+    "initialDateTime"   : (2021, 1, 31, 0, 12, 55, 0, 0),
     "powerOnCount"      : 0
 }
 
@@ -179,11 +179,16 @@ def setup():
     uos.mkdir("program")
 
     uos.mkdir("log")
-    uos.mkdir("log/commands")
-    uos.mkdir("log/datetime")
     uos.mkdir("log/event")
     uos.mkdir("log/exception")
-    uos.mkdir("log/program")
+    uos.mkdir("log/object")
+
+    uos.mkdir("log/executed")
+    uos.mkdir("log/executed/commands")
+    uos.mkdir("log/executed/datetime")
+    uos.mkdir("log/executed/program")
+
+
 
 
     firmware = system.get("firmware")
@@ -242,6 +247,10 @@ def setup():
 
 
     with open("log/event/0000000000.txt", "w") as file:
+        file.write("{}\nFallback event log initialised successfully.\n\n".format(system.get("initialDateTime")))
+
+
+    with open("log/object/0000000000.txt", "w") as file:
         file.write("{}\nFallback event log initialised successfully.\n\n".format(system.get("initialDateTime")))
 
 

@@ -299,7 +299,7 @@ _sender =  ("\n"
             "            function send(value) {{\n"
             "                let object = {{\n"
             "                   \"title\" : \"{title}\",\n"
-            "                   \"logging\" : false,\n"
+            "                   \"logging\" : {logging},\n"
             "                   {body}"
             "                }}\n\n"
             "                let json = JSON.stringify(object);\n\n"
@@ -312,15 +312,15 @@ _sender =  ("\n"
 
 
 def getTurtleMoveSender():
-    return _sender.format(title = "Immediate command | μBot Drive", body = "\"command\" : [ \"TURTLE_\" + value ]\n")
+    return _sender.format(title = "Immediate command | μBot Drive", logging = "false", body = "\"command\" : [ \"TURTLE_\" + value ]\n")
 
 
 def getButtonPressSender():
-    return _sender.format(title = "Pressed button | μBot Command", body = "\"command\" : [ \"PRESS_\" + value ]\n")
+    return _sender.format(title = "Pressed button | μBot Command", logging = "false", body = "\"command\" : [ \"PRESS_\" + value ]\n")
 
 
 def getServiceRequestSender():
-    return _sender.format(title = "Service request | μBot Settings", body = "\"service\" : [ value ]\n")
+    return _sender.format(title = "Service request | μBot Settings", logging = "true", body = "\"service\" : [ value ]\n")
 
 
 def getDateTimeSender():

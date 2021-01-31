@@ -297,19 +297,19 @@ def _logExecuted():
     fileName = "{:010d}.txt".format(_powerOnCount)
 
     try:
-        with open("log/datetime/" + fileName, "a") as file:
+        with open("log/executed/datetime/" + fileName, "a") as file:
             file.write("{}\n".format(config.datetime()))
     except Exception as e:
         logger.append(e)
 
     try:
-        with open("log/commands/" + fileName, "a") as file:
+        with open("log/executed/commands/" + fileName, "a") as file:
             file.write("{}\n".format(_commandArray[:_commandPointer].decode()))
     except Exception as e:
         logger.append(e)
 
     try:
-        with open("log/program/" + fileName, "a") as file:
+        with open("log/executed/program/" + fileName, "a") as file:
             file.write("{}\n".format(_programArray[:_programParts[-1]].decode()))
     except Exception as e:
         logger.append(e)
@@ -736,4 +736,3 @@ _pressedList  = [0] * (_pressLength + _maxError)
 _currentMapping = _defaultMapping
 
 _startButtonChecking()
-    

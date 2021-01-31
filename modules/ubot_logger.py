@@ -7,10 +7,11 @@ import ubot_config as config
 
 _fileName = 0
                 #    Name   | List |   Directory
-_logFiles = [
+_logFiles = (
                 ["Exception", [], "log/exception/"],
-                ["Event",     [], "log/event/"]
-            ]
+                ["Event",     [], "log/event/"],
+                ["Object",    [], "log/object/"]
+            )
 
 
 
@@ -18,8 +19,6 @@ _logFiles = [
 ## PUBLIC METHODS
 
 def append(item):
-    global _logFiles
-
     if _fileName != 0:
         try:
             with open(_logFiles[_defineIndex(item)][2] + _fileName, "a") as file:
@@ -70,9 +69,7 @@ def _saveFromList(logFile, fallback = False):
         except Exception as e:
             sys.print_exception(e)
 
-            if fallback:
-                raise
-            else:
+            if not fallback:
                 _saveFromList(logFile, True)
 
 
@@ -94,6 +91,8 @@ def _writeOutItem(dateTime, file, item):
 def _defineIndex(item):
     if isinstance(item, Exception):
         return 0
+    elif isinstance(item, dict):
+        return 2
     else:
         return 1
 
