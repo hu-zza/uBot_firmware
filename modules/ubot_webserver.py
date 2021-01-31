@@ -204,12 +204,27 @@ def _reply(returnFormat, httpCode, message):
 def _sendRaw(path):
     _connection.write("        <pre>\n")
 
-    if path[-1] == "/":
-        for fileName in uos.listdir(path):
-            _connection.write("{}<br>\n".format(fileName))
+    if path == "" or path[-1] == "/":
+        try:
+            for fileName in uos.listdir(path):
+
+                if   uos.stat("{}{}".format(path, fileName))[0] == 0x04000:  # Directory
+                    _connection.write("<a href='{fileName}/'>{fileName}/</a><br>\n".format(fileName = fileName))
+
+                elif uos.stat("{}{}".format(path, fileName))[0] == 0x08000:  # File
+                    _connection.write("<a href='{fileName}'>{fileName}</a><br>\n".format(fileName = fileName))
+
+                else:
+                    _connection.write("{}<br>\n".format(fileName))
+
+        except Exception:
+            _connection.write("[Errno 2] ENOENT : No such directory.\n")
     else:
-        with open(path) as file:
-            for line in file:
-                _connection.write(line)
+        try:
+            with open(path) as file:
+                for line in file:
+                    _connection.write(line)
+        except Exception:
+            _connection.write("[Errno 2] ENOENT : No such file.\n")
 
     _connection.write("        </pre>\n")
