@@ -12,6 +12,24 @@ def get(module, attribute):
     return _manageAttribute(module, attribute, "r")
 
 
+def getDefault(module, attribute):
+    """ Returns the default value of the attribute, or None. Firstly reads it from file, then deserializes it. """
+    return _manageAttribute(module, attribute, "r", None, "def")
+
+
+def restore(module, attribute):
+    try:
+        value = _manageAttribute(module, attribute, "r", None, "def")   # Read the default config value if it exists
+        _manageAttribute(module, attribute, "w", value)                 # Replace the config file
+        logger.append(
+            ("Configuration: etc/{dir}/{file}.txt could not be read. "
+             "It has been replaced with etc/{dir}/{file}.def").format(dir = module, file = attribute)
+        )
+        return value
+    except Exception as e:
+        logger.append(e)
+
+
 def set(module, attribute, value):
     """ Sets the value of the attribute. Firstly serializes it and then writes it out. """
     _manageRelated(module, attribute, value)    # Can not be at _manageAttribute's mode == "w" branch: too deep.
@@ -38,9 +56,9 @@ def saveDateTime():
 ################################
 ## PRIVATE, HELPER METHODS
 
-def _manageAttribute(dir, file, mode, value = None):
+def _manageAttribute(dir, file, mode, value = None, extension = "txt"):
     try:
-        with open("etc/{}/{}.txt".format(dir, file), mode) as file:
+        with open("etc/{}/{}.{}".format(dir, file, extension), mode) as file:
             if mode == "r":
                 return ujson.loads(file.readline())
             elif mode == "w":

@@ -63,8 +63,8 @@ motor = {
 
 
 system = {
-    "firmware"      : (0, 1, 97),
-    "initDateTime"  : (2021, 1, 31, 0, 17, 30, 0, 0),
+    "firmware"      : (0, 1, 98),
+    "initDateTime"  : (2021, 1, 31, 0, 19, 40, 0, 0),
     "powerOnCount"  : 0
 }
 
