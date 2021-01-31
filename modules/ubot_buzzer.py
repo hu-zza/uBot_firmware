@@ -7,7 +7,7 @@ from ujson   import loads
 import ubot_config as config
 
 
-_buzzerActive = True
+_buzzerActive = config.get("buzzer", "active")
 _pwm          = PWM(Pin(15), 0, 0)
 _defaultState = 0
 

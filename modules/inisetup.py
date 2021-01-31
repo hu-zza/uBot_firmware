@@ -11,14 +11,14 @@ AP = network.WLAN(network.AP_IF)
 ## CONFIG SUBDICTIONARIES
 
 ap = {
-    "active"    : True,
-    "essid"     : "uBot__" + hexlify(AP.config("mac"), ":").decode()[9:],
-    "password"  : "uBot_pwd"
+    "active"        : True,
+    "essid"         : "uBot__" + hexlify(AP.config("mac"), ":").decode()[9:],
+    "password"      : "uBot_pwd"
 }
 
 
 buzzer = {
-    "configuration" : (True, 15),
+    "active"        : True,
 
     "step"          : ((None, 200), (60, 50, 0, 1)),
     "ready"         : ((60, 100, 25, 3), (71, 500, 100, 1)),
@@ -42,10 +42,10 @@ buzzer = {
 
 
 i2c = {
-    "active"    : False,
-    "sda"       : 0,
-    "scl"       : 2,
-    "freq"      : 400000
+    "active"        : False,
+    "sda"           : 0,
+    "scl"           : 2,
+    "freq"          : 400000
 }
 
 
@@ -63,43 +63,43 @@ motor = {
 
 
 system = {
-    "firmware"          : (0, 1, 94),
-    "initialDateTime"   : (2021, 1, 31, 0, 12, 55, 0, 0),
-    "powerOnCount"      : 0
+    "firmware"      : (0, 1, 95),
+    "initDateTime"  : (2021, 1, 31, 0, 13, 10, 0, 0),
+    "powerOnCount"  : 0
 }
 
 
 turtle = {
-    "active"      : True,
-    "moveLength"  : 890,
-    "turnLength"  : 359,
-    "breathLength": 500,
-    "loopChecking": 1,    #  0 - off  #  1 - simple (max. 20)  #  2 - simple (no limit)
-    "stepSignal"  : "step",
-    "endSignal"   : "ready",
+    "active"        : True,
+    "moveLength"    : 890,
+    "turnLength"    : 359,
+    "breathLength"  : 500,
+    "loopChecking"  : 1,    #  0 - off  #  1 - simple (max. 20)  #  2 - simple (no limit)
+    "stepSignal"    : "step",
+    "endSignal"     : "ready",
 
-    "clockPin"    : 13,
-    "inputPin"    : 16,
-    "checkPeriod" : 20,   # ms
-    "pressLength" : 5,    # min. 100 ms           turtlePressLength * turtleCheckPeriod
-    "firstRepeat" : 75,   # min. 1500 ms          turtleFirstRepeat * turtleCheckPeriod
-    "maxError"    : 1     # max. 0.166' (16,6'%)  turtleMaxError / (turtlePressLength + turtleMaxError)
+    "clockPin"      : 13,
+    "inputPin"      : 16,
+    "checkPeriod"   : 20,   # ms
+    "pressLength"   : 5,    # min. 100 ms           turtlePressLength * turtleCheckPeriod
+    "firstRepeat"   : 75,   # min. 1500 ms          turtleFirstRepeat * turtleCheckPeriod
+    "maxError"      : 1     # max. 0.166' (16,6'%)  turtleMaxError / (turtlePressLength + turtleMaxError)
 }
 
 
 uart = {
-    "active"    : True
+    "active"        : True
 }
 
 
 webServer = {
-    "active"    : True
+    "active"        : True
 }
 
 
 webRepl = {
-    "active"    : False,
-    "password"  : "uBot_REPL"
+    "active"        : False,
+    "password"      : "uBot_REPL"
 }
 
 
@@ -235,23 +235,23 @@ def setup():
 
 
     with open("etc/datetime.py", "w") as file:
-        file.write("DT = {}".format(system.get("initialDateTime")))
+        file.write("DT = {}".format(system.get("initDateTime")))
 
 
     with open("log/datetime.txt", "w") as file:
-        file.write("{}\n0000000000.txt\n\n".format(system.get("initialDateTime")))
+        file.write("{}\n0000000000.txt\n\n".format(system.get("initDateTime")))
 
 
     with open("log/exception/0000000000.txt", "w") as file:
-        file.write("{}\nFallback exception log initialised successfully.\n\n".format(system.get("initialDateTime")))
+        file.write("{}\nFallback exception log initialised successfully.\n\n".format(system.get("initDateTime")))
 
 
     with open("log/event/0000000000.txt", "w") as file:
-        file.write("{}\nFallback event log initialised successfully.\n\n".format(system.get("initialDateTime")))
+        file.write("{}\nFallback event log initialised successfully.\n\n".format(system.get("initDateTime")))
 
 
     with open("log/object/0000000000.txt", "w") as file:
-        file.write("{}\nFallback event log initialised successfully.\n\n".format(system.get("initialDateTime")))
+        file.write("{}\nFallback event log initialised successfully.\n\n".format(system.get("initDateTime")))
 
 
     for moduleName, module in configModules.items():

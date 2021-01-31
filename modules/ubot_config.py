@@ -83,8 +83,8 @@ except Exception as e:
     initExceptions.append(e)
 
     try:
-        initialDateTime = _readOrThrow("system", "initialDateTime")
-        dateTime.datetime(initialDateTime)
+        initDateTime = _readOrThrow("system", "initDateTime")
+        dateTime.datetime(initDateTime)
         dateTimeSource = "firmware default"
     except Exception as e:
         initExceptions.append(e)
