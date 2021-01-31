@@ -82,7 +82,11 @@ def _writeOutItem(dateTime, file, item):
     if _defineIndex(item) == 0:
         sys.print_exception(item, file)
     else:
-        file.write("{}\n".format(item))
+        if isinstance(item, list):
+            for i in item:
+                file.write("{}\n".format(i))
+        else:
+            file.write("{}\n".format(item))
 
     file.write("\n")
 

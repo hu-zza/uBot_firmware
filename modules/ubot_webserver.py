@@ -97,7 +97,7 @@ def _processSockets():
             else:
                 _reply("HTML", "400 Bad Request", "'Content-Type' should be 'application/json'.")
         else:
-            _reply("HTML", "405 Method Not Allowed", "Only two HTTP request methods (GET and PUT) are allowed.")
+            _reply("HTML", "405 Method Not Allowed", "Only two HTTP request methods (GET and POST) are allowed.")
     finally:
         _connection.close()
 
@@ -105,41 +105,41 @@ def _processSockets():
 def _processGetQuery(path):
     try:
         if path in template.title:
-            _connection.send("HTTP/1.1 200 OK\r\n")
-            _connection.send("Content-Type: text/html\r\n")
-            _connection.send("Connection: close\r\n\r\n")
-            _connection.sendall(template.getPageHeadStart().format(template.title.get(path)))
+            _connection.write("HTTP/1.1 200 OK\r\n")
+            _connection.write("Content-Type: text/html\r\n")
+            _connection.write("Connection: close\r\n\r\n")
+            _connection.write(template.getPageHeadStart().format(template.title.get(path)))
 
             for style in template.style.get(path):
-                _connection.sendall(style())
+                _connection.write(style())
 
-            _connection.sendall(template.getPageHeadEnd())
+            _connection.write(template.getPageHeadEnd())
 
             for part in template.parts.get(path):
-                _connection.sendall(part())
+                _connection.write(part())
 
             if path == "/debug":
-                _connection.send("        <br><br><hr><hr>\n")
-                _connection.send("        <h3>Exceptions</h3>\n")
+                _connection.write("        <br><br><hr><hr>\n")
+                _connection.write("        <h3>Exceptions</h3>\n")
                 _sendRaw("log/exception/{:010d}.txt".format(config.get("system", "powerOnCount")))
-                _connection.send("        <br><hr><br>\n")
+                _connection.write("        <br><hr><br>\n")
                 _sendRaw("log/exception/0000000000.txt")
 
-                _connection.send("        <br><br><hr><hr>\n")
-                _connection.send("        <h3>Events</h3>\n")
+                _connection.write("        <br><br><hr><hr>\n")
+                _connection.write("        <h3>Events</h3>\n")
                 _sendRaw("log/event/{:010d}.txt".format(config.get("system", "powerOnCount")))
-                _connection.send("        <br><hr><br>\n")
+                _connection.write("        <br><hr><br>\n")
                 _sendRaw("log/event/0000000000.txt")
 
-            _connection.sendall(template.getPageFooter())
+            _connection.write(template.getPageFooter())
         elif path[:5] == "/raw/":
-            _connection.send("HTTP/1.1 200 OK\r\n")
-            _connection.send("Content-Type: text/html\r\n")
-            _connection.send("Connection: close\r\n\r\n")
-            _connection.sendall(template.getPageHeadStart().format("&microBot Raw | " + path[5:]))
-            _connection.sendall(template.getPageHeadEnd())
+            _connection.write("HTTP/1.1 200 OK\r\n")
+            _connection.write("Content-Type: text/html\r\n")
+            _connection.write("Connection: close\r\n\r\n")
+            _connection.write(template.getPageHeadStart().format("&microBot Raw | " + path[5:]))
+            _connection.write(template.getPageHeadEnd())
             _sendRaw(path[5:])
-            _connection.sendall(template.getPageFooter())
+            _connection.write(template.getPageFooter())
         else:
             helperLinks = "        <ul class='links'>\n"
             helperLinks += "            <li>Sitemap</li>\n"
@@ -177,15 +177,15 @@ def _reply(returnFormat, httpCode, message):
         if the connection is alive, then closes it. """
 
     try:
-        _connection.send("HTTP/1.1 " + httpCode + "\r\n")
+        _connection.write("HTTP/1.1 " + httpCode + "\r\n")
 
         if returnFormat == "HTML":
             str = "text/html"
         elif returnFormat == "JSON":
             str = "application/json"
 
-        _connection.send("Content-Type: " + str + "\r\n")
-        _connection.send("Connection: close\r\n\r\n")
+        _connection.write("Content-Type: " + str + "\r\n")
+        _connection.write("Connection: close\r\n\r\n")
 
         if returnFormat == "HTML":
             style = template.getGeneralStyle() + template.getSimpleStyle()
@@ -193,7 +193,7 @@ def _reply(returnFormat, httpCode, message):
         elif returnFormat == "JSON":
             str   = ujson.dumps({"code" : httpCode, "message" : message, "dateTime": config.datetime()})
 
-        _connection.sendall(str)
+        _connection.write(str)
     except Exception:
         print("The connection has been closed.")
     finally:
@@ -201,14 +201,14 @@ def _reply(returnFormat, httpCode, message):
 
 
 def _sendRaw(path):
-    _connection.send("        <pre>\n")
+    _connection.write("        <pre>\n")
 
     if path[-1] == "/":
         for fileName in uos.listdir(path):
-            _connection.send("{}<br>\n".format(fileName))
+            _connection.write("{}<br>\n".format(fileName))
     else:
         with open(path) as file:
             for line in file:
-                _connection.sendall(line)
+                _connection.write(line)
 
-    _connection.send("        </pre>\n")
+    _connection.write("        </pre>\n")

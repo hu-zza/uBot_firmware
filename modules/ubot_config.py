@@ -14,6 +14,7 @@ def get(module, attribute):
 
 def set(module, attribute, value):
     """ Sets the value of the attribute. Firstly serializes it and then writes it out. """
+    _manageRelated(module, attribute, value)    # Can not be at _manageAttribute's mode == "w" branch: too deep.
     return _manageAttribute(module, attribute, "w", value)
 
 
@@ -44,6 +45,18 @@ def _manageAttribute(dir, file, mode, value = None):
                 return ujson.loads(file.readline())
             elif mode == "w":
                 return file.write("{}\n".format(ujson.dumps(value)))
+    except Exception as e:
+        logger.append(e)
+
+
+def _manageRelated(module, attribute, value):
+    try:
+        if module == "webRepl":
+            if attribute == "active":
+                if value == True and ".webrepl_cfg.py" in uos.listdir():
+                    uos.rename(".webrepl_cfg.py", "webrepl_cfg.py")
+                elif value == False and "webrepl_cfg.py" in uos.listdir():
+                    uos.rename("webrepl_cfg.py", ".webrepl_cfg.py")
     except Exception as e:
         logger.append(e)
 

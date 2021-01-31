@@ -63,8 +63,8 @@ motor = {
 
 
 system = {
-    "firmware"          : (0, 1, 92),
-    "initialDateTime"   : (2021, 1, 30, 0, 22, 20, 0, 0),
+    "firmware"          : (0, 1, 93),
+    "initialDateTime"   : (2021, 1, 31, 0, 1, 25, 0, 0),
     "powerOnCount"      : 0
 }
 
@@ -98,7 +98,7 @@ webServer = {
 
 
 webRepl = {
-    "active"    : True,
+    "active"    : False,
     "password"  : "uBot_REPL"
 }
 
@@ -202,10 +202,13 @@ def setup():
                      "#\n")
 
 
-    with open("webrepl_cfg.py", "w") as file:
+    with open(".webrepl_cfg.py", "w") as file:
         file.write(firmwareComment)
         file.write("PASS = '{}'\n\n".format(webRepl.get("password")))
         file.write(footerComment)
+
+    if webRepl.get("active"):
+        uos.rename(".webrepl_cfg.py", "webrepl_cfg.py")
 
 
     with open("boot.py", "w") as file:

@@ -1,4 +1,4 @@
-import esp, network, uos, sys
+import esp, network, uos, webrepl
 
 from machine     import Pin, UART
 from ubinascii   import hexlify
@@ -19,18 +19,18 @@ if config.get("turtle", "active"):
 if config.get("webServer", "active"):
     import ubot_webserver as webserver
 
-if config.get("webRepl", "active"):
-    import webrepl
-
 
 
 ################################
 ## PUBLIC METHODS
 
 def executeJson(json):
+    if json.get("logging"):
+        logger.append("Incoming JSON object. Title: {}".format(json.get("title")))
+
     results = []
 
-    if json.get("dateTime") != None:
+    if json.get("dateTime"):
         dateTime = json.get("dateTime")
 
         if len(dateTime) == 8:              # For classical tuple format
@@ -40,23 +40,20 @@ def executeJson(json):
             time = dateTime[1].split(":")
             config.datetime((int(date[0]), int(date[1]), int(date[2]), 0, int(time[0]), int(time[1]), 0, 0))
 
-        results.append("New dateTime has been set.")
+        results.append("New date and time has been set.")
 
-    if json.get("commandList") != None:
-        for command in json.get("commandList"):
 
-            if command[0:8] == "PROGRAM_":
-                for char in command[7:].strip():    # placeholder
-                    turtle.move(char)               # placeholder
+    if json.get("command"):
+        for command in json.get("command"):
+
+            if command[0:6] == "PRESS_":
+                pressedList = command[6:].strip().split(":")
+                for pressed in pressedList:
+                    turtle.press(pressed)
 
             elif command[0:7] == "TURTLE_":
                 for char in command[7:].strip():
                     turtle.move(char)
-
-            elif command[0:6] == "PRESS_":
-                pressedList = command[6:].strip().split(":")
-                for pressed in pressedList:
-                    turtle.press(pressed)
 
             elif command[0:5] == "BEEP_":
                 beepArray = command[5:].strip().split(":")
@@ -76,54 +73,57 @@ def executeJson(json):
                 sleep_ms(int(command[6:].strip()))
 
 
-            elif command[0:5] == "EXEC_": ##############################################################################
-                exec(command[5:])
-
-            if command[0:5] == "EVAL_": ################################################################################
-                results.append("'{}' executed successfully, the result is: '{}'".format(command, eval(command[5:])))
-            else:
-                results.append("'{}' executed successfully.".format(command))
+    if json.get("program"):
+        pass
 
 
-    if json.get("service") != None:
+    if json.get("service"):
             for command in json.get("service"):
                 if command == "START UART":
-                    uos.dupterm(UART(0, 115200), 1)
                     config.set("uart", "active", True)
+                    uos.dupterm(UART(0, 115200), 1)
                     results.append("UART has started.")
 
                 elif command == "STOP UART":
-                    uos.dupterm(None, 1)
                     config.set("uart", "active", False)
+                    uos.dupterm(None, 1)
                     results.append("UART has stopped.")
 
                 elif command == "START WEBREPL":
-                    if "webrepl" not in sys.modules:
-                        import webrepl
-                    webrepl.start()
                     config.set("webRepl", "active", True)
+                    webrepl.start()
                     results.append("WebREPL has started.")
 
                 elif command == "STOP WEBREPL":
-                    webrepl.stop()
                     config.set("webRepl", "active", False)
+                    webrepl.stop()
                     results.append("WebREPL has stopped.")
 
                 elif command == "STOP WEBSERVER":
                     webserver.stop("WebServer has stopped.")
 
                 elif command == "CALIBRATE FEEDBACK":
-                    results.append("Calibration has not implemented yet.")
+                    results.append("Calibration has started.")
 
                 elif command == "CHECK DATETIME":
                     results.append(str(config.datetime()))
 
 
+    if json.get("root"):
+            for command in json.get("root"):
+
+                if command[0:5] == "EXEC ":
+                    exec(command[5:])
+                    results.append("'{}' executed successfully.".format(command[5:]))
+
+                elif command[0:5] == "EVAL ":
+                    results.append("'{}' executed successfully, the result is: '{}'".format(command[5:], eval(command[5:])))
+
+
     if len(results) == 0:
         results = ["Processing has completed without any return value."]
-    else:
-        for result in results:
-            logger.append(result)
+    elif json.get("logging"):
+        logger.append(results)
 
     return results
 

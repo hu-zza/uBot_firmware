@@ -299,6 +299,7 @@ _sender =  ("\n"
             "            function send(value) {{\n"
             "                let object = {{\n"
             "                   \"title\" : \"{title}\",\n"
+            "                   \"logging\" : false,\n"
             "                   {body}"
             "                }}\n\n"
             "                let json = JSON.stringify(object);\n\n"
@@ -311,11 +312,11 @@ _sender =  ("\n"
 
 
 def getTurtleMoveSender():
-    return _sender.format(title = "Immediate command | μBot Drive", body = "\"commandList\" : [ \"TURTLE_\" + value ]\n")
+    return _sender.format(title = "Immediate command | μBot Drive", body = "\"command\" : [ \"TURTLE_\" + value ]\n")
 
 
 def getButtonPressSender():
-    return _sender.format(title = "Pressed button | μBot Command", body = "\"commandList\" : [ \"PRESS_\" + value ]\n")
+    return _sender.format(title = "Pressed button | μBot Command", body = "\"command\" : [ \"PRESS_\" + value ]\n")
 
 
 def getServiceRequestSender():
