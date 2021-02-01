@@ -65,6 +65,17 @@ def getDebugStyle():
            )
 
 
+def getRawStyle():
+    return ("            a      { text-decoration: none; }\n"
+            "            table  { margin: 30px; }\n"
+            "            td, th { padding: 10px 25px; }\n"
+            "            thead  { color: #FFF; background: #555; }\n"
+            "            td:nth-child(even) { text-align: right; }\n"
+            "            tr:nth-child(even) { background: #EEE; }\n"
+            "            .info  { text-align: center; }\n"
+           )
+
+
 def getPanelStyle():
     return ("            svg        { width: 100px;\n"
             "                         height: 100px;\n"

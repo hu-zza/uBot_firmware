@@ -137,9 +137,11 @@ def _processGetQuery(path):
             _connection.write("HTTP/1.1 200 OK\r\n")
             _connection.write("Content-Type: text/html\r\n")
             _connection.write("Connection: close\r\n\r\n")
-            _connection.write(template.getPageHeadStart().format("&microBot Raw | " + path[5:]))
+            _connection.write(template.getPageHeadStart().format("&microBot Raw | " + path[4:]))
+            _connection.write(template.getGeneralStyle())
+            _connection.write(template.getRawStyle())
             _connection.write(template.getPageHeadEnd())
-            _sendRaw(path[5:])
+            _sendRaw(path[4:])
             _connection.write(template.getPageFooter())
         else:
             helperLinks = "        <ul class='links'>\n"
@@ -202,29 +204,53 @@ def _reply(returnFormat, httpCode, message):
 
 
 def _sendRaw(path):
-    _connection.write("        <pre>\n")
+    """ If the path links to a dir, sends a linked list, otherwise tries to send the content of the target entity. """
+    try:
+        if path[-1] == "/":                                 # Directory (practical, however stat() would be more elegant)
+            _connection.write(("        <table>\n"
+                               "            <thead>\n"
+                               "                <tr><th scope='col'>Filename</th><th scope='col'>File size</th></tr>\n"
+                               "            </thead>\n"
+                               "            <tbody>\n")
+            )
 
-    if path == "" or path[-1] == "/":
-        try:
-            for fileName in uos.listdir(path):
+            try:
+                for fileName in uos.listdir(path):
+                    _connection.write("                <tr>")
 
-                if   uos.stat("{}{}".format(path, fileName))[0] == 0x04000:  # Directory
-                    _connection.write("<a href='{fileName}/'>{fileName}/</a><br>\n".format(fileName = fileName))
+                    try:
+                        stat = uos.stat("{}{}".format(path, fileName))
 
-                elif uos.stat("{}{}".format(path, fileName))[0] == 0x08000:  # File
-                    _connection.write("<a href='{fileName}'>{fileName}</a><br>\n".format(fileName = fileName))
+                        if stat[0] == 0x04000:              # Directory
+                            _connection.write("<td><a href='{fileName}/'>{fileName}/</a></td><td>-</td>".format(fileName = fileName))
 
-                else:
-                    _connection.write("{}<br>\n".format(fileName))
+                        elif stat[0] == 0x08000:            # File
+                            _connection.write("<td><a href='{fileName}'>{fileName}</a></td><td>{fileSize:,} B</td>".format(fileName = fileName, fileSize = stat[6]))
 
-        except Exception:
-            _connection.write("[Errno 2] ENOENT : No such directory.\n")
-    else:
-        try:
-            with open(path) as file:
-                for line in file:
-                    _connection.write(line)
-        except Exception:
-            _connection.write("[Errno 2] ENOENT : No such file.\n")
+                        else:
+                            _connection.write("<td colspan='2'>{}</td>".format(fileName))
 
-    _connection.write("        </pre>\n")
+                    except Exception:
+                        _connection.write("<td class='info' colspan='2'>This entity cannot be listed.</td>")
+                    _connection.write("</tr>\n")
+
+                if len(uos.listdir(path)) == 0:
+                    _connection.write("                <tr><td class='info' colspan='2'>This directory is empty.</td></tr>\n")
+
+            except Exception:
+                _connection.write("<td class='info' colspan='2'>[Errno 2] ENOENT : No such directory.</td>")
+
+            _connection.write(("            </tbody>\n"
+                               "        </table>\n")
+            )
+        else:
+            _connection.write("        <pre>\n")
+            try:
+                with open(path) as file:
+                    for line in file:
+                        _connection.write(line)
+            except Exception:
+                _connection.write("[Errno 2] ENOENT : No such file.\n")
+            _connection.write("        </pre>\n")
+    except Exception:
+        _connection.write("[Errno 2] ENOENT : No such file or directory.\n")
