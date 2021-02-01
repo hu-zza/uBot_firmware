@@ -114,7 +114,8 @@ def saveProgram(title = None, program = None, boundaries = None):
     global _savedCount
 
     if title == None:
-        path = "program/turtle/{:010d}_{:03d}.txt".format(_powerOnCount, _savedCount + 1)
+        _savedCount += 1
+        path = "program/turtle/{:010d}_{:03d}.txt".format(_powerOnCount, _savedCount)
         program = _programArray
         boundaries = (0, _programParts[-1])
     else:
@@ -128,11 +129,12 @@ def saveProgram(title = None, program = None, boundaries = None):
             writtenBytes = file.write("{}\n".format(ujson.dumps(
                 program if boundaries == None else program[boundaries[0]:boundaries[1]]
             )))
-            _savedCount += 1
+
             return writtenBytes
     except Exception as e:
         logger.append(e)
-
+        if title == None:
+            _savedCount -= 1
 
 
 ################################################################
