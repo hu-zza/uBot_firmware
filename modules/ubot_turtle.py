@@ -1,3 +1,5 @@
+import ujson
+
 from machine import Pin, Timer
 
 import ubot_config as config
@@ -7,6 +9,8 @@ import ubot_motor  as motor
 
 
 _powerOnCount = config.get("system", "powerOnCount")
+_fileName     = "{:010d}.txt".format(_powerOnCount)
+_savedCount   = 0
 
 _clockPin = Pin(13, Pin.OUT)                                # Advances the decade counter (U3).
 _clockPin.off()
@@ -89,6 +93,32 @@ def press(pressed):                     # pressed = 1<<buttonOrdinal
 
 def checkButtons():
     _addCommand(_getValidatedPressedButton())
+
+
+def listPrograms(directory):
+    try:
+        return [name[:-4] for name in uos.listdir("program/{}".format(directory))]
+    except Exception as e:
+        logger.append(e)
+
+
+def saveProgram(title = None, program = _programArray, boundaries = None):
+    global _savedCount
+
+    if title == None:
+        path = "program/turtle/{:010d}_{:03d}.txt".format(_powerOnCount, _savedCount + 1)
+    else:
+        path = "program/json/{}.txt".format(title)
+
+    try:
+        with open(path, "w") as file:
+            writtenBytes = file.write("{}\n".format(ujson.dumps(
+                program[0:_programParts[-1]] if boundaries == None else program[boundaries[0]:boundaries[1]]
+            )))
+            _savedCount += 1
+            return writtenBytes
+    except Exception as e:
+        logger.append(e)
 
 
 
@@ -300,22 +330,20 @@ def _isTagBoundary(commandPointer):
 ## HELPER METHODS FOR LOGS
 
 def _logExecuted():
-    fileName = "{:010d}.txt".format(_powerOnCount)
-
     try:
-        with open("log/executed/datetime/" + fileName, "a") as file:
+        with open("log/executed/datetime/{}".format(_fileName), "a") as file:
             file.write("{}\n".format(config.datetime()))
     except Exception as e:
         logger.append(e)
 
     try:
-        with open("log/executed/commands/" + fileName, "a") as file:
+        with open("log/executed/commands/{}".format(_fileName), "a") as file:
             file.write("{}\n".format(_commandArray[:_commandPointer].decode()))
     except Exception as e:
         logger.append(e)
 
     try:
-        with open("log/executed/program/" + fileName, "a") as file:
+        with open("log/executed/program/{}".format(_fileName), "a") as file:
             file.write("{}\n".format(_programArray[:_programParts[-1]].decode()))
     except Exception as e:
         logger.append(e)
@@ -440,19 +468,24 @@ def _start(arguments):                # (blockLevel,)
 
 # COMMAND AND PROGRAM ARRAY
 
-def _addToProgramArray():
+def _addToProgOrSave():
     global _commandPointer
     global _programArray
 
-    for i in range(_commandPointer):
-        if _programParts[-1] + i < len(_programArray):
-            _programArray[_programParts[-1] + i] = _commandArray[i]
-        else:
-            _programArray.append(_commandArray[i])
+    if _commandPointer != 0:
+        for i in range(_commandPointer):
+            if _programParts[-1] + i < len(_programArray):
+                _programArray[_programParts[-1] + i] = _commandArray[i]
+            else:
+                _programArray.append(_commandArray[i])
 
-    _programParts.append(_programParts[-1] + _commandPointer)
-    _commandPointer = 0
-    buzzer.keyBeep("added")
+        _programParts.append(_programParts[-1] + _commandPointer)
+        _commandPointer = 0
+        buzzer.keyBeep("added")
+    elif _programParts[-1] != 0:
+        saveProgram()
+        buzzer.keyBeep("saved")
+
     return 0
 
 
@@ -655,7 +688,7 @@ _defaultMapping = {
     2:    (_beepAndReturn,     ("processed", 80)),                  # PAUSE
     4:    (_createLoop,        (40,)),                              # REPEAT (start)
     6:    (_manageFunction,    (1, False)),                         # F1
-    8:    (_addToProgramArray, ()),                                 # ADD
+    8:    (_addToProgOrSave,   ()),                                 # ADD
     10:   (_manageFunction,    (2, False)),                         # F2
     12:   (_manageFunction,    (3, False)),                         # F3
     16:   (_beepAndReturn,     ("processed", 82)),                  # RIGHT

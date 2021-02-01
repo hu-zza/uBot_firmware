@@ -37,7 +37,8 @@ buzzer = {
     "tooLong"       : (64, 1500, 100, 2),
 
     "added"         : ((71, 500, 50, 1), (64, 300, 50, 1), (60, 100, 50, 1)),
-    "loaded"        : ((60, 500, 50, 1), (64, 300, 50, 1), (71, 100, 50, 1))
+    "loaded"        : ((60, 500, 50, 1), (64, 300, 50, 1), (71, 100, 50, 1)),
+    "saved"         : ((64, 300, 50, 1), (64, 100, 50, 1), (64, 300, 50, 1))
 }
 
 
@@ -63,8 +64,8 @@ motor = {
 
 
 system = {
-    "firmware"      : (0, 1, 100),
-    "initDateTime"  : (2021, 2, 1, 0, 17, 5, 0, 0),
+    "firmware"      : (0, 1, 101),
+    "initDateTime"  : (2021, 2, 1, 0, 21, 40, 0, 0),
     "powerOnCount"  : 0
 }
 
@@ -175,6 +176,8 @@ def setup():
     uos.mkdir("etc/webServer")
 
     uos.mkdir("program")
+    uos.mkdir("program/turtle")
+    uos.mkdir("program/json")
 
     uos.mkdir("log")
     uos.mkdir("log/event")
@@ -200,8 +203,8 @@ def setup():
     footerComment = ("#\n"
                      "# For more information:\n"
                      "#\n"
-                     "# https://github.com/hu-zza/uBot\n"
                      "# https://ubot.hu\n"
+                     "# https://zza.hu/uBot\n"
                      "#\n")
 
 

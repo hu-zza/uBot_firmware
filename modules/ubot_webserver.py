@@ -137,7 +137,7 @@ def _processGetQuery(path):
             _connection.write("HTTP/1.1 200 OK\r\n")
             _connection.write("Content-Type: text/html\r\n")
             _connection.write("Connection: close\r\n\r\n")
-            _connection.write(template.getPageHeadStart().format("&microBot Raw | " + path[4:]))
+            _connection.write(template.getPageHeadStart().format("&microBot Raw &nbsp;| &nbsp; " + path[4:]))
             _connection.write(template.getGeneralStyle())
             _connection.write(template.getRawStyle())
             _connection.write(template.getPageHeadEnd())

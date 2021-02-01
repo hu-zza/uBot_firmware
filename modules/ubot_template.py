@@ -156,7 +156,7 @@ def getDebugPanel():
         commands = turtle._commandArray[:turtle._commandPointer].decode(),
         program  = turtle._programArray[:turtle._programParts[-1]].decode(),
         powerOnCount = config.get("system", "powerOnCount"),
-        savedPrograms = len(uos.listdir("program")),
+        savedPrograms = len(uos.listdir("program/turtle")) + len(uos.listdir("program/json")),
         firmware = firmwareVersion,
         freeMemory = freePercent, memoryDetails = memoryDetails,
         freeSpace = freeSpace, diskDetails = diskDetails,

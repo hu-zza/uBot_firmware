@@ -58,11 +58,11 @@ def executeJson(json):
 
             elif command[:5] == "BEEP ":
                 beepArray = command[5:].strip().split(":")
-                buzzer.beep(int(beepArray[0]), int(beepArray[1]), int(beepArray[2]))
+                buzzer.beep(int(beepArray[0]), int(beepArray[1]), int(beepArray[2]), int(beepArray[3]))
 
             elif command[:5] == "MIDI ":
                 beepArray = command[5:].strip().split(":")
-                buzzer.midiBeep(int(beepArray[0]), int(beepArray[1]), int(beepArray[2]))
+                buzzer.midiBeep(int(beepArray[0]), int(beepArray[1]), int(beepArray[2]), int(beepArray[3]))
 
             elif command[:5] == "REST ":
                 buzzer.rest(int(command[5:].strip()))
