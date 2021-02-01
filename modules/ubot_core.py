@@ -75,7 +75,36 @@ def executeJson(json):
 
 
     if json.get("program"):
-        pass
+        program = json.get("program")
+
+        if program.get("function") == "LIST":
+            if program.get("directory"):
+                results.append(turtle.listPrograms(program.get("directory")))
+
+        elif program.get("function") == "LOAD":
+            if program.get("content"):
+                turtle.loadProgram(program.get("content"))
+                results.append("Program loaded successfully.")
+            elif program.get("name") and program.get("directory"):
+                turtle.loadProgramFromRom(program.get("name"), program.get("directory"))
+                results.append("Program loaded successfully.")
+
+        elif program.get("function") == "SAVE":
+            if program.get("content"):
+                if program.get("title"):
+                    turtle.saveProgram(program.get("title"), program.get("content"))    # Saves the received program to /program/json/<title>
+                    results.append("Program saved successfully.")
+            else:                                                                       # Turtle style save: If title is set, it's named
+                turtle.saveProgram(program.get("title"))                                # and saved in /program/json/<title>, otherwise acts
+                results.append("Program saved successfully.")                           # like ADD button: /program/turtle/XXXXXXXXXX_YYY.txt
+
+        if program.get("play"):
+            turtle.press(64)
+
+
+    if json.get("file"):
+        if json.get("function") == "list":
+            pass
 
 
     if json.get("service"):

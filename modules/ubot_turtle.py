@@ -1,4 +1,4 @@
-import ujson
+import ujson, uos
 
 from machine import Pin, Timer
 
@@ -102,18 +102,31 @@ def listPrograms(directory):
         logger.append(e)
 
 
-def saveProgram(title = None, program = _programArray, boundaries = None):
+def loadProgram(program = None):
+    pass
+
+
+def loadProgramFromRom(name, directory):
+    loadProgram()
+
+
+def saveProgram(title = None, program = None, boundaries = None):
     global _savedCount
 
     if title == None:
         path = "program/turtle/{:010d}_{:03d}.txt".format(_powerOnCount, _savedCount + 1)
+        program = _programArray
+        boundaries = (0, _programParts[-1])
     else:
         path = "program/json/{}.txt".format(title)
+
+    if program == None:
+        program = _programArray
 
     try:
         with open(path, "w") as file:
             writtenBytes = file.write("{}\n".format(ujson.dumps(
-                program[0:_programParts[-1]] if boundaries == None else program[boundaries[0]:boundaries[1]]
+                program if boundaries == None else program[boundaries[0]:boundaries[1]]
             )))
             _savedCount += 1
             return writtenBytes
