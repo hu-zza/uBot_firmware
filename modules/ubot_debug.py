@@ -84,12 +84,6 @@ except Exception as e:
     logger.append(e)
 
 
-try:
-    timer = Timer(-1)
-    timer.init(period = 1000, mode = Timer.PERIODIC, callback = _periodicalChecks)
-except Exception as e:
-    logger.append(e)
-
 
 ################################
 ## PUBLIC METHODS
@@ -132,13 +126,14 @@ def startUart():
     global _uartState
 
     if _uartState == 0:
-        print(("\nPlease check that you deactivated the motor driver\n"
-               "by the physical switch on main PCB.\n"
+        print(("\nPlease check that you deactivated the feedback\n"
+               "sensors by the physical switch on main PCB.\n"
                "After that, call this method again.\n")
              )
         _uartState += 1
     elif _uartState == 1:
         try:
+            sys.modules.get("ubot_feedback").deinit()
             uos.dupterm(UART(0, 115200), 1)
             stopSignal()
             _uartState += 1
@@ -201,3 +196,14 @@ def _stopSignalAtLogin():
             stopSignal()                # OSError: [Errno 9] EBADF for closed (state = -16) sockets...
     except Exception:
         pass
+
+
+
+################################
+## INITIALISATION (END)
+
+try:
+    timer = Timer(-1)
+    timer.init(period = 1000, mode = Timer.PERIODIC, callback = _periodicalChecks)
+except Exception as e:
+    logger.append(e)

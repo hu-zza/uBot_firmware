@@ -34,8 +34,8 @@ def deinit():
 
     if 0 not in _pin:
         for x in range(2):
-            _pin[x].irq(None)
-            del _pin[x]
+            _pin[0].irq(None)
+            del _pin[0]
         _pin = [0, 0]
 
 

@@ -230,8 +230,15 @@ except Exception as e:
 ###########
 ## GENERAL
 
-# The REPL is attached by default to UART0, detach if not needed.
-if not config.get("uart", "active"):
+if config.get("feedback", "active"):
+    uos.dupterm(None, 1)                # The REPL is attached by default to UART0, detach if feedback is active.
+    feedback.start()
+
+    if config.get("uart", "active"):    # Prevent racing condition: Feedback has got the priority
+        config.set("uart", "active", False)
+
+
+if not config.get("uart", "active"):   # The REPL is attached by default to UART0, detach if it is not active.
     uos.dupterm(None, 1)
 
 
@@ -243,6 +250,7 @@ if config.get("webRepl", "active"):
 
 
 buzzer.keyBeep("ready")                 # After that point the main loop begins: webserver / <no alternative yet...>
+
 
 if config.get("webServer", "active"):
     try:
