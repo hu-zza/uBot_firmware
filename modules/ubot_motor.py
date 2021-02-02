@@ -217,11 +217,11 @@ def _processMove(move):       # ((direction, duration))
     _timer.init(                    # STOP AND NEXT
         period = move[1],
         mode = Timer.ONE_SHOT,
-        callback = lambda t:_stopAndInitNext()
+        callback = _stopAndInitNext
     )
 
 
-def _stopAndInitNext():
+def _stopAndInitNext(timer):
     """
     Part of a recursive loop: _processMove(move) - _stopAndInitNext() - _processNext() - _processMove(move) ...
 
@@ -236,11 +236,11 @@ def _stopAndInitNext():
         _timer.init(                    # STOP AND NEXT
             period = _breath,
             mode = Timer.ONE_SHOT,
-            callback = lambda t:_processNext()
+            callback = _processNext
         )
 
 
-def _processNext():
+def _processNext(timer = None):
     """
     Part of a recursive loop: _processMove(move) - _stopAndInitNext() - _processNext() - _processMove(move) ...
 

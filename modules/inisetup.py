@@ -42,6 +42,11 @@ buzzer = {
 }
 
 
+feedback = {
+    "active"        : True
+}
+
+
 i2c = {
     "active"        : False,
     "sda"           : 0,
@@ -64,8 +69,8 @@ motor = {
 
 
 system = {
-    "firmware"      : (0, 1, 103),
-    "initDateTime"  : (2021, 2, 1, 0, 23, 15, 0, 0),
+    "firmware"      : (0, 1, 104),
+    "initDateTime"  : (2021, 2, 2, 0, 20, 10, 0, 0),
     "powerOnCount"  : 0
 }
 
@@ -108,6 +113,7 @@ webRepl = {
 configModules = {
     "ap"        : ap,
     "buzzer"    : buzzer,
+    "feedback"  : feedback,
     "i2c"       : i2c,
     "motor"     : motor,
     "system"    : system,
@@ -165,19 +171,6 @@ def setup():
 
 
     uos.mkdir("etc")
-    uos.mkdir("etc/ap")
-    uos.mkdir("etc/buzzer")
-    uos.mkdir("etc/i2c")
-    uos.mkdir("etc/motor")
-    uos.mkdir("etc/system")
-    uos.mkdir("etc/turtle")
-    uos.mkdir("etc/uart")
-    uos.mkdir("etc/webRepl")
-    uos.mkdir("etc/webServer")
-
-    uos.mkdir("program")
-    uos.mkdir("program/turtle")
-    uos.mkdir("program/json")
 
     uos.mkdir("log")
     uos.mkdir("log/event")
@@ -189,7 +182,9 @@ def setup():
     uos.mkdir("log/executed/datetime")
     uos.mkdir("log/executed/program")
 
-
+    uos.mkdir("program")
+    uos.mkdir("program/turtle")
+    uos.mkdir("program/json")
 
 
     firmware = system.get("firmware")
@@ -256,6 +251,7 @@ def setup():
 
 
     for moduleName, module in configModules.items():
+        uos.mkdir("etc/{}".format(moduleName))
         for attrName, attrValue in module.items():
             with open("etc/{}/{}.txt".format(moduleName, attrName), "w") as file:
                 file.write("{}\n".format(ujson.dumps(attrValue)))

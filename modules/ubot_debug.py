@@ -86,7 +86,7 @@ except Exception as e:
 
 try:
     timer = Timer(-1)
-    timer.init(period = 1000, mode = Timer.PERIODIC, callback = lambda t: _periodicalChecks())
+    timer.init(period = 1000, mode = Timer.PERIODIC, callback = _periodicalChecks)
 except Exception as e:
     logger.append(e)
 
@@ -176,7 +176,7 @@ def stopSignal():
 ################################
 ## PRIVATE, HELPER METHODS
 
-def _periodicalChecks():
+def _periodicalChecks(timer):
     if _uartState < 2:
         _checkButtonPress()
     _stopSignalAtLogin()

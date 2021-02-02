@@ -91,7 +91,7 @@ def press(pressed):                     # pressed = 1<<buttonOrdinal
     _addCommand(pressed)
 
 
-def checkButtons():
+def checkButtons(timer = None):
     _addCommand(_getValidatedPressedButton())
 
 
@@ -151,7 +151,7 @@ def _startButtonChecking():
     _timer.init(
         period = _checkPeriod,
         mode = Timer.PERIODIC,
-        callback = lambda t:checkButtons()
+        callback = checkButtons
     )
 
 
@@ -391,7 +391,7 @@ def _start(arguments):                # (blockLevel,)
     config.saveDateTime()
     _logExecuted()
 
-    motor.setCallback(0, lambda: _callbackEnd(), True)      # Set as temporary, because not every execution need it.
+    motor.setCallback(0, _callbackEnd, True)      # Set as temporary, because not every execution need it.
 
     #counter = 0                             #      Debug
     #print("_toPlay[:_pointer]", "_toPlay[_pointer:]", "\t\t\t", "counter", "_pointer", "_toPlay[_pointer]") # Debug
@@ -765,6 +765,6 @@ _functionMapping = {
 
 _currentMapping = _defaultMapping
 
-motor.setCallback(1, lambda: _callbackStep())
+motor.setCallback(1, _callbackStep)
 
 _startButtonChecking()

@@ -10,7 +10,7 @@ _connection   = 0
 _address      = 0
 _socket       = usocket.socket(usocket.AF_INET, usocket.SOCK_STREAM)
 _socket.bind(("", 80))
-_socket.listen(5)
+_socket.listen(0)
 
 
 ################################

@@ -10,6 +10,9 @@ import ubot_buzzer    as buzzer
 
 buzzer.keyBeep("started")
 
+if config.get("feedback", "active"):
+    import ubot_feedback  as feedback
+
 if config.get("motor", "active"):
     import ubot_motor as motor
 
