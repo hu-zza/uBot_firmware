@@ -69,8 +69,8 @@ motor = {
 
 
 system = {
-    "firmware"      : (0, 1, 109),
-    "initDateTime"  : (2021, 2, 4, 0, 20, 45, 0, 0),
+    "firmware"      : (0, 1, 110),
+    "initDateTime"  : (2021, 2, 4, 0, 21, 15, 0, 0),
     "powerOnCount"  : 0
 }
 
@@ -98,7 +98,6 @@ uart = {
 
 webServer = {
     "active"        : True,
-    "paused"        : False,
     "period"        : 1000,
     "timeout"       : 750
 }

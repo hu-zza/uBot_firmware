@@ -175,6 +175,11 @@ def setBreath(breathLength):
     _breath = breathLength
 
 
+def isProcessing():
+    return _processing
+
+
+
 ################################
 ## PRIVATE, HELPER METHODS
 

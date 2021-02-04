@@ -4,14 +4,15 @@ from machine import Timer
 
 import ubot_config   as config
 import ubot_logger   as logger
+import ubot_motor    as motor
 import ubot_template as template
 
 
-_acceptRequest = False
 _jsonFunction  = 0
 _connection    = 0
 _address       = 0
 
+_started       = False
 _period        = config.get("webServer", "period")
 _timeout       = config.get("webServer", "timeout")
 _timer         = Timer(-1)
@@ -38,19 +39,23 @@ def setJsonCallback(jsonFunction):
 ## PUBLIC METHODS
 
 def start():
-    global _acceptRequest
+    global _started
+    global _processing
 
-    if not _acceptRequest and config.get("webServer", "active"):
+    if not _started and config.get("webServer", "active"):
         _timer.init(period = _period, mode = Timer.PERIODIC, callback = _poll)
-        _acceptRequest = True
+        _started    = True
+        _processing = True
 
 
 def stop():
-    global _acceptRequest
+    global _started
+    global _processing
 
-    if _acceptRequest:
+    if _started:
         _timer.deinit()
-        _acceptRequest = False
+        _started    = False
+        _processing = False
 
 
 
@@ -59,7 +64,7 @@ def stop():
 
 def _poll(timer):
     try:
-        if not config.get("webServer", "paused"):
+        if not motor.isProcessing():
             result = _poller.poll(_timeout)
 
             if result:
