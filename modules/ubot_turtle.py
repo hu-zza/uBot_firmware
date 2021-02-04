@@ -379,8 +379,7 @@ def _start(arguments):                # (blockLevel,)
     _processingProgram = True
     _runningProgram    = True
     _stopButtonChecking()
-    if config.get("webServer", "active"):
-        webserver.stop()
+    config.set("webServer", "paused", True)
 
     if arguments[0] or 0 < _commandPointer: # Executing the body of a block or the _commandArray
         _toPlay        = _commandArray
@@ -698,8 +697,7 @@ def _callbackEnd():
     if _endSignal != "":
         buzzer.keyBeep(_endSignal)
 
-    if config.get("webServer", "active"):
-        webserver.start()
+    config.set("webServer", "paused", False)
 
 
 

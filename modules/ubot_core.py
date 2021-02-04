@@ -56,8 +56,10 @@ def executeJson(json):
                     turtle.press(pressed)
 
             elif command[:5] == "STEP ":
+                config.set("webServer", "paused", True)
                 for char in command[5:].strip():
                     turtle.move(char)
+                config.set("webServer", "paused", False)
 
             elif command[:5] == "BEEP ":
                 beepArray = command[5:].strip().split(":")

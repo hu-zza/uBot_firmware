@@ -59,10 +59,11 @@ def stop():
 
 def _poll(timer):
     try:
-        result = _poller.poll(_timeout)
+        if not config.get("webServer", "paused"):
+            result = _poller.poll(_timeout)
 
-        if result:
-            _processIncoming(result[0][0])
+            if result:
+                _processIncoming(result[0][0])
     except Exception as e:
         logger.append(e)
 
