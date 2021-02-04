@@ -253,13 +253,4 @@ if config.get("webServer", "active"):
     except Exception as e:
         logger.append(e)
 
-
-
-
-async def waiting():
-    while True:
-        await uasyncio.sleep_ms(1000)
-
-uasyncio.create_task(waiting())
-buzzer.keyBeep("ready")                 # After that point the main loop begins: webserver / <no alternative yet...>
-uasyncio.get_event_loop().run_forever()
+buzzer.keyBeep("ready")

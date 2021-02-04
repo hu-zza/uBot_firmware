@@ -69,8 +69,8 @@ motor = {
 
 
 system = {
-    "firmware"      : (0, 1, 107),
-    "initDateTime"  : (2021, 2, 4, 0, 20, 0, 0, 0),
+    "firmware"      : (0, 1, 108),
+    "initDateTime"  : (2021, 2, 4, 0, 20, 20, 0, 0),
     "powerOnCount"  : 0
 }
 
@@ -228,8 +228,6 @@ def setup():
         file.write(gc)
         file.write(("import sys\n"
                     "core = sys.modules.get('ubot_core')\n\n"
-                    "import ubot_debug\n"
-                    "from ubot_debug import listExceptions, printExceptions, startUart, stopUart, stopSignal\n\n"
         ))
         file.write(footerComment)
 
