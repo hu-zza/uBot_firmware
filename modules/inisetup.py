@@ -69,8 +69,8 @@ motor = {
 
 
 system = {
-    "firmware"      : (0, 1, 105),
-    "initDateTime"  : (2021, 2, 2, 0, 21, 5, 0, 0),
+    "firmware"      : (0, 1, 106),
+    "initDateTime"  : (2021, 2, 4, 0, 19, 0, 0, 0),
     "powerOnCount"  : 0
 }
 
@@ -97,7 +97,9 @@ uart = {
 
 
 webServer = {
-    "active"        : True
+    "active"        : True,
+    "period"        : 2000,
+    "timeout"       : 1000
 }
 
 
@@ -215,7 +217,9 @@ def setup():
     with open("boot.py", "w") as file:
         file.write(firmwareComment)
         file.write(gc)
-        file.write("import ubot_core as core\n\n")
+        file.write("import micropython\n"
+                   "micropython.alloc_emergency_exception_buf(100)\n\n"
+                   "import ubot_core as core\n\n")
         file.write(footerComment)
 
 

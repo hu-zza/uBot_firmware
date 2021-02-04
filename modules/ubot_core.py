@@ -133,7 +133,8 @@ def executeJson(json):
                     results.append("WebREPL has stopped.")
 
                 elif command == "STOP WEBSERVER":
-                    webserver.stop("WebServer has stopped.")
+                    webserver.stop()
+                    results.append("WebServer has stopped.")
 
                 elif command == "CALIBRATE FEEDBACK":
                     results.append("Calibration has started.")
@@ -231,14 +232,10 @@ except Exception as e:
 ## GENERAL
 
 if config.get("feedback", "active"):
-    uos.dupterm(None, 1)                # The REPL is attached by default to UART0, detach if feedback is active.
     feedback.start()
 
-    if config.get("uart", "active"):    # Prevent racing condition: Feedback has got the priority
-        config.set("uart", "active", False)
 
-
-if not config.get("uart", "active"):   # The REPL is attached by default to UART0, detach if it is not active.
+if not config.get("uart", "active"):    # The REPL is attached by default to UART0, detach if it is not active.
     uos.dupterm(None, 1)
 
 
@@ -249,12 +246,15 @@ if config.get("webRepl", "active"):
         logger.append(e)
 
 
-buzzer.keyBeep("ready")                 # After that point the main loop begins: webserver / <no alternative yet...>
-
-
 if config.get("webServer", "active"):
     try:
         webserver.setJsonCallback(executeJson)
         webserver.start()
     except Exception as e:
         logger.append(e)
+
+
+buzzer.keyBeep("ready")                 # After that point the main loop begins: webserver / <no alternative yet...>
+
+while True:
+    sleep_ms(1000)

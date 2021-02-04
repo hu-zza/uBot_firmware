@@ -1,7 +1,10 @@
 from machine import Pin
 
+
 _count = [0, 0]
 _pin   = [0, 0]
+
+
 
 ################################
 ## PUBLIC METHODS
@@ -10,8 +13,8 @@ def init():
     global _pin
 
     if 0 in _pin:
-        _pin[0] = Pin(1, Pin.IN, Pin.PULL_UP)
-        _pin[1] = Pin(3, Pin.IN, Pin.PULL_UP)
+        _pin[0] = Pin(12, Pin.IN, Pin.PULL_UP)
+        _pin[1] = Pin(14, Pin.IN, Pin.PULL_UP)
 
 
 def start():

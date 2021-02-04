@@ -1,16 +1,27 @@
-import gc, ujson, uos, usocket
+import gc, uselect, ujson, uos, usocket
+
+from machine import Timer
 
 import ubot_config   as config
 import ubot_logger   as logger
 import ubot_template as template
 
 
-_jsonFunction = 0
-_connection   = 0
-_address      = 0
-_socket       = usocket.socket(usocket.AF_INET, usocket.SOCK_STREAM)
+_acceptRequest = False
+_jsonFunction  = 0
+_connection    = 0
+_address       = 0
+
+_period        = config.get("webServer", "period")
+_timeout       = config.get("webServer", "timeout")
+_timer         = Timer(-1)
+_socket        = usocket.socket(usocket.AF_INET, usocket.SOCK_STREAM)
+_poller        = uselect.poll()
+
 _socket.bind(("", 80))
-_socket.listen(0)
+_socket.listen(5)
+_poller.register(_socket, uselect.POLLIN)
+
 
 
 ################################
@@ -27,30 +38,36 @@ def setJsonCallback(jsonFunction):
 ## PUBLIC METHODS
 
 def start():
-    config.set("webServer", "active", True)
+    global _acceptRequest
 
-    if config.get("ap", "active"):
-        while config.get("webServer", "active"):
-            try:
-                _processSockets()
-            except Exception as e:
-                logger.append(e)
+    if not _acceptRequest and config.get("webServer", "active"):
+        _timer.init(period = _period, mode = Timer.PERIODIC, callback = _poll)
+        _acceptRequest = True
 
 
-def stop(message):
-    if config.get("webServer", "active"):
-        try:
-            _reply("JSON", "200 OK", [message])
-            config.set("webServer", "active", False)
-        except Exception as e:
-            logger.append(e)
+def stop():
+    global _acceptRequest
+
+    if _acceptRequest:
+        _timer.deinit()
+        _acceptRequest = False
 
 
 
 ################################
 ## PRIVATE, HELPER METHODS
 
-def _processSockets():
+def _poll(timer):
+    try:
+        result = _poller.poll(_timeout)
+
+        if result:
+            _processIncoming(result[0][0])
+    except Exception as e:
+        logger.append(e)
+
+
+def _processIncoming(incoming):
     global _connection
     global _address
 
@@ -60,7 +77,7 @@ def _processSockets():
     contentType   = ""
     body          = ""
 
-    _connection, _address  = _socket.accept()
+    _connection, _address = incoming.accept()
     requestFile = _connection.makefile("rwb", 0)
 
     try:
@@ -165,9 +182,8 @@ def _processPostQuery(body):
     try:
         json = ujson.loads(body)
 
-        if json.get("estimatedExecutionTime") != None:
-            if 10 < json.get("estimatedExecutionTime"):
-                _reply("JSON", "200 OK", "JSON parsed, execution in progress.")
+        if json.get("estimatedExecutionTime") and 10 < json.get("estimatedExecutionTime"):
+            _reply("JSON", "200 OK", "JSON parsed, execution in progress.")
 
         _reply("JSON", "200 OK", _jsonFunction(json))
     except Exception as e:
