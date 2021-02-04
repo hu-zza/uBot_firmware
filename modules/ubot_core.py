@@ -1,4 +1,4 @@
-import esp, network, uos, webrepl
+import esp, network, uasyncio, uos, uselect, webrepl
 
 from machine     import Pin, UART
 from ubinascii   import hexlify
@@ -254,7 +254,12 @@ if config.get("webServer", "active"):
         logger.append(e)
 
 
-buzzer.keyBeep("ready")                 # After that point the main loop begins: webserver / <no alternative yet...>
 
-while True:
-    sleep_ms(1000)
+
+async def waiting():
+    while True:
+        await uasyncio.sleep_ms(1000)
+
+uasyncio.create_task(waiting())
+buzzer.keyBeep("ready")                 # After that point the main loop begins: webserver / <no alternative yet...>
+uasyncio.get_event_loop().run_forever()

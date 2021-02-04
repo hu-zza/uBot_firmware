@@ -1,4 +1,4 @@
-import gc, uselect, ujson, uos, usocket
+import gc, ujson, uos, uselect, usocket
 
 from machine import Timer
 
