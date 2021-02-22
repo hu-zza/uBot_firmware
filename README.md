@@ -1,6 +1,6 @@
 # μBot firmware
 
-The μBot firmware bundled with MicroPython for ESP8266, which SoC is the heart of this robot.
+The firmware of the μBot, the educational floor robot. (A MicroPython port to ESP8266 with additional modules.)
 
 
 ## Setup
