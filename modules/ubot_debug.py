@@ -29,7 +29,7 @@
     SOFTWARE.
 """
 
-import esp, network, uos, sys, webrepl
+import esp, network, uos, usys, webrepl
 
 from machine   import Pin, PWM, Timer, UART
 from ubinascii import hexlify
@@ -78,7 +78,7 @@ except Exception as e:
 
 
 try:
-    sys.modules.get("ubot_turtle")._stopButtonChecking()
+    usys.modules.get("ubot_turtle")._stopButtonChecking()
 except Exception as e:
     logger.append(e)
 
@@ -164,7 +164,7 @@ def startUart():
         _uartState += 1
     elif _uartState == 1:
         try:
-            sys.modules.get("ubot_feedback").deinit()
+            usys.modules.get("ubot_feedback").deinit()
             uos.dupterm(UART(0, 115200), 1)
             stopSignal()
             _uartState += 1

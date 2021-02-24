@@ -151,6 +151,32 @@ def getSimpleStyle():
 ###########
 ## PANELS
 
+
+def getLicensePanel():
+    return ("        uBot_firmware   // The firmware of the μBot, the educational floor robot. (A MicroPython port to ESP8266 with additional modules.)<br><br>\n"
+            "        This file is part of uBot_firmware.<br>\n"
+            "        [<a href='https://zza.hu/uBot_firmware' target='_blank'>https://zza.hu/uBot_firmware</a>]<br>\n"
+            "        [<a href='https://git.zza.hu/uBot_firmware' target='_blank'>https://git.zza.hu/uBot_firmware</a>]<br><br><br>\n"
+            "        MIT License<br><br>\n"
+            "        Copyright (c) 2020-2021 Szabó László András <hu@zza.hu><br><br>\n"
+            "        Permission is hereby granted, free of charge, to any person obtaining a copy<br>\n"
+            "        of this software and associated documentation files (the \"Software\"), to deal<br>\n"
+            "        in the Software without restriction, including without limitation the rights<br>\n"
+            "        to use, copy, modify, merge, publish, distribute, sublicense, and/or sell<br>\n"
+            "        copies of the Software, and to permit persons to whom the Software is<br>\n"
+            "        furnished to do so, subject to the following conditions:<br><br>\n"
+            "        The above copyright notice and this permission notice shall be included in all<br>\n"
+            "        copies or substantial portions of the Software.<br><br>\n"
+            "        THE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR<br>\n"
+            "        IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,<br>\n"
+            "        FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE<br>\n"
+            "        AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER<br>\n"
+            "        LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,<br>\n"
+            "        OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE<br>\n"
+            "        SOFTWARE.<br>\n"
+           )
+
+
 def getDebugPanel():
     result = ("        <h3>Commands</h3>\n"
               "            {commands}\n"
@@ -454,35 +480,39 @@ def getCrossSymbol():
 ## CATALOGS
 
 title = {
-    "/debug"        : "&microBot Debug",
     "/_settings"    : "&microBot Settings",
     "/_datetime"    : "&microBot Date & Time",
     "/_webrepl"     : "&microBot WebREPL",
     "/_calibration" : "&microBot Calibration",
+    "/debug"        : "&microBot Debug",
     "/drive"        : "&microBot Drive",
+    "/license"      : "&microBot MIT License",
     "/simple"       : "&microBot Simple",
     "/pro"          : "&microBot Professional"
 }
 
 style = {
-    "/debug"        : (getGeneralStyle, getDebugStyle),
     "/_settings"    : (getGeneralStyle, getSimpleStyle),
     "/_datetime"    : (getGeneralStyle, getSimpleStyle),
     "/_webrepl"     : (getGeneralStyle, getSimpleStyle),
     "/_calibration" : (getGeneralStyle, getSimpleStyle),
+    "/debug"        : (getGeneralStyle, getDebugStyle),
     "/drive"        : (getGeneralStyle, getPanelStyle),
+    "/license"      : (getGeneralStyle,),
     "/simple"       : (getGeneralStyle, getPanelStyle),
     "/pro"          : (getGeneralStyle, getPanelStyle)
 }
 
 parts = {
-    "/debug"        : (getDebugPanel,),
     "/_settings"    : (getSettingsPanel, getServiceRequestSender),
     "/_datetime"    : (getDateTimePanel, getDateTimeSender),
     "/_webrepl"     : (getWebReplPanel, getServiceRequestSender),
     "/_calibration" : (getCalibrationPanel, getServiceRequestSender),
+    "/debug"        : (getDebugPanel,),
 
     "/drive"        : (getSvgDefinitionHead, getArrowSymbol, getSvgDefinitionFooter, getDrivePanel, getTurtleMoveSender),
+
+    "/license"      : (getLicensePanel,),
 
     "/simple"       : (getSvgDefinitionHead, getArrowSymbol, getPlaySymbol, getPauseSymbol, getUndoSymbol, getCrossSymbol,
                        getSvgDefinitionFooter, getSimplePanel, getButtonPressSender

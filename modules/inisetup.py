@@ -69,8 +69,8 @@ motor = {
 
 
 system = {
-    "firmware"      : (0, 1, 111),
-    "initDateTime"  : (2021, 2, 24, 0, 20, 10, 0, 0),
+    "firmware"      : (0, 1, 112),
+    "initDateTime"  : (2021, 2, 24, 0, 20, 50, 0, 0),
     "powerOnCount"  : 0
 }
 
@@ -226,8 +226,8 @@ def setup():
     with open("main.py", "w") as file:
         file.write(firmwareComment)
         file.write(gc)
-        file.write(("import sys\n"
-                    "core = sys.modules.get('ubot_core')\n\n"
+        file.write(("import usys\n"
+                    "core = usys.modules.get('ubot_core')\n\n"
         ))
         file.write(footerComment)
 

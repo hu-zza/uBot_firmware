@@ -29,7 +29,7 @@
     SOFTWARE.
 """
 
-import uos, sys
+import uos, usys
 
 from machine import RTC
 
@@ -80,9 +80,9 @@ def _appendToList(item):
                 _logFiles[index][1] = _logFiles[index][1][10:]              # Reassign list (Delete the oldest 10 items.)
 
     except Exception as e:
-        sys.print_exception(e)
+        usys.print_exception(e)
         if index == 0:
-            sys.print_exception(item)
+            usys.print_exception(item)
 
 
 def _saveFromList(logFile, fallback = False):
@@ -98,7 +98,7 @@ def _saveFromList(logFile, fallback = False):
                     _writeOutItem(item[0], file, item[1])
             logFile[1] = []
         except Exception as e:
-            sys.print_exception(e)
+            usys.print_exception(e)
 
             if not fallback:
                 _saveFromList(logFile, True)
@@ -108,7 +108,7 @@ def _writeOutItem(dateTime, file, item):
     file.write("{}\n".format(dateTime))
 
     if _defineIndex(item) == 0:
-        sys.print_exception(item, file)
+        usys.print_exception(item, file)
     else:
         if isinstance(item, list):
             for i in item:
