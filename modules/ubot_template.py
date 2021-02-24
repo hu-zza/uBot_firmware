@@ -153,11 +153,15 @@ def getSimpleStyle():
 
 
 def getLicensePanel():
-    return ("        uBot_firmware   // The firmware of the μBot, the educational floor robot. (A MicroPython port to ESP8266 with additional modules.)<br><br>\n"
+    return ("        <h1>\n"
+            "            The license of the μBot firmware\n"
+            "        </h1>\n"
             "        This file is part of uBot_firmware.<br>\n"
-            "        [<a href='https://zza.hu/uBot_firmware' target='_blank'>https://zza.hu/uBot_firmware</a>]<br>\n"
-            "        [<a href='https://git.zza.hu/uBot_firmware' target='_blank'>https://git.zza.hu/uBot_firmware</a>]<br><br><br>\n"
-            "        MIT License<br><br>\n"
+            "        <a href='https://zza.hu/uBot_firmware' target='_blank'>https://zza.hu/uBot_firmware</a><br>\n"
+            "        <a href='https://git.zza.hu/uBot_firmware' target='_blank'>https://git.zza.hu/uBot_firmware</a><br><br><br>\n"
+            "        <h2>\n"
+            "            MIT License\n"
+            "        </h2>\n"
             "        Copyright (c) 2020-2021 Szabó László András <hu@zza.hu><br><br>\n"
             "        Permission is hereby granted, free of charge, to any person obtaining a copy<br>\n"
             "        of this software and associated documentation files (the \"Software\"), to deal<br>\n"
@@ -188,7 +192,7 @@ def getDebugPanel():
               "            <table class='system'>\n"
               "                <tr><td> <strong>Power on count:</strong> </td><td> {powerOnCount} </td><td>  </td></tr>\n"
               "                <tr><td> <strong>Saved programs:</strong> </td><td> {savedPrograms} </td><td>  </td></tr>\n"
-              "                <tr><td> <strong>Firmware:</strong> </td><td> {firmware} </td><td>  </td></tr>\n"
+              "                <tr><td> <strong>Firmware:</strong> </td><td> {firmware} </td><td><a href='license'>MIT License</a></td></tr>\n"
               "                <tr><td> <strong>Free memory:</strong> </td><td> {freeMemory}% </td><td> {memoryDetails} </td></tr>\n"
               "                <tr><td> <strong>Free space:</strong> </td><td> {freeSpace}% </td><td> {diskDetails} </td></tr>\n"
               "                <tr><td> <strong>System RTC:</strong> </td><td colspan='2'> {year}. {month:02d}. {day:02d}.&nbsp;&nbsp;&nbsp;{hour:02d} : {minute:02d} : {second:02d} </td></tr>\n"
