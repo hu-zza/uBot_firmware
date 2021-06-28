@@ -149,9 +149,10 @@ def saveLoadedProgram(title = None):
     saveProgram(_programArray[:_programParts[-1]].decode(), "json", title)
 
 
-def saveProgram(program, directory = "json", title = None):
+def saveProgram(program, directory = None, title = None):
     global _savedCount
 
+    directory = "json" if directory is None else directory
     path = _generateFullPath() if title is None else "program/{}/{}.txt".format(directory.lower(), title.lower())
 
     try:

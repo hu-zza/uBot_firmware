@@ -134,8 +134,8 @@ def executeJson(json):
 
         elif program.get("action") == "SAVE":
             if program.get("title") and program.get("content"):
-                turtle.saveProgram(program.get("title"), program.get("content"))    # Saves the received program to /program/json/<title>
-                results.append("Program saved successfully.")
+                turtle.saveProgram(program.get("content"), program.get("folder"), program.get("title"))  # default folder: "json"
+                results.append("Program saved successfully.")                       # Saves the received program to /program/<folder>/<title>.txt
             else:
                 if turtle.hasProgramLoaded():                                       # Turtle style save: If title is set, it's named
                     turtle.saveLoadedProgram(program.get("title"))                  # and saved in /program/json/<title>.txt, otherwise acts
