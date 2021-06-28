@@ -29,7 +29,9 @@
     SOFTWARE.
 """
 
-import gc, uos
+import gc, network, uos
+
+from ubinascii import hexlify
 
 import ubot_config as config
 import ubot_turtle as turtle
@@ -87,7 +89,7 @@ def getGeneralStyle():
 def getDebugStyle():
     return ("            hr    { color: #EEE; }\n"
             "            table { margin: 30px; }\n"
-            "            .system td { padding: 5px; border-bottom: dotted 1px #AAA; }\n")
+            "            .system td, .ap td { padding: 5px; border-bottom: dotted 1px #AAA; }\n")
 
 
 def getRawStyle():
@@ -171,22 +173,49 @@ def getLicensePanel():
             "        SOFTWARE.<br>\n")
 
 
+result = ("        <h3>Commands</h3>\n"
+          "            {commands}\n"
+          "        <br><br><hr><hr>\n"
+          "        <h3>Program</h3>\n"
+          "            {program}\n"
+          "        <br><br><hr><hr>\n"
+          "        <h3>System</h3>\n"
+          "            <table class='system'>\n"
+          "                <tr><td> <strong>Power on count:</strong> </td><td>{powerOnCount}</td><td>  </td></tr>\n"
+          "                <tr><td> <strong>Saved programs:</strong> </td><td>{savedPrograms}</td><td>  </td></tr>\n"
+          "                <tr><td> <strong>Firmware:</strong> </td><td>{firmware}</td><td><a href='license'>MIT License</a></td></tr>\n"
+          "                <tr><td> <strong>Free memory:</strong> </td><td>{freeMemory}%</td><td>{memoryDetails}</td></tr>\n"
+          "                <tr><td> <strong>Free space:</strong> </td><td>{freeSpace}%</td><td>{diskDetails}</td></tr>\n"
+          "                <tr><td> <strong>System RTC:</strong> </td><td colspan='2'>{year}. {month:02d}. {day:02d}.&nbsp;&nbsp;&nbsp;{hour:02d} : {minute:02d} : {second:02d}</td></tr>\n"
+          "                <tr><td> <strong>μBot ID:</strong> </td><td colspan='2'>{idA}<br>{idB}</td></tr>"
+          "            </table>\n"
+          "        <br><br><hr><hr>\n"          
+          "        <h3>Access point</h3>\n"
+          "            <table class='ap'>\n"
+          "                <tr><td> <strong>Active:</strong> </td><td>{isApUp}</td><td>  </td></tr>\n"
+          "                <tr><td> <strong>SSID:</strong> </td><td>{ssid}</td><td>  </td></tr>\n"
+          "                <tr><td> <strong>Password:</strong> </td><td>{uBot_pwd}</td><td> </td></tr>\n"
+          "                <tr><td> <strong>MAC address:</strong> </td><td colspan='2'>{macAddress}</tr>\n"
+          "                <tr><td> <strong>IP address:</strong> </td><td>{ipAddress}</td><td>{subnetMask}</td></tr>\n"
+          "                <tr><td> <strong>Gateway:</strong> </td><td>{gateway}</td><td> </td></tr>"
+          "                <tr><td> <strong>DNS:</strong> </td><td>{dns}</td><td> </td></tr>"
+          "            </table>\n"
+          "        <br><br><hr><hr>\n"
+          "        <h3>Services</h3>\n"
+          "            <table class='ap'>\n"
+          "                <tr><td> <strong>AP:</strong> </td><td>{isApUp}</td><td>  </td></tr>\n"
+          "                <tr><td> <strong>Buzzer:</strong> </td><td>{isBuzzerUp}</td><td>  </td></tr>\n"
+          "                <tr><td> <strong>Feedback:</strong> </td><td>{isFeedbackUp}</td><td> </td></tr>\n"
+          "                <tr><td> <strong>I2C:</strong> </td><td>{isI2cUp}</td><td> </td></tr>\n"
+          "                <tr><td> <strong>Motor:</strong> </td><td>{isMotorUp}</td><td> </td></tr>\n"
+          "                <tr><td> <strong>Turtle:</strong> </td><td>{isTurtleUp}</td><td> </td></tr>\n"
+          "                <tr><td> <strong>UART:</strong> </td><td>{isUartUp}</td><td> </td></tr>\n"
+          "                <tr><td> <strong>Web server:</strong> </td><td>{isWebServerUp}</td><td> </td></tr>\n"
+          "                <tr><td> <strong>Web REPL:</strong> </td><td>{isWebReplUp}</td><td> </td></tr>\n"
+          "            </table>\n")
+
+
 def getDebugPanel():
-    result = ("        <h3>Commands</h3>\n"
-              "            {commands}\n"
-              "        <br><br><hr><hr>\n"
-              "        <h3>Program</h3>\n"
-              "            {program}\n"
-              "        <br><br><hr><hr>\n"
-              "        <h3>System</h3>\n"
-              "            <table class='system'>\n"
-              "                <tr><td> <strong>Power on count:</strong> </td><td> {powerOnCount} </td><td>  </td></tr>\n"
-              "                <tr><td> <strong>Saved programs:</strong> </td><td> {savedPrograms} </td><td>  </td></tr>\n"
-              "                <tr><td> <strong>Firmware:</strong> </td><td> {firmware} </td><td><a href='license'>MIT License</a></td></tr>\n"
-              "                <tr><td> <strong>Free memory:</strong> </td><td> {freeMemory}% </td><td> {memoryDetails} </td></tr>\n"
-              "                <tr><td> <strong>Free space:</strong> </td><td> {freeSpace}% </td><td> {diskDetails} </td></tr>\n"
-              "                <tr><td> <strong>System RTC:</strong> </td><td colspan='2'> {year}. {month:02d}. {day:02d}.&nbsp;&nbsp;&nbsp;{hour:02d} : {minute:02d} : {second:02d} </td></tr>\n"
-              "            </table>\n")
 
     firmware = config.get("system", "firmware")
     firmwareVersion = "{}.{}.{}".format(
@@ -201,6 +230,11 @@ def getDebugPanel():
     freeSpace   = stat[4] * stat[0] * 100 // (stat[2] * stat[1])       # f_bavail * f_bsize * 100 // f_blocks * f_frsize
     diskDetails = "{} / {}".format(stat[4] * stat[0], stat[2] * stat[1])
     dt = config.datetime()
+    uid = config.get("system", "id")
+    idA = " - ".join(uid[i:i+4] for i in range(0, 16, 4))
+    idB = " - ".join(uid[i:i+4] for i in range(16, 32, 4))
+    ap = network.WLAN(network.AP_IF)
+    if0, if1, if2, if3 = ap.ifconfig()
 
     return result.format(
         commands = turtle._commandArray[:turtle._commandPointer].decode(),
@@ -211,7 +245,24 @@ def getDebugPanel():
         freeMemory = freePercent, memoryDetails = memoryDetails,
         freeSpace = freeSpace, diskDetails = diskDetails,
         year = dt[0], month = dt[1], day = dt[2],
-        hour = dt[4], minute = dt[5], second = dt[6]
+        hour = dt[4], minute = dt[5], second = dt[6],
+        idA=idA, idB=idB,
+        ssid = ap.config("essid"),
+        uBot_pwd = config.get("ap", "password"),
+        macAddress = hexlify(ap.config("mac"), ":").decode().replace(":", " : "),
+        ipAddress = if0,
+        subnetMask = if1,
+        gateway = if2,
+        dns = if3,
+        isApUp = config.get("ap", "active"),
+        isBuzzerUp=config.get("buzzer", "active"),
+        isFeedbackUp=config.get("feedback", "active"),
+        isI2cUp=config.get("i2c", "active"),
+        isMotorUp=config.get("motor", "active"),
+        isTurtleUp=config.get("turtle", "active"),
+        isUartUp=config.get("uart", "active"),
+        isWebServerUp=config.get("webServer", "active"),
+        isWebReplUp=config.get("webRepl", "active")
     )
 
 

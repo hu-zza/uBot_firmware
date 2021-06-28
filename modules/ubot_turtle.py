@@ -128,7 +128,7 @@ def checkButtons(timer = None):
 
 def listPrograms(directory):
     try:
-        return [name[:-4] for name in uos.listdir("program/{}".format(directory))]
+        return [name[:-4] for name in uos.listdir("program/{}".format(directory.lower()))]
     except Exception as e:
         logger.append(e)
 
@@ -137,30 +137,26 @@ def loadProgram(program = None):
     pass
 
 
-def loadProgramFromRom(name, directory):
+def loadProgramFromEeprom(name, directory):
     loadProgram()
 
 
-def saveProgram(title = None, program = None, boundaries = None):
+def hasProgramLoaded():
+    return 0 < len(_programArray[:_programParts[-1]].decode())
+
+
+def saveLoadedProgram(title = None):
+    saveProgram(_programArray[:_programParts[-1]].decode(), "json", title)
+
+
+def saveProgram(program, directory = "json", title = None):
     global _savedCount
 
-    if title is None:
-        _savedCount += 1
-        path = "program/turtle/{:010d}_{:03d}.txt".format(_powerOnCount, _savedCount)
-        program = _programArray
-        boundaries = (0, _programParts[-1])
-    else:
-        path = "program/json/{}.txt".format(title)
-
-    if program is None:
-        program = _programArray
+    path = _generateFullPath() if title is None else "program/{}/{}.txt".format(directory.lower(), title.lower())
 
     try:
         with open(path, "w") as file:
-            writtenBytes = file.write("{}\n".format(ujson.dumps(
-                program if boundaries is None else program[boundaries[0]:boundaries[1]]
-            )))
-
+            writtenBytes = file.write("{}\n".format(ujson.dumps(program)))
             return writtenBytes
     except Exception as e:
         logger.append(e)
@@ -173,6 +169,13 @@ def saveProgram(title = None, program = None, boundaries = None):
 ##########
 ##########  PRIVATE, CLASS-LEVEL METHODS
 ##########
+
+
+def _generateFullPath():
+    global _savedCount
+
+    _savedCount += 1
+    return "program/turtle/{:010d}_{:03d}.txt".format(_powerOnCount, _savedCount)
 
 
 ################################
@@ -529,7 +532,7 @@ def _addToProgOrSave():
         _commandPointer = 0
         buzzer.keyBeep("added")
     elif _programParts[-1] != 0:
-        saveProgram()
+        saveLoadedProgram()
         buzzer.keyBeep("saved")
 
     return 0

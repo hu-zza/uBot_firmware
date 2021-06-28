@@ -69,8 +69,10 @@ motor = {
 
 
 system = {
-    "firmware"      : (0, 1, 114),
-    "initDateTime"  : (2021, 6, 28, 0, 14, 30, 0, 0),
+    "id"            : hexlify(uos.urandom(32)).decode(),
+    "chk"           : hexlify(uos.urandom(32)).decode(),
+    "firmware"      : (0, 1, 115),
+    "initDateTime"  : (2021, 6, 28, 0, 23, 15, 0, 0),
     "powerOnCount"  : 0
 }
 

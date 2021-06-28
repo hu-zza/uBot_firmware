@@ -70,10 +70,11 @@ def executeJson(json):
 
         if len(dateTime) == 8:              # For classical tuple format
             config.datetime(dateTime)
-        elif len(dateTime) == 2:            # For human readable format: (yyyy-mm-dd, hh:mm)
+        elif len(dateTime) == 2:            # For human readable format: ("yyyy-mm-dd", "hh:mm") or ("yyyy-mm-dd", "hh:mm:ss")
             date = dateTime[0].split("-")
             time = dateTime[1].split(":")
-            config.datetime((int(date[0]), int(date[1]), int(date[2]), 0, int(time[0]), int(time[1]), 0, 0))
+            seconds = int(time[2]) if 2 < len(time) else 0
+            config.datetime((int(date[0]), int(date[1]), int(date[2]), 0, int(time[0]), int(time[1]), seconds, 0))
 
         results.append("New date and time has been set.")
 
@@ -92,11 +93,19 @@ def executeJson(json):
 
             elif command[:5] == "BEEP ":
                 beepArray = command[5:].strip().split(":")
-                buzzer.beep(int(beepArray[0]), int(beepArray[1]), int(beepArray[2]), int(beepArray[3]))
+                size = len(beepArray)
+                buzzer.beep(float(beepArray[0]) if size > 0 else 440.0,
+                            int(beepArray[1]) if size > 1 else 100,
+                            int(beepArray[2]) if size > 2 else 100,
+                            int(beepArray[3]) if size > 3 else 1)
 
             elif command[:5] == "MIDI ":
                 beepArray = command[5:].strip().split(":")
-                buzzer.midiBeep(int(beepArray[0]), int(beepArray[1]), int(beepArray[2]), int(beepArray[3]))
+                size = len(beepArray)
+                buzzer.midiBeep(int(beepArray[0]) if size > 0 else 69,
+                                int(beepArray[1]) if size > 1 else 100,
+                                int(beepArray[2]) if size > 2 else 100,
+                                int(beepArray[3]) if size > 3 else 1)
 
             elif command[:5] == "REST ":
                 buzzer.rest(int(command[5:].strip()))
@@ -111,33 +120,33 @@ def executeJson(json):
     if json.get("program"):
         program = json.get("program")
 
-        if program.get("function") == "LIST":
-            if program.get("directory"):
-                results.append(turtle.listPrograms(program.get("directory")))
+        if program.get("action") == "LIST":
+            if program.get("folder"):
+                results.append(turtle.listPrograms(program.get("folder")))
 
-        elif program.get("function") == "LOAD":
+        elif program.get("action") == "LOAD":
             if program.get("content"):
                 turtle.loadProgram(program.get("content"))
                 results.append("Program loaded successfully.")
-            elif program.get("name") and program.get("directory"):
-                turtle.loadProgramFromRom(program.get("name"), program.get("directory"))
+            elif program.get("title") and program.get("folder"):
+                turtle.loadProgramFromEeprom(program.get("title"), program.get("folder"))
                 results.append("Program loaded successfully.")
 
-        elif program.get("function") == "SAVE":
-            if program.get("content"):
-                if program.get("title"):
-                    turtle.saveProgram(program.get("title"), program.get("content"))    # Saves the received program to /program/json/<title>
-                    results.append("Program saved successfully.")
-            else:                                                                       # Turtle style save: If title is set, it's named
-                turtle.saveProgram(program.get("title"))                                # and saved in /program/json/<title>, otherwise acts
-                results.append("Program saved successfully.")                           # like ADD button: /program/turtle/XXXXXXXXXX_YYY.txt
+        elif program.get("action") == "SAVE":
+            if program.get("title") and program.get("content"):
+                turtle.saveProgram(program.get("title"), program.get("content"))    # Saves the received program to /program/json/<title>
+                results.append("Program saved successfully.")
+            else:
+                if turtle.hasProgramLoaded():                                       # Turtle style save: If title is set, it's named
+                    turtle.saveLoadedProgram(program.get("title"))                  # and saved in /program/json/<title>.txt, otherwise acts
+                    results.append("Program saved successfully.")                   # like ADD button: /program/turtle/XXXXXXXXXX_YYY.txt
 
         if program.get("play"):
             turtle.press(64)
 
 
     if json.get("file"):
-        if json.get("function") == "list":
+        if json.get("action") == "list":
             pass
 
 
@@ -166,12 +175,6 @@ def executeJson(json):
             elif command == "STOP WEBSERVER":
                 webserver.stop()
                 results.append("WebServer has stopped.")
-
-            elif command == "CALIBRATE FEEDBACK":
-                results.append("Calibration has started.")
-
-            elif command == "CHECK DATETIME":
-                results.append(str(config.datetime()))
 
 
     if json.get("root"):
