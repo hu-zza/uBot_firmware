@@ -8,7 +8,7 @@
 
     MIT License
 
-    Copyright (c) 2020-2021 Szabó László András <hu@zza.hu>
+    Copyright (c) 2020-2021 Szabó László András // hu-zza
 
     Permission is hereby granted, free of charge, to any person obtaining a copy
     of this software and associated documentation files (the "Software"), to deal
@@ -50,23 +50,23 @@ _defaultState = 0
 def keyBeep(key):
     tuneList = config.get("buzzer", key)
 
-    if tuneList != None:
+    if tuneList is not None:
         if isinstance(tuneList[0], list):
             for tune in tuneList:
-                if tune[0] == None:
+                if tune[0] is None:
                     rest(tune[1])
                 else:
                     midiBeep(tune[0], tune[1], tune[2], tune[3])
         else:
-            if tuneList[0] == None:
+            if tuneList[0] is None:
                 rest(tuneList[1])
             else:
                 midiBeep(tuneList[0], tuneList[1], tuneList[2], tuneList[3])
 
 
 def midiBeep(noteOn = 69, duration = 100, restAround = 100, count = 1):
-        freq = 440 * pow(2, (noteOn - 69) / 12)
-        beep(freq, duration, restAround, count)
+    freq = 440 * pow(2, (noteOn - 69) / 12)
+    beep(freq, duration, restAround, count)
 
 
 def beep(freq = 440.0, duration = 100, restAround = 100, count = 1):

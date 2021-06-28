@@ -8,7 +8,7 @@
 
     MIT License
 
-    Copyright (c) 2020-2021 Szabó László András <hu@zza.hu>
+    Copyright (c) 2020-2021 Szabó László András // hu-zza
 
     Permission is hereby granted, free of charge, to any person obtaining a copy
     of this software and associated documentation files (the "Software"), to deal
@@ -236,20 +236,20 @@ def _reply(returnFormat, httpCode, message):
         _connection.write("HTTP/1.1 " + httpCode + "\r\n")
 
         if returnFormat == "HTML":
-            str = "text/html"
+            reply = "text/html"
         elif returnFormat == "JSON":
-            str = "application/json"
+            reply = "application/json"
 
-        _connection.write("Content-Type: " + str + "\r\n")
+        _connection.write("Content-Type: {0}\r\n".format(reply))
         _connection.write("Connection: close\r\n\r\n")
 
         if returnFormat == "HTML":
             style = template.getGeneralStyle() + template.getSimpleStyle()
-            str   = template.getSimplePage().format(title = httpCode, style = style, body = message)
+            reply = template.getSimplePage().format(title = httpCode, style = style, body = message)
         elif returnFormat == "JSON":
-            str   = ujson.dumps({"code" : httpCode, "message" : message, "dateTime": config.datetime()})
+            reply = ujson.dumps({"code" : httpCode, "message" : message, "dateTime": config.datetime()})
 
-        _connection.write(str)
+        _connection.write(reply)
     except Exception:
         print("The connection has been closed.")
     finally:
@@ -264,8 +264,7 @@ def _sendRaw(path):
                                "            <thead>\n"
                                "                <tr><th scope='col'>Filename</th><th scope='col'>File size</th></tr>\n"
                                "            </thead>\n"
-                               "            <tbody>\n")
-            )
+                               "            <tbody>\n"))
 
             try:
                 for fileName in uos.listdir(path):
@@ -294,8 +293,7 @@ def _sendRaw(path):
                 _connection.write("<td class='info' colspan='2'>[Errno 2] ENOENT : No such directory.</td>")
 
             _connection.write(("            </tbody>\n"
-                               "        </table>\n")
-            )
+                               "        </table>\n"))
         else:
             _connection.write("        <pre>\n")
             try:

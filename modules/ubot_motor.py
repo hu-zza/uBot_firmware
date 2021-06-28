@@ -8,7 +8,7 @@
 
     MIT License
 
-    Copyright (c) 2020-2021 Szabó László András <hu@zza.hu>
+    Copyright (c) 2020-2021 Szabó László András // hu-zza
 
     Permission is hereby granted, free of charge, to any person obtaining a copy
     of this software and associated documentation files (the "Software"), to deal
@@ -165,7 +165,7 @@ def setFactor(factor = 1):
     """
     Public function which set the T1 duty factor (_factor).
     This affects the left motor (T1) directly as you can see in _setController().
-    The purpose of this funtion the on-the-fly correction.
+    The purpose of this function the on-the-fly correction.
     """
     if factor < _config[2][0]:         # If parameter is less than the minimum duty factor:
         _factor = _config[2][0]        #   - set the minimum duty f. as current duty f.
@@ -329,7 +329,7 @@ def _setController(modeLeft = 0, modeRight = 0):        # ! (T1 mode, T0 mode) !
             _timerT1.init(
                 period = _config[0][0],
                 mode = Timer.PERIODIC,
-                callback = lambda t:_driveMotor(0, modeRight, _config[0][1])
+                callback = lambda t: _driveMotor(0, modeRight, _config[0][1])
             )
 
 
@@ -357,7 +357,7 @@ def _driveMotor(motor = 0, mode = 0, duration = 0):
             _timerMotor[motor].init(
                 period = duration,
                 mode = Timer.ONE_SHOT,
-                callback = lambda t:_driveMotor(motor, 0)
+                callback = lambda t: _driveMotor(motor, 0)
             )
         else:
             _pin[motor][0].off()

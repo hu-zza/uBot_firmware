@@ -8,7 +8,7 @@
 
     MIT License
 
-    Copyright (c) 2020-2021 Szabó László András <hu@zza.hu>
+    Copyright (c) 2020-2021 Szabó László András // hu-zza
 
     Permission is hereby granted, free of charge, to any person obtaining a copy
     of this software and associated documentation files (the "Software"), to deal
@@ -142,47 +142,47 @@ def executeJson(json):
 
 
     if json.get("service"):
-            for command in json.get("service"):
-                if command == "START UART":
-                    config.set("uart", "active", True)
-                    uos.dupterm(UART(0, 115200), 1)
-                    results.append("UART has started.")
+        for command in json.get("service"):
+            if command == "START UART":
+                config.set("uart", "active", True)
+                uos.dupterm(UART(0, 115200), 1)
+                results.append("UART has started.")
 
-                elif command == "STOP UART":
-                    config.set("uart", "active", False)
-                    uos.dupterm(None, 1)
-                    results.append("UART has stopped.")
+            elif command == "STOP UART":
+                config.set("uart", "active", False)
+                uos.dupterm(None, 1)
+                results.append("UART has stopped.")
 
-                elif command == "START WEBREPL":
-                    config.set("webRepl", "active", True)
-                    webrepl.start()
-                    results.append("WebREPL has started.")
+            elif command == "START WEBREPL":
+                config.set("webRepl", "active", True)
+                webrepl.start()
+                results.append("WebREPL has started.")
 
-                elif command == "STOP WEBREPL":
-                    config.set("webRepl", "active", False)
-                    webrepl.stop()
-                    results.append("WebREPL has stopped.")
+            elif command == "STOP WEBREPL":
+                config.set("webRepl", "active", False)
+                webrepl.stop()
+                results.append("WebREPL has stopped.")
 
-                elif command == "STOP WEBSERVER":
-                    webserver.stop()
-                    results.append("WebServer has stopped.")
+            elif command == "STOP WEBSERVER":
+                webserver.stop()
+                results.append("WebServer has stopped.")
 
-                elif command == "CALIBRATE FEEDBACK":
-                    results.append("Calibration has started.")
+            elif command == "CALIBRATE FEEDBACK":
+                results.append("Calibration has started.")
 
-                elif command == "CHECK DATETIME":
-                    results.append(str(config.datetime()))
+            elif command == "CHECK DATETIME":
+                results.append(str(config.datetime()))
 
 
     if json.get("root"):
-            for command in json.get("root"):
+        for command in json.get("root"):
 
-                if command[0:5] == "EXEC ":
-                    exec(command[5:])
-                    results.append("'{}' executed successfully.".format(command[5:]))
+            if command[0:5] == "EXEC ":
+                exec(command[5:])
+                results.append("'{}' executed successfully.".format(command[5:]))
 
-                elif command[0:5] == "EVAL ":
-                    results.append("'{}' executed successfully, the result is: '{}'".format(command[5:], eval(command[5:])))
+            elif command[0:5] == "EVAL ":
+                results.append("'{}' executed successfully, the result is: '{}'".format(command[5:], eval(command[5:])))
 
 
     if len(results) == 0:
@@ -230,7 +230,7 @@ if config.get("motor", "active"):
             (config.get("motor", "T0Period"),       config.get("motor", "T0Duration")),
             (config.get("motor", "T1Frequency"),    config.get("motor", "T1Duty")),
             (config.get("motor", "T1DutyFactor"),   config.get("motor", "T1MinDuty"), config.get("motor", "T1MaxDuty")),
-             config.get("motor", "breathLength")
+            config.get("motor", "breathLength")
         )
     )
 

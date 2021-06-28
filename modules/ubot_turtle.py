@@ -8,7 +8,7 @@
 
     MIT License
 
-    Copyright (c) 2020-2021 Szabó László András <hu@zza.hu>
+    Copyright (c) 2020-2021 Szabó László András // hu-zza
 
     Permission is hereby granted, free of charge, to any person obtaining a copy
     of this software and associated documentation files (the "Software"), to deal
@@ -68,7 +68,7 @@ _endSignal    = config.get("turtle", "endSignal")           # Sound indicates th
 _stepSignal   = config.get("turtle", "stepSignal")          # Sound indicates the end of program execution:       buzzer.keyBeep(_endSignal)
 
 _pressedListIndex = 0
-_pressedList  = [0] * (_pressLength + _maxError)            # Low-level:  The last N (_pressLength + _maxError) buttoncheck results.
+_pressedList  = [0] * (_pressLength + _maxError)            # Low-level:  The last N (_pressLength + _maxError) button check results.
 
 _commandArray   = bytearray()                               # High-level: Abstract commands, result of processed button presses.
 _commandPointer = 0                                         # Pointer for _commandArray.
@@ -144,7 +144,7 @@ def loadProgramFromRom(name, directory):
 def saveProgram(title = None, program = None, boundaries = None):
     global _savedCount
 
-    if title == None:
+    if title is None:
         _savedCount += 1
         path = "program/turtle/{:010d}_{:03d}.txt".format(_powerOnCount, _savedCount)
         program = _programArray
@@ -152,19 +152,19 @@ def saveProgram(title = None, program = None, boundaries = None):
     else:
         path = "program/json/{}.txt".format(title)
 
-    if program == None:
+    if program is None:
         program = _programArray
 
     try:
         with open(path, "w") as file:
             writtenBytes = file.write("{}\n".format(ujson.dumps(
-                program if boundaries == None else program[boundaries[0]:boundaries[1]]
+                program if boundaries is None else program[boundaries[0]:boundaries[1]]
             )))
 
             return writtenBytes
     except Exception as e:
         logger.append(e)
-        if title == None:
+        if title is None:
             _savedCount -= 1
 
 
@@ -226,7 +226,7 @@ def _getPressedButton():
             _inputPin.init(Pin.IN)         # DEPRECATED: New PCB design (2.1) will resolve this.
 
         if _inputPin.value() == 1:
-            pressed += 1<<_counterPosition # pow(2, _counterPosition)
+            pressed += 1 << _counterPosition # pow(2, _counterPosition)
 
         _advanceCounter()
 
@@ -238,7 +238,7 @@ def _getPressedButton():
     _pressedList[_pressedListIndex] = pressed
     _pressedListIndex += 1
     if len(_pressedList) <= _pressedListIndex:
-            _pressedListIndex = 0
+        _pressedListIndex = 0
 
     errorCount = 0
 
@@ -285,7 +285,7 @@ def _addCommand(pressed):
         else:
             tupleWithCallable = _currentMapping.get(pressed)                # Dictionary based switch...case
 
-            if tupleWithCallable == None:                                   # Default branch
+            if tupleWithCallable is None:                                   # Default branch
                 result = 0                                                  # Skip the (result) processing.
             else:
                 if tupleWithCallable[1] == ():
@@ -357,13 +357,13 @@ def _blockCompleted(deleteFlag):
 
 
 def _getOppositeBoundary(commandPointer):
-    bondary = _commandArray[commandPointer]
+    boundary = _commandArray[commandPointer]
 
-    for bondaryPair in _blockBoundaries:
-        if bondary == bondaryPair[0]:
-            return bondaryPair[1]
-        elif bondary == bondaryPair[1]:
-            return bondaryPair[0]
+    for boundaryPair in _blockBoundaries:
+        if boundary == boundaryPair[0]:
+            return boundaryPair[1]
+        elif boundary == boundaryPair[1]:
+            return boundaryPair[0]
     return -1
 
 
@@ -424,17 +424,17 @@ def _start(arguments):                # (blockLevel,)
 
     motor.setCallback(0, _callbackEnd, True)      # Set as temporary, because not every execution need it.
 
-    #counter = 0                             #      Debug
+    #counter = 0                                   #    Debug
     #print("_toPlay[:_pointer]", "_toPlay[_pointer:]", "\t\t\t", "counter", "_pointer", "_toPlay[_pointer]") # Debug
 
     while _processingProgram:
-        remaining = _upperBoundary - 1 - _pointer #      Remaining bytes in _toPlay bytearray. 0 if _toPlay[_pointer] == _toPlay[-1]
+        remaining = _upperBoundary - 1 - _pointer #    Remaining bytes in _toPlay bytearray. 0 if _toPlay[_pointer] == _toPlay[-1]
         checkCounter = False
 
-        #if _pointer < _upperBoundary:          #      Debug
+        #if _pointer < _upperBoundary:            #    Debug
         #    print(_toPlay[:_pointer].decode(), _toPlay[_pointer:].decode(), "\t\t\t", counter, _pointer, _toPlay[_pointer])
 
-        if remaining < 0:                       #      If everything is executed, exits.
+        if remaining < 0:                         #    If everything is executed, exits.
             _processingProgram = False
 
 
@@ -606,7 +606,7 @@ def _manageFunction(arguments):             # (functionId, onlyCall)            
     # In the second case, position -1 (undefined) is fine. (lazy initialization)
     if 0 <= _functionPosition[index] or (arguments[1] and _functionPosition[index] != -0.1):
         buzzer.keyBeep("processed")
-        return (126, arguments[0] + 48, 126)        # Increase by 48 = human-friendly bytes: 48 -> "0", 49 -> "1", ...
+        return 126, arguments[0] + 48, 126   # Increase by 48 = human-friendly bytes: 48 -> "0", 49 -> "1", ...
     elif _functionPosition[index] == -0.1:          # End of defining the function
         # Save index to _functionPosition, because _blockStartIndex will be destroyed during _blockCompleted().
         _functionPosition[index] = len(_programArray) + _blockStartIndex
@@ -652,7 +652,7 @@ def _undo(arguments):                       # (blockLevel,)
             if boundary == 123:                                    # "{" If it undoes a function declaration, unregister:
                 _functionPosition[_commandArray[_commandPointer - 1] - 49] = -1 # Not 48! functionId - 1 = array index
             while True:                                            # General undo decreases the pointer by one, so this
-                _commandPointer -= 1                               # do...while loop can handle identic boundary pairs.
+                _commandPointer -= 1                               # do...while loop can handle identical boundary pairs.
                 if _commandArray[_commandPointer] == boundary or _commandPointer == undoLowerBoundary:
                     break
 
@@ -677,7 +677,7 @@ def _delete(arguments):                     # (blockLevel,)
     global _programParts
     global _functionPosition
 
-    if arguments[0] == True:                # Block-level: delete only the unfinished block.
+    if arguments[0]:                        # Block-level: delete only the unfinished block.
         _blockCompleted(True)               # buzzer.keyBeep("deleted") is called inside _blockCompleted(True)
         for i in range(len(_functionPosition)): # Maybe there are user defined functions, so not range(3).
             if _functionPosition[i] == -0.1:    # If this function is unfinished.

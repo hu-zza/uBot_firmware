@@ -69,8 +69,8 @@ motor = {
 
 
 system = {
-    "firmware"      : (0, 1, 113),
-    "initDateTime"  : (2021, 2, 24, 0, 22, 10, 0, 0),
+    "firmware"      : (0, 1, 114),
+    "initDateTime"  : (2021, 6, 28, 0, 14, 30, 0, 0),
     "powerOnCount"  : 0
 }
 
@@ -163,14 +163,12 @@ programming).
         time.sleep(3)
 
 
-
 def setup():
     check_bootsec()
     wifi()
     uos.VfsLfs2.mkfs(bdev)
     vfs = uos.VfsLfs2(bdev)
     uos.mount(vfs, "/")
-
 
     uos.mkdir("etc")
 
@@ -188,7 +186,6 @@ def setup():
     uos.mkdir("program/turtle")
     uos.mkdir("program/json")
 
-
     firmware = system.get("firmware")
     firmwareComment = "# uBot firmware {}.{}.{}\n\n".format(
         firmware[0], firmware[1], firmware[2]
@@ -204,7 +201,6 @@ def setup():
                      "# https://zza.hu/uBot\n"
                      "#\n")
 
-
     with open(".webrepl_cfg.py", "w") as file:
         file.write(firmwareComment)
         file.write("PASS = '{}'\n\n".format(webRepl.get("password")))
@@ -212,7 +208,6 @@ def setup():
 
     if webRepl.get("active"):
         uos.rename(".webrepl_cfg.py", "webrepl_cfg.py")
-
 
     with open("boot.py", "w") as file:
         file.write(firmwareComment)
@@ -222,35 +217,27 @@ def setup():
                    "import ubot_core as core\n\n")
         file.write(footerComment)
 
-
     with open("main.py", "w") as file:
         file.write(firmwareComment)
         file.write(gc)
         file.write(("import usys\n"
-                    "core = usys.modules.get('ubot_core')\n\n"
-        ))
+                    "core = usys.modules.get('ubot_core')\n\n"))
         file.write(footerComment)
-
 
     with open("etc/datetime.py", "w") as file:
         file.write("DT = {}".format(system.get("initDateTime")))
 
-
     with open("log/datetime.txt", "w") as file:
         file.write("{}\n0000000000.txt\n\n".format(system.get("initDateTime")))
-
 
     with open("log/exception/0000000000.txt", "w") as file:
         file.write("{}\nFallback exception log initialised successfully.\n\n".format(system.get("initDateTime")))
 
-
     with open("log/event/0000000000.txt", "w") as file:
         file.write("{}\nFallback event log initialised successfully.\n\n".format(system.get("initDateTime")))
 
-
     with open("log/object/0000000000.txt", "w") as file:
         file.write("{}\nFallback event log initialised successfully.\n\n".format(system.get("initDateTime")))
-
 
     for moduleName, module in configModules.items():
         uos.mkdir("etc/{}".format(moduleName))

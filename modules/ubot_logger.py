@@ -8,7 +8,7 @@
 
     MIT License
 
-    Copyright (c) 2020-2021 Szabó László András <hu@zza.hu>
+    Copyright (c) 2020-2021 Szabó László András // hu-zza
 
     Permission is hereby granted, free of charge, to any person obtaining a copy
     of this software and associated documentation files (the "Software"), to deal
@@ -86,7 +86,7 @@ def _appendToList(item):
 
 
 def _saveFromList(logFile, fallback = False):
-    if logFile[1] != []:                                            # If this list contains item(s).
+    if logFile[1]:                                                  # If this list contains item(s).
 
         if _fileName == 0:                                          # If filename is undefined.
             fallback = True

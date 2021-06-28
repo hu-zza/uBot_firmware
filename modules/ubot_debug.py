@@ -8,7 +8,7 @@
 
     MIT License
 
-    Copyright (c) 2020-2021 Szabó László András <hu@zza.hu>
+    Copyright (c) 2020-2021 Szabó László András // hu-zza
 
     Permission is hereby granted, free of charge, to any person obtaining a copy
     of this software and associated documentation files (the "Software"), to deal
@@ -130,12 +130,11 @@ def listExceptions():
 
 def printExceptions(nr = None):
     stopSignal()
-    if nr == None:
+    if nr is None:
         print(("\nThis function needs one parameter,\n"
                "the ordinal of a specific exception log.\n"
                "You can list ordinals and file names with\n"
-               "listExceptions() command.\n")
-             )
+               "listExceptions() command.\n"))
     else:
         exceptionFiles = uos.listdir("log/exception")
         fileName = "{:010d}.txt".format(nr)
@@ -159,8 +158,7 @@ def startUart():
     if _uartState == 0:
         print(("\nPlease check that you deactivated the feedback\n"
                "sensors by the physical switch on main PCB.\n"
-               "After that, call this method again.\n")
-             )
+               "After that, call this method again.\n"))
         _uartState += 1
     elif _uartState == 1:
         try:
@@ -222,7 +220,7 @@ def _checkButtonPress():
 def _stopSignalAtLogin():
     """ Stops the error signal, if user starts the login process. """
     try:
-        if webrepl.client_s != None:
+        if webrepl.client_s is not None:
             webrepl.client_s.read(1)    # Dirty hack, but there is no proper check for socket state and this throws
             stopSignal()                # OSError: [Errno 9] EBADF for closed (state = -16) sockets...
     except Exception:

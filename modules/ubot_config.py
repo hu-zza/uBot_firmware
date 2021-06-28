@@ -8,7 +8,7 @@
 
     MIT License
 
-    Copyright (c) 2020-2021 Szabó László András <hu@zza.hu>
+    Copyright (c) 2020-2021 Szabó László András // hu-zza
 
     Permission is hereby granted, free of charge, to any person obtaining a copy
     of this software and associated documentation files (the "Software"), to deal
@@ -68,7 +68,7 @@ def set(module, attribute, value):
 
 
 def datetime(newDateTime = None):
-    if newDateTime != None:
+    if newDateTime is not None:
         dateTime.datetime(newDateTime)
         saveDateTime()
 
@@ -102,9 +102,9 @@ def _manageRelated(module, attribute, value):
     try:
         if module == "webRepl":
             if attribute == "active":
-                if value == True and ".webrepl_cfg.py" in uos.listdir():
+                if value and ".webrepl_cfg.py" in uos.listdir():
                     uos.rename(".webrepl_cfg.py", "webrepl_cfg.py")
-                elif value == False and "webrepl_cfg.py" in uos.listdir():
+                elif not value and "webrepl_cfg.py" in uos.listdir():
                     uos.rename("webrepl_cfg.py", ".webrepl_cfg.py")
     except Exception as e:
         logger.append(e)
