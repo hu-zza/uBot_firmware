@@ -38,32 +38,43 @@ import ubot_logger   as logger
 import ubot_motor    as motor
 import ubot_template as template
 
+_jsonFunction = 0
+_jsonGetFunction = 0
+_jsonPostFunction = 0
+_jsonPutFunction = 0
+_jsonDeleteFunction = 0
+_connection = 0
+_address = 0
 
-_jsonFunction  = 0
-_connection    = 0
-_address       = 0
-
-_started       = False
-_period        = config.get("webServer", "period")
-_timeout       = config.get("webServer", "timeout")
-_timer         = Timer(-1)
-_socket        = usocket.socket(usocket.AF_INET, usocket.SOCK_STREAM)
-_poller        = uselect.poll()
+_started = False
+_period = config.get("webServer", "period")
+_timeout = config.get("webServer", "timeout")
+_timer = Timer(-1)
+_socket = usocket.socket(usocket.AF_INET, usocket.SOCK_STREAM)
+_poller = uselect.poll()
 
 _socket.bind(("", 80))
 _socket.listen(5)
 _poller.register(_socket, uselect.POLLIN)
 
 
-
 ################################
 ## CONFIG
 
-def setJsonCallback(jsonFunction):
-    global _jsonFunction
+def setJsonCallback(method, jsonFunction):
+    global _jsonGetFunction
+    global _jsonPostFunction
+    global _jsonPutFunction
+    global _jsonDeleteFunction
 
-    _jsonFunction = jsonFunction
-
+    if method == "GET":
+        _jsonGetFunction = jsonFunction
+    elif method == "POST":
+        _jsonPostFunction = jsonFunction
+    elif method == "PUT":
+        _jsonPutFunction = jsonFunction
+    elif method == "DELETE":
+        _jsonDeleteFunction = jsonFunction
 
 
 ################################
@@ -74,8 +85,8 @@ def start():
     global _processing
 
     if not _started and config.get("webServer", "active"):
-        _timer.init(period = _period, mode = Timer.PERIODIC, callback = _poll)
-        _started    = True
+        _timer.init(period=_period, mode=Timer.PERIODIC, callback=_poll)
+        _started = True
         _processing = True
 
 
@@ -85,9 +96,8 @@ def stop():
 
     if _started:
         _timer.deinit()
-        _started    = False
+        _started = False
         _processing = False
-
 
 
 ################################
@@ -108,11 +118,11 @@ def _processIncoming(incoming):
     global _connection
     global _address
 
-    method        = ""
-    path          = ""
+    method = ""
+    path = ""
     contentLength = 0
-    contentType   = ""
-    body          = ""
+    contentType = ""
+    body = ""
 
     _connection, _address = incoming.accept()
     requestFile = _connection.makefile("rwb", 0)
@@ -132,10 +142,10 @@ def _processIncoming(incoming):
 
             if method == "":
                 firstSpace = line.find(" ")
-                pathEnd    = line.find(" HTTP")
+                pathEnd = line.find(" HTTP")
 
                 method = line[0:firstSpace]
-                path   = line[firstSpace+1:pathEnd]
+                path = line[firstSpace + 1:pathEnd]
 
             if 0 <= line.lower().find("content-length:"):
                 contentLength = int(line[15:].strip())
@@ -143,20 +153,31 @@ def _processIncoming(incoming):
             if 0 <= line.lower().find("content-type:"):
                 contentType = line[13:].strip()
 
-        if method == "GET":
-            _processGetQuery(path)
-        elif method == "POST":
-            if contentType == "application/json":
-                _processPostQuery(body)
+        if method in ("GET", "POST", "PUT", "DELETE"):
+            if contentType == "text/html":
+                _processHtmlQuery(method, path, body)
+            elif contentType == "application/json":
+                _processJsonQuery(method, path, body)
             else:
-                _reply("HTML", "400 Bad Request", "'Content-Type' should be 'application/json'.")
+                _reply("HTML", "400 Bad Request", "'Content-Type' should be 'text/html' or 'application/json'.")
         else:
-            _reply("HTML", "405 Method Not Allowed", "Only two HTTP request methods (GET and POST) are allowed.")
+            _reply("HTML", "405 Method Not Allowed",
+                   "The following HTTP request methods are allowed: GET, POST, PUT and DELETE.")
     finally:
         _connection.close()
 
 
-def _processGetQuery(path):
+def _processHtmlQuery(method, path, body):
+    if method == "GET":
+        _processHtmlGetQuery(path)
+    elif method == "POST":
+        _processHtmlPostQuery(path, body)
+    else:
+        _reply("HTML", "405 Method Not Allowed",
+               "Only GET and POST HTTP request methods are allowed with text/html content type.")
+
+
+def _processHtmlGetQuery(path):
     try:
         if path in template.title:
             _connection.write("HTTP/1.1 200 OK\r\n")
@@ -174,9 +195,9 @@ def _processGetQuery(path):
 
             if path == "/debug":
                 logFiles = (
-                    ("Exceptions",  "log/exception/"),
-                    ("Events",      "log/event/"),
-                    ("Objects",     "log/object/")
+                    ("Exceptions", "log/exception/"),
+                    ("Events", "log/event/"),
+                    ("Objects", "log/object/")
                 )
 
                 for logFile in logFiles:
@@ -204,7 +225,7 @@ def _processGetQuery(path):
             for key in sorted(template.title.keys()):
                 if key == "/" or key[1] != "_":
                     helperLinks += "            <li><a href='{key}'>{title}</a><br><small>{host}{key}</small></li>\n".format(
-                        host = "192.168.11.1", key = key, title = template.title.get(key)
+                        host="192.168.11.1", key=key, title=template.title.get(key)
                     )
 
             helperLinks += "        </ul>\n"
@@ -215,14 +236,32 @@ def _processGetQuery(path):
         _connection.close()
 
 
-def _processPostQuery(body):
+def _processHtmlPostQuery(path, body):
+    _reply("HTML", "501 Not Implemented", "This service is not implemented yet.")
+
+
+def _processJsonQuery(method, path, body):
+    global _jsonFunction
+    
+    if method in ("GET", "POST", "PUT", "DELETE"):
+        if method == "GET":
+            _jsonFunction = _jsonGetFunction
+        elif method == "POST":
+            _jsonFunction = _jsonPostFunction
+        elif method == "PUT":
+            _jsonFunction = _jsonPutFunction
+        else:
+            _jsonFunction = _jsonDeleteFunction
+       
+        _startJsonProcessing(path, body)            
+    else:
+        _reply("HTML", "405 Method Not Allowed",
+               "The following HTTP request methods are allowed with application/json content type: GET, POST, PUT and DELETE.")
+
+
+def _startJsonProcessing(path, body):
     try:
-        json = ujson.loads(body)
-
-        if json.get("estimatedExecutionTime") and 10 < json.get("estimatedExecutionTime"):
-            _reply("JSON", "200 OK", "JSON parsed, execution in progress.")
-
-        _reply("JSON", "200 OK", _jsonFunction(json))
+        _reply("JSON", "200 OK", _jsonFunction(path, ujson.loads(body)))
     except Exception as e:
         logger.append(e)
         _reply("JSON", "400 Bad Request", "The request body could not be parsed and processed.")
@@ -245,13 +284,13 @@ def _reply(returnFormat, httpCode, message):
 
         if returnFormat == "HTML":
             style = template.getGeneralStyle() + template.getSimpleStyle()
-            reply = template.getSimplePage().format(title = httpCode, style = style, body = message)
+            reply = template.getSimplePage().format(title=httpCode, style=style, body=message)
         elif returnFormat == "JSON":
-            reply = ujson.dumps({"code" : httpCode, "message" : message, "dateTime": config.datetime()})
+            reply = ujson.dumps({"code": httpCode, "message": message, "dateTime": config.datetime()})
 
         _connection.write(reply)
     except Exception:
-        print("The connection has been closed.")
+        print("Exception @ ubot_webserver#_reply")
     finally:
         _connection.close()
 
@@ -259,7 +298,7 @@ def _reply(returnFormat, httpCode, message):
 def _sendRaw(path):
     """ If the path links to a dir, sends a linked list, otherwise tries to send the content of the target entity. """
     try:
-        if path[-1] == "/":                                 # Directory (practical, however stat() would be more elegant)
+        if path[-1] == "/":  # Directory (practical, however stat() would be more elegant)
             _connection.write(("        <table>\n"
                                "            <thead>\n"
                                "                <tr><th scope='col'>Filename</th><th scope='col'>File size</th></tr>\n"
@@ -273,11 +312,14 @@ def _sendRaw(path):
                     try:
                         stat = uos.stat("{}{}".format(path, fileName))
 
-                        if stat[0] == 0x04000:              # Directory
-                            _connection.write("<td><a href='{fileName}/'>{fileName}/</a></td><td>-</td>".format(fileName = fileName))
+                        if stat[0] == 0x04000:  # Directory
+                            _connection.write(
+                                "<td><a href='{fileName}/'>{fileName}/</a></td><td>-</td>".format(fileName=fileName))
 
-                        elif stat[0] == 0x08000:            # File
-                            _connection.write("<td><a href='{fileName}'>{fileName}</a></td><td>{fileSize:,} B</td>".format(fileName = fileName, fileSize = stat[6]))
+                        elif stat[0] == 0x08000:  # File
+                            _connection.write(
+                                "<td><a href='{fileName}'>{fileName}</a></td><td>{fileSize:,} B</td>".format(
+                                    fileName=fileName, fileSize=stat[6]))
 
                         else:
                             _connection.write("<td colspan='2'>{}</td>".format(fileName))
@@ -287,7 +329,8 @@ def _sendRaw(path):
                     _connection.write("</tr>\n")
 
                 if len(uos.listdir(path)) == 0:
-                    _connection.write("                <tr><td class='info' colspan='2'>This directory is empty.</td></tr>\n")
+                    _connection.write(
+                        "                <tr><td class='info' colspan='2'>This directory is empty.</td></tr>\n")
 
             except Exception:
                 _connection.write("<td class='info' colspan='2'>[Errno 2] ENOENT : No such directory.</td>")

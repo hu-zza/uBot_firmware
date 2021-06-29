@@ -40,6 +40,7 @@ import ubot_motor  as motor
 
 
 _powerOnCount = config.get("system", "powerOnCount")
+_defaultDir   = "json"
 _fileName     = "{:010d}.txt".format(_powerOnCount)
 _savedCount   = 0
 
@@ -159,13 +160,17 @@ def hasProgramLoaded():
 
 
 def saveLoadedProgram(title = None):
-    saveProgram(_programArray[:_programParts[-1]].decode(), "json", title)
+    saveLoadedProgram(_defaultDir, title)
+
+
+def saveLoadedProgram(directory = None, title = None):
+    saveProgram(_programArray[:_programParts[-1]].decode(), _defaultDir if directory is None else directory, title)
 
 
 def saveProgram(program, directory = None, title = None):
     global _savedCount
 
-    directory = "json" if directory is None else directory
+    directory = _defaultDir if directory is None else directory
     path = _generateFullPath() if title is None else "program/{}/{}.txt".format(directory.lower(), title.lower())
 
     try:

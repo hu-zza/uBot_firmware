@@ -58,7 +58,7 @@ if config.get("webServer", "active"):
 ################################
 ## PUBLIC METHODS
 
-def executeJson(json):
+def executeJson(path, json):
     if json.get("logging"):
         logger.append("Incoming JSON object. Title: {}".format(json.get("title")))
         logger.append(json)
@@ -185,10 +185,26 @@ def executeJson(json):
 
     if len(results) == 0:
         results = ["Processing has completed without any return value."]
-    elif json.get("logging"):
+    if json.get("logging"):
         logger.append(results)
 
     return results
+
+
+def executeJsonGet(path, json):
+    pass
+
+
+def executeJsonPost(path, json):
+    pass
+
+
+def executeJsonPut(path, json):
+    pass
+
+
+def executeJsonDelete(path, json):
+    pass
 
 
 
@@ -277,7 +293,10 @@ if config.get("webRepl", "active"):
 
 if config.get("webServer", "active"):
     try:
-        webserver.setJsonCallback(executeJson)
+        webserver.setJsonCallback("GET", executeJsonGet)
+        webserver.setJsonCallback("POST", executeJsonPost)
+        webserver.setJsonCallback("PUT", executeJsonPut)
+        webserver.setJsonCallback("DELETE", executeJsonDelete)
         webserver.start()
     except Exception as e:
         logger.append(e)
