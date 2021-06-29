@@ -128,8 +128,8 @@ def executeJson(json):
             if program.get("content"):
                 turtle.loadProgram(program.get("content"))
                 results.append("Program loaded successfully.")
-            elif program.get("title") and program.get("folder"):
-                turtle.loadProgramFromEeprom(program.get("title"), program.get("folder"))
+            elif program.get("folder") and program.get("title"):
+                turtle.loadProgramFromEeprom(program.get("folder"), program.get("title"))
                 results.append("Program loaded successfully.")
 
         elif program.get("action") == "SAVE":
@@ -143,11 +143,6 @@ def executeJson(json):
 
         if program.get("play"):
             turtle.press(64)
-
-
-    if json.get("file"):
-        if json.get("action") == "list":
-            pass
 
 
     if json.get("service"):

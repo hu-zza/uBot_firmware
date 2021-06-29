@@ -133,12 +133,25 @@ def listPrograms(directory):
         logger.append(e)
 
 
-def loadProgram(program = None):
-    pass
+def loadProgram(program):
+    global _programArray
+    global _programParts
+
+    try:
+        array = program.encode()
+        clearProgram()
+        _programArray = array
+        _programParts = [len(array)]
+    except Exception as e:
+        logger.append(e)
 
 
-def loadProgramFromEeprom(name, directory):
-    loadProgram()
+def loadProgramFromEeprom(directory, title):
+    try:
+        with open("program/{}/{}.txt".format(directory.lower(), title.lower()), "r") as file:
+            loadProgram(ujson.loads(file.readline()))
+    except Exception as e:
+        logger.append(e)
 
 
 def hasProgramLoaded():
@@ -163,6 +176,14 @@ def saveProgram(program, directory = None, title = None):
         logger.append(e)
         if title is None:
             _savedCount -= 1
+
+
+def clearProgram():
+    global _commandPointer
+    global _programParts
+
+    _commandPointer = 0
+    _programParts = [0]
 
 
 ################################################################
