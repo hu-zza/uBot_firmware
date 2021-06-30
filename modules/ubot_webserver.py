@@ -158,13 +158,14 @@ def _processIncoming(incoming):
                 accept = line[7:].strip().lower()
 
         if method in ("GET", "POST", "PUT", "DELETE"):
-            if "application/json" in contentType or "application/json" in accept:
-                _processJsonQuery(method, path, body)
-            elif "text/html" in contentType or "text/html" in accept:
-                _processHtmlQuery(method, path, body)
-            else:
-                _reply("HTML", "415 Unsupported Media Type", "'Content-Type' / 'Accept' should be 'text/html' or "
-                                                             "'application/json'. More info: https://zza.hu/uBot_API")
+                if "text/html" in contentType or "text/html" in accept:
+                    _processHtmlQuery(method, path, body)
+                elif "application/json" in contentType or "application/json" in accept or "*/*" in accept:
+                    _processJsonQuery(method, path, body)
+                else:
+                    _reply("HTML", "415 Unsupported Media Type",
+                           "'Content-Type' / 'Accept' should be 'text/html' or 'application/json'. "
+                           "More info: https://zza.hu/uBot_API")
         else:
             _reply("HTML", "405 Method Not Allowed",
                    "The following HTTP request methods are allowed: GET, POST, PUT and DELETE. "
@@ -260,7 +261,7 @@ def _processJsonQuery(method, path, body):
         else:
             _jsonFunction = _jsonDeleteFunction
 
-        _startJsonProcessing(path, body)
+        _startJsonProcessing(path, body if method in ("POST", "PUT") else "{}")
     else:
         _reply("HTML", "405 Method Not Allowed",
                "The following HTTP request methods are allowed with application/json content type: "
@@ -270,8 +271,9 @@ def _processJsonQuery(method, path, body):
 def _startJsonProcessing(path, body):
     try:
         arr = path.split("/")
+        arr += [""] * (11 - len(arr))                           # add placeholders to prevent IndexError
         arr = tuple([item.lower() for item in arr][1:])         # arr[0] is always empty string because of leading slash
-        isPresent = tuple([i < len(arr) and arr[i] != "" for i in range(10)])
+        isPresent = tuple([item != "" for item in arr])
 
         result = _jsonFunction(arr, isPresent, ujson.loads(body))
         _reply("JSON", result[0], result[1], result[2])
