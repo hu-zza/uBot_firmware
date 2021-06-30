@@ -191,20 +191,41 @@ def executeJson(path, json):
     return results
 
 
-def executeJsonGet(path, json):
-    pass
+def executeJsonGet(pathArray, isPresent, json):
+    if pathArray[0] == "program":                           # get or execution
+        return "200 OK", "", ""
+    elif pathArray[0] == "system":                          # only get
+        return "200 OK", "", ""
+    elif pathArray[0] == "command" and isPresent[1]:        # only execution
+        return "200 OK", "", ""
+
+    return "403 Forbidden", "", ""
 
 
-def executeJsonPost(path, json):
-    pass
+def executeJsonPost(pathArray, isPresent, json):
+    if pathArray[0] == "program":                           # persistent
+        return "200 OK", "", ""
+    elif pathArray[0] == "command":                         # temporary, only execution
+        return "200 OK", "", ""
+
+    return "403 Forbidden", "", ""
 
 
-def executeJsonPut(path, json):
-    pass
+def executeJsonPut(pathArray, isPresent, json):
+    if pathArray[0] == "program":                           # persistent
+        return "200 OK", "", ""
+    elif pathArray[0] == "system":                          # persistent
+        return "200 OK", "", ""
+
+    return "403 Forbidden", "", ""
 
 
-def executeJsonDelete(path, json):
-    pass
+def executeJsonDelete(pathArray, isPresent, json):
+    if pathArray[0] == "program":                           # final
+        return "200 OK", "", ""
+
+    return "403 Forbidden", "", ""
+
 
 
 

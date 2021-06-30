@@ -159,7 +159,8 @@ def _processIncoming(incoming):
             elif contentType == "application/json":
                 _processJsonQuery(method, path, body)
             else:
-                _reply("HTML", "400 Bad Request", "'Content-Type' should be 'text/html' or 'application/json'.")
+                _reply("HTML", "415 Unsupported Media Type",
+                       "'Content-Type' should be 'text/html' or 'application/json'.")
         else:
             _reply("HTML", "405 Method Not Allowed",
                    "The following HTTP request methods are allowed: GET, POST, PUT and DELETE.")
@@ -174,7 +175,7 @@ def _processHtmlQuery(method, path, body):
         _processHtmlPostQuery(path, body)
     else:
         _reply("HTML", "405 Method Not Allowed",
-               "Only GET and POST HTTP request methods are allowed with text/html content type.")
+               "Only GET and POST HTTP request methods are allowed with text/html content type.", "GET, POST")
 
 
 def _processHtmlGetQuery(path):
@@ -242,7 +243,7 @@ def _processHtmlPostQuery(path, body):
 
 def _processJsonQuery(method, path, body):
     global _jsonFunction
-    
+
     if method in ("GET", "POST", "PUT", "DELETE"):
         if method == "GET":
             _jsonFunction = _jsonGetFunction
@@ -252,8 +253,8 @@ def _processJsonQuery(method, path, body):
             _jsonFunction = _jsonPutFunction
         else:
             _jsonFunction = _jsonDeleteFunction
-       
-        _startJsonProcessing(path, body)            
+
+        _startJsonProcessing(path, body)
     else:
         _reply("HTML", "405 Method Not Allowed",
                "The following HTTP request methods are allowed with application/json content type: GET, POST, PUT and DELETE.")
@@ -261,32 +262,41 @@ def _processJsonQuery(method, path, body):
 
 def _startJsonProcessing(path, body):
     try:
-        _reply("JSON", "200 OK", _jsonFunction(path, ujson.loads(body)))
+        arr = path.split("/")
+        del(arr[0])            # arr[0] is always ""
+        isPresent = [True if i < len(arr) and arr[i] != "" else False for i in range(6)]
+
+        result = _jsonFunction(arr, isPresent, ujson.loads(body))
+        _reply("JSON", result[0], result[1], result[2])
     except Exception as e:
         logger.append(e)
         _reply("JSON", "400 Bad Request", "The request body could not be parsed and processed.")
 
 
-def _reply(returnFormat, httpCode, message):
+def _reply(returnFormat, httpCode, message, data = None, allow = "GET, POST, PUT, DELETE"):
     """ Try to reply with a text/html or application/json
         if the connection is alive, then closes it. """
 
     try:
         _connection.write("HTTP/1.1 " + httpCode + "\r\n")
 
+        reply = "text/plain"
         if returnFormat == "HTML":
             reply = "text/html"
         elif returnFormat == "JSON":
             reply = "application/json"
 
         _connection.write("Content-Type: {0}\r\n".format(reply))
+        _connection.write("Allow: {0}\r\n".format(allow))
         _connection.write("Connection: close\r\n\r\n")
 
         if returnFormat == "HTML":
             style = template.getGeneralStyle() + template.getSimpleStyle()
             reply = template.getSimplePage().format(title=httpCode, style=style, body=message)
         elif returnFormat == "JSON":
-            reply = ujson.dumps({"code": httpCode, "message": message, "dateTime": config.datetime()})
+            reply = ujson.dumps(
+                {"meta": {"dateTime": config.datetime(), "code": httpCode[:3], "status": httpCode, "message": message},
+                 "data": data})
 
         _connection.write(reply)
     except Exception:
