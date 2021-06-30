@@ -127,9 +127,30 @@ def checkButtons(timer = None):
     _addCommand(_getValidatedPressedButton())
 
 
-def listPrograms(directory):
+def getProgramFolders():
     try:
-        return [name[:-4] for name in uos.listdir("program/{}".format(directory.lower()))]
+        programFolders = uos.listdir("/program")
+        return tuple([folder for folder in programFolders if uos.stat("program/{}".format(folder))[0] == 0x04000]) #dirs
+    except Exception as e:
+        logger.append(e)
+
+
+def getProgramList(folder):
+    try:
+        programFiles = uos.listdir("/log/{}".format(folder.lower()))
+        return tuple([fileName[:-4] for fileName in programFiles if fileName[-4:] == ".txt"])
+    except Exception as e:
+        logger.append(e)
+
+
+def isProgramExist(directory, title):
+    return title[:-4] in uos.listdir("program/{}".format(directory.lower()))
+
+
+def getProgramCode(folder, title):
+    try:
+        with open("/program/{}/{}.txt".format(folder.lower(), title.lower()), "r") as file:
+            return tuple([line[:-1] for line in file])
     except Exception as e:
         logger.append(e)
 
@@ -157,10 +178,6 @@ def loadProgramFromEeprom(directory, title):
 
 def hasProgramLoaded():
     return 0 < len(_programArray[:_programParts[-1]].decode())
-
-
-def saveLoadedProgram(title = None):
-    saveLoadedProgram(_defaultDir, title)
 
 
 def saveLoadedProgram(directory = None, title = None):
@@ -272,11 +289,11 @@ def _getPressedButton():
 
     errorCount = 0
 
-    for i in range(len(_pressedList)):
-        count = _pressedList.count(_pressedList[i])
+    for pressed in _pressedList:
+        count = _pressedList.count(pressed)
 
         if _pressLength <= count:
-            return _pressedList[i]
+            return pressed
 
         errorCount += count
         if _maxError < errorCount:

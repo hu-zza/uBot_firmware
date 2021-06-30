@@ -78,73 +78,6 @@ def executeJson(path, json):
 
         results.append("New date and time has been set.")
 
-
-    if json.get("command"):
-        for command in json.get("command"):
-
-            if command[:6] == "PRESS ":
-                pressedList = command[6:].strip().split(":")
-                for pressed in pressedList:
-                    turtle.press(pressed)
-
-            elif command[:5] == "STEP ":
-                for char in command[5:].strip():
-                    turtle.move(char)
-
-            elif command[:5] == "BEEP ":
-                beepArray = command[5:].strip().split(":")
-                size = len(beepArray)
-                buzzer.beep(float(beepArray[0]) if size > 0 else 440.0,
-                            int(beepArray[1]) if size > 1 else 100,
-                            int(beepArray[2]) if size > 2 else 100,
-                            int(beepArray[3]) if size > 3 else 1)
-
-            elif command[:5] == "MIDI ":
-                beepArray = command[5:].strip().split(":")
-                size = len(beepArray)
-                buzzer.midiBeep(int(beepArray[0]) if size > 0 else 69,
-                                int(beepArray[1]) if size > 1 else 100,
-                                int(beepArray[2]) if size > 2 else 100,
-                                int(beepArray[3]) if size > 3 else 1)
-
-            elif command[:5] == "REST ":
-                buzzer.rest(int(command[5:].strip()))
-
-            elif command[:4] == "MOT ":
-                motor.move(int(command[4]), int(command[6:].strip()))
-
-            elif command[:6] == "SLEEP ":
-                sleep_ms(int(command[6:].strip()))
-
-
-    if json.get("program"):
-        program = json.get("program")
-
-        if program.get("action") == "LIST":
-            if program.get("folder"):
-                results.append(turtle.listPrograms(program.get("folder")))
-
-        elif program.get("action") == "LOAD":
-            if program.get("content"):
-                turtle.loadProgram(program.get("content"))
-                results.append("Program loaded successfully.")
-            elif program.get("folder") and program.get("title"):
-                turtle.loadProgramFromEeprom(program.get("folder"), program.get("title"))
-                results.append("Program loaded successfully.")
-
-        elif program.get("action") == "SAVE":
-            if program.get("title") and program.get("content"):
-                turtle.saveProgram(program.get("content"), program.get("folder"), program.get("title"))  # default folder: "json"
-                results.append("Program saved successfully.")                       # Saves the received program to /program/<folder>/<title>.txt
-            else:
-                if turtle.hasProgramLoaded():                                       # Turtle style save: If title is set, it's named
-                    turtle.saveLoadedProgram(program.get("title"))                  # and saved in /program/json/<title>.txt, otherwise acts
-                    results.append("Program saved successfully.")                   # like ADD button: /program/turtle/XXXXXXXXXX_YYY.txt
-
-        if program.get("play"):
-            turtle.press(64)
-
-
     if json.get("service"):
         for command in json.get("service"):
             if command == "START UART":
@@ -171,18 +104,6 @@ def executeJson(path, json):
                 webserver.stop()
                 results.append("WebServer has stopped.")
 
-
-    if json.get("root"):
-        for command in json.get("root"):
-
-            if command[0:5] == "EXEC ":
-                exec(command[5:])
-                results.append("'{}' executed successfully.".format(command[5:]))
-
-            elif command[0:5] == "EVAL ":
-                results.append("'{}' executed successfully, the result is: '{}'".format(command[5:], eval(command[5:])))
-
-
     if len(results) == 0:
         results = ["Processing has completed without any return value."]
     if json.get("logging"):
@@ -191,107 +112,255 @@ def executeJson(path, json):
     return results
 
 
-def executeJsonGet(pathArray, isPresent, json):             ########################################### JSON GET HANDLER
+def executeJsonGet(pathArray, isPresent, ignoredJson):      ########################################### JSON GET HANDLER
     if pathArray[0] == "program":                           # get or execution
         if True not in isPresent[4:]:
             if isPresent[1:4] == (True, True, True):        # action constant is present: info / run / ... (index: 3)
-                return jsonGetProgramAction(pathArray, isPresent, json)
-            else:                                           # no constant, simple listing
-                return jsonGetProgramList(pathArray, isPresent, json)
+                return jsonGetProgramAction(pathArray[1], pathArray[2], pathArray[3])
+            elif isPresent[1:4] == (True, True, False):     # get the code of a specific program
+                return jsonGetProgramCode(pathArray[1], pathArray[2])
+            elif True not in isPresent[2:]:                 # list a directory or the whole 'program' dir
+                return jsonGetProgramList(pathArray[1])
 
     elif pathArray[0] == "system":                          # only get
-        if True not in isPresent[2:]:
-            return jsonGetSystemInfo(pathArray, isPresent, json)
+        if True not in isPresent[3:]:
+            if isPresent[1] and isPresent[2]:
+                return jsonGetSystemAttribute(pathArray[1], pathArray[2])
+            elif not (not isPresent[1] and isPresent[2]):
+                return jsonGetSystemAttributes(pathArray[1])
 
     elif pathArray[0] == "log":                             # only get
         if True not in isPresent[3:]:
             if isPresent[1] and isPresent[2]:
-                return jsonGetLog(pathArray, isPresent, json)
-            else:
-                return jsonGetLogList(pathArray, isPresent, json)
+                return jsonGetLog(pathArray[1], pathArray[2])
+            elif not (not isPresent[1] and isPresent[2]):
+                return jsonGetLogList(pathArray[1])
 
     elif pathArray[0] == "command":                         # only execution
         if isPresent[1] and True not in isPresent[2:]:
-            return jsonGetCommandExe(pathArray, isPresent, json)
+            return jsonGetCommandExecution(isPresent[1])
 
     return "403 Forbidden", "The format of the URI is invalid. More info: https://zza.hu/uBot_API", None
 
 
-def jsonGetProgramAction(pathArray, isPresent, json):
-    return "200 OK", "", ""
+def jsonGetProgramAction(folder, title, action):
+    result = doProgramAction(folder, title, action)
+
+    if result is not None:
+        return "200 OK", "", result
+    else:
+        return "403 Forbidden", "The processing of the request failed. Cause: Semantic error in URI. " \
+                                           "More info: https://zza.hu/uBot_API", None
 
 
-def jsonGetProgramList(pathArray, isPresent, json):
-    result = getProgramListAsJson(pathArray[1] if isPresent[1] else None, pathArray[2] if isPresent[2] else None)
-    return "200 OK", "", result
+def jsonGetProgramCode(folder, title):
+    result = turtle.getProgramCode(folder, title)
+
+    if result is not None:
+        return "200 OK", "", result
+    else:
+        return "404 Not Found", "The processing of the request failed. Cause: No such program. " \
+                                           "More info: https://zza.hu/uBot_API", None
 
 
-def jsonGetSystemInfo(pathArray, isPresent, json):
-    return "200 OK", "", getSystemInfoAsJson(pathArray[1] if isPresent[1] else None)
+def jsonGetProgramList(folder):
+    result = getProgramCatalog() if folder is None or folder == "" else turtle.getProgramList(folder)
+
+    if result is not None and result != {}:                # Empty tuple is OK -> empty dir, but empty dictionary is not
+        return "200 OK", "", result
+    else:
+        return "404 Not Found", "The processing of the request failed. Cause: No such program folder. " \
+                                           "More info: https://zza.hu/uBot_API", None
 
 
-def jsonGetLog(pathArray, isPresent, json):
-    return "200 OK", "", getLogAsJson(pathArray[1], pathArray[2])
+def doProgramAction(folder, title, action):
+    try:
+        if action == "run":
+            turtle.loadProgramFromEeprom(folder, title)
+            turtle.press(64)
+            return "The program has started."
+    except Exception as e:
+        logger.append(e)
 
 
-def jsonGetLogList(pathArray, isPresent, json):
-    return "200 OK", "", getLogListAsJson(pathArray[1] if isPresent[1] else None)
+def getProgramCatalog():
+    programFolders = turtle.getProgramFolders()
+    return {folder: turtle.getProgramList(folder) for folder in programFolders}
 
 
-def jsonGetCommandExe(pathArray, isPresent, json):
-    return "200 OK", "", ""
+def jsonGetSystemAttribute(module, attribute):
+    result = config.get(module, attribute)
+
+    if result is not None:
+        return "200 OK", "", result
+    else:
+        return "404 Not Found", "The processing of the request failed. Cause: No such system attribute. " \
+                                           "More info: https://zza.hu/uBot_API", None
 
 
-def getProgramListAsJson(directory, filename):
-    return ""
+def jsonGetSystemAttributes(module):
+    result = getSystemInfo() if module is None or module == "" else getModuleInfo(module)
+
+    if result is not None and result != {}:
+        return "200 OK", "", result
+    else:
+        return "404 Not Found", "The processing of the request failed. Cause: No such system module. " \
+                                           "More info: https://zza.hu/uBot_API", None
 
 
-def getSystemInfoAsJson(propertyName):
-    return ""
+def getSystemInfo():
+    modules = config.getModules()
+    return {module: getModuleInfo(module) for module in modules}
 
 
-def getLogListAsJson(directory):
-    return ""
+def getModuleInfo(module):
+    attributes = config.getModuleAttributes(module)
+    return {attr: config.get(module, attr) for attr in attributes}
 
 
-def getLogAsJson(directory, filename):
-    return ""
+def jsonGetLog(category, title):
+    result = logger.getLog(category, title)
+
+    if result is not None and result != ():                           # There should be an initialisation entry at least
+        return "200 OK", "", result
+    else:
+        return "404 Not Found", "The processing of the request failed. Cause: No such log file. " \
+                                           "More info: https://zza.hu/uBot_API", None
+
+
+def jsonGetLogList(category):
+    result = getLogCatalog() if category is None or category == "" else getLogList(category)
+
+    if result is not None and result != {}:                # Empty tuple is OK -> empty dir, but empty dictionary is not
+        return "200 OK", "", result
+    else:
+        return "404 Not Found", "The processing of the request failed. Cause: No such log category. " \
+                                           "More info: https://zza.hu/uBot_API", None
+
+
+def getLogCatalog():
+    categories = logger.getLogCategories()
+    return {category: getLogList(category) for category in categories}
+
+
+def getLogList(category):
+    return logger.getCategoryLogs(category)
+
+
+def jsonGetCommandExecution(command):
+    if executeCommand(command):
+        return "200 OK", "", "Processed commands: 1"
+    else:
+        return "403 Forbidden", "The processing of the request failed. Cause: Semantic error in URI. " \
+                                           "More info: https://zza.hu/uBot_API", "Processed commands: 0"
 
 
 def executeJsonPost(pathArray, isPresent, json):            ########################################## JSON POST HANDLER
     if pathArray[0] == "program":                           # persistent
         if isPresent[1] and isPresent[2] and True not in isPresent[3:]:
-            return jsonPostProgram(pathArray, isPresent, json)
+            return jsonPostProgram(pathArray[1], pathArray[2], json)
     elif pathArray[0] == "command":                         # temporary, only execution
         if True not in isPresent[1:]:
-            return jsonPostCommand(pathArray, isPresent, json)
+            return jsonPostCommand(json)
     elif pathArray[0] == "root":                            # ONLY DURING DEVELOPMENT
         if True not in isPresent[1:]:
-            return jsonPostRoot(pathArray, isPresent, json)
+            return jsonPostRoot(json)
     return "403 Forbidden", "The format of the URI is invalid. More info: https://zza.hu/uBot_API", None
 
 
-def jsonPostProgram(pathArray, isPresent, json):
-    return "200 OK", "", postProgram()
+def jsonPostProgram(folder, title, json):
+    program = json.get("data")
+    if program is None or program == "":
+        turtle.saveLoadedProgram(folder, title)
+    else:
+        turtle.saveProgram(program, folder, title)
+
+    if turtle.isProgramExist(folder, title):
+        return "201 Created", "", "http://{}/program/{}/{}".format(AP.ifconfig()[0], folder, title)
+    else:
+        return "422 Unprocessable Entity", "The processing of the request failed. Cause: Semantic error in JSON. " \
+                                           "More info: https://zza.hu/uBot_API", None
 
 
-def jsonPostCommand(pathArray, isPresent, json):
-    return "200 OK", "", ""
+def jsonPostCommand(json):
+    counter = 0
+    try:
+        for command in json.get("data"):
+            if executeCommand(command):
+                counter += 1
+    except Exception as e:
+        logger.append(e)
+
+    if counter == len(json.get("data")):
+        return "200 OK", "", "Processed commands: {}".format(counter)
+    else:
+        return "422 Unprocessable Entity", "The processing of the request failed. Cause: Semantic error in JSON. " \
+                                           "More info: https://zza.hu/uBot_API", "Processed commands: {}".format(counter)
 
 
-def jsonPostRoot(pathArray, isPresent, json):
-    return "200 OK", "", ""
+def jsonPostRoot(json):
+    results = []
+    try:
+        for command in json.get("data"):
+            if command[0] == "EXEC":
+                results.append("[EXEC] '{}' : void".format(exec(command[1])))
+            elif command[0] == "EVAL":
+                results.append("[EVAL] '{}' : '{}'".format(command[1], eval(command[1])))
+    except Exception as e:
+        logger.append(e)
+
+    if len(results) == len(json.get("data")):
+        return "200 OK", "", results
+    else:
+        return "422 Unprocessable Entity", "The processing of the request failed. Cause: Semantic error in JSON. " \
+                                           "More info: https://zza.hu/uBot_API", results
 
 
-def postProgram(directory, fileName, program):
-    return ""
+def executeCommand(command):
+    if command[:6] == "press_":
+        pressedList = command[6:].strip().split(":")
+        for pressed in pressedList:
+            turtle.press(pressed)
+
+    elif command[:5] == "step_":
+        for char in command[5:].strip():
+            turtle.move(char)
+
+    elif command[:5] == "beep_":
+        beepArray = command[5:].strip().split(":")
+        size = len(beepArray)
+        buzzer.beep(float(beepArray[0]) if size > 0 else 440.0,
+                    int(beepArray[1]) if size > 1 else 100,
+                    int(beepArray[2]) if size > 2 else 100,
+                    int(beepArray[3]) if size > 3 else 1)
+
+    elif command[:5] == "midi_":
+        beepArray = command[5:].strip().split(":")
+        size = len(beepArray)
+        buzzer.midiBeep(int(beepArray[0]) if size > 0 else 69,
+                        int(beepArray[1]) if size > 1 else 100,
+                        int(beepArray[2]) if size > 2 else 100,
+                        int(beepArray[3]) if size > 3 else 1)
+
+    elif command[:5] == "rest_":
+        buzzer.rest(int(command[5:].strip()))
+
+    elif command[:4] == "mot_":
+        motor.move(int(command[4]), int(command[6:].strip()))
+
+    elif command[:6] == "sleep_":
+        sleep_ms(int(command[6:].strip()))
+
+    return True
 
 
 def executeJsonPut(pathArray, isPresent, json):             ########################################### JSON PUT HANDLER
     if pathArray[0] == "program":                           # persistent
-        return jsonPutProgram(pathArray, isPresent, json)
+        if isPresent[1] and isPresent[2] and True not in isPresent[3:]:
+            return jsonPutProgram(pathArray, isPresent, json)
     elif pathArray[0] == "system":                          # persistent
-        return jsonPutSystemProp(pathArray, isPresent, json)
+        if isPresent[1] and True not in isPresent[2:]:
+            return jsonPutSystemProperty(pathArray, isPresent, json)
     return "403 Forbidden", "The format of the URI is invalid. More info: https://zza.hu/uBot_API", None
 
 
@@ -299,7 +368,7 @@ def jsonPutProgram(pathArray, isPresent, json):
     return "200 OK", "", putProgram()
 
 
-def jsonPutSystemProp(pathArray, isPresent, json):
+def jsonPutSystemProperty(pathArray, isPresent, json):
     return "200 OK", "", putSystemProp()
 
 
@@ -311,20 +380,52 @@ def putSystemProp(property, value):
     return ""
 
 
-def executeJsonDelete(pathArray, isPresent, json):          ######################################## JSON DELETE HANDLER
+def executeJsonDelete(pathArray, isPresent, ignoredJson):   ######################################## JSON DELETE HANDLER
     if pathArray[0] == "program":                           # final
-        return jsonDeleteProgram(pathArray, isPresent, json)
+        if True not in isPresent[3:]:
+            if isPresent[1:3] == (False, False):
+                return jsonDeleteEveryProgram()
+            elif isPresent[1]:
+                return jsonClearProgramFolder(pathArray[1])
+            elif isPresent[1] and isPresent[2]:
+                return jsonDeleteProgram(pathArray, isPresent)
     elif pathArray[0] == "log":                             # final
-        return jsonDeleteLog(pathArray, isPresent, json)
+        if True not in isPresent[3:]:
+            if isPresent[1:3] == (False, False):
+                return jsonDeleteEveryLog()
+            elif isPresent[1]:
+                return jsonClearLogFolder(pathArray[1])
+            elif isPresent[1] and isPresent[2]:
+                return jsonDeleteLog(pathArray, isPresent)
     return "403 Forbidden", "The format of the URI is invalid. More info: https://zza.hu/uBot_API", None
 
 
-def jsonDeleteProgram(pathArray, isPresent, json):
+def jsonDeleteEveryProgram():
     return "200 OK", "", deleteProgram()
 
 
-def jsonDeleteLog(pathArray, isPresent, json):
+def jsonClearProgramFolder(subDir):
+    return "200 OK", "", deleteProgram()
+
+
+def jsonDeleteProgram(pathArray, isPresent):
+    return "200 OK", "", deleteProgram()
+
+
+def jsonDeleteEveryLog():
     return "200 OK", "", deleteLog()
+
+
+def jsonClearLogFolder(pathArray, isPresent):
+    return "200 OK", "", deleteLog()
+
+
+def jsonDeleteLog(pathArray, isPresent):
+    return "200 OK", "", deleteLog()
+
+
+def clearFolder(path):
+    return ""
 
 
 def deleteProgram(directory, fileName):

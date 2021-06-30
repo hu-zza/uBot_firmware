@@ -38,6 +38,24 @@ from machine import RTC
 ################################
 ## PUBLIC METHODS
 
+def getModules():
+    """ Returns a tuple consists all available modules, or an empty tuple. """
+    try:
+        moduleFolders = uos.listdir("/etc")
+        return tuple([module for module in moduleFolders if uos.stat("etc/{}".format(module))[0] == 0x04000])    # only dirs
+    except Exception as e:
+        logger.append(e)
+
+
+def getModuleAttributes(module):
+    """ Returns a tuple consists all available attributes, or an empty tuple. """
+    try:
+        moduleFiles = uos.listdir("/etc/{}".format(module.lower()))
+        return tuple([fileName[:-4] for fileName in moduleFiles if fileName[-4:] == ".txt"])
+    except Exception as e:
+        logger.append(e)
+
+
 def get(module, attribute):
     """ Returns the value of the attribute, or None. Firstly reads it from file, then deserializes it. """
     return _manageAttribute(module, attribute, "r")
@@ -87,9 +105,9 @@ def saveDateTime():
 ################################
 ## PRIVATE, HELPER METHODS
 
-def _manageAttribute(dir, file, mode, value = None, extension = "txt"):
+def _manageAttribute(dir, name, mode, value = None, extension = "txt"):
     try:
-        with open("etc/{}/{}.{}".format(dir, file, extension), mode) as file:
+        with open("etc/{}/{}.{}".format(dir, name, extension), mode.lower()) as file:
             if mode == "r":
                 return ujson.loads(file.readline())
             elif mode == "w":
@@ -100,8 +118,7 @@ def _manageAttribute(dir, file, mode, value = None, extension = "txt"):
 
 def _manageRelated(module, attribute, value):
     try:
-        if module == "webRepl":
-            if attribute == "active":
+        if module == "webRepl" and attribute == "active":
                 if value and ".webrepl_cfg.py" in uos.listdir():
                     uos.rename(".webrepl_cfg.py", "webrepl_cfg.py")
                 elif not value and "webrepl_cfg.py" in uos.listdir():

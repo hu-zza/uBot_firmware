@@ -61,6 +61,30 @@ def append(item):
         _appendToList(item)
 
 
+def getLogCategories():
+    try:
+        logFolders = uos.listdir("/log")
+        return tuple([category for category in logFolders if uos.stat("log/{}".format(category))[0] == 0x04000]) # only dirs
+    except Exception as e:
+        append(e)
+
+
+def getCategoryLogs(category):
+    try:
+        logFiles = uos.listdir("/log/{}".format(category.lower()))
+        return tuple([fileName[:-4] for fileName in logFiles if fileName[-4:] == ".txt"])
+    except Exception as e:
+        append(e)
+
+
+def getLog(category, title):
+    try:
+        with open("/log/{}/{}.txt".format(category.lower(), title.lower()), "r") as file:
+            return tuple([line[:-1] for line in file])
+    except Exception as e:
+        append(e)
+
+
 
 ################################
 ## PRIVATE, HELPER METHODS
