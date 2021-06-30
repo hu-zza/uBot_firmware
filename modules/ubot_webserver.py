@@ -160,10 +160,11 @@ def _processIncoming(incoming):
                 _processJsonQuery(method, path, body)
             else:
                 _reply("HTML", "415 Unsupported Media Type",
-                       "'Content-Type' should be 'text/html' or 'application/json'.")
+                       "'Content-Type' should be 'text/html' or 'application/json'. More info: https://zza.hu/uBot_API")
         else:
             _reply("HTML", "405 Method Not Allowed",
-                   "The following HTTP request methods are allowed: GET, POST, PUT and DELETE.")
+                   "The following HTTP request methods are allowed: GET, POST, PUT and DELETE. "
+                   "More info: https://zza.hu/uBot_API")
     finally:
         _connection.close()
 
@@ -175,7 +176,8 @@ def _processHtmlQuery(method, path, body):
         _processHtmlPostQuery(path, body)
     else:
         _reply("HTML", "405 Method Not Allowed",
-               "Only GET and POST HTTP request methods are allowed with text/html content type.", "GET, POST")
+               "Only GET and POST HTTP request methods are allowed with text/html content type. "
+               "More info: https://zza.hu/uBot_API", "GET, POST")
 
 
 def _processHtmlGetQuery(path):
@@ -238,7 +240,7 @@ def _processHtmlGetQuery(path):
 
 
 def _processHtmlPostQuery(path, body):
-    _reply("HTML", "501 Not Implemented", "This service is not implemented yet.")
+    _reply("HTML", "501 Not Implemented", "This service is not implemented yet. More info: https://zza.hu/uBot_API")
 
 
 def _processJsonQuery(method, path, body):
@@ -257,20 +259,22 @@ def _processJsonQuery(method, path, body):
         _startJsonProcessing(path, body)
     else:
         _reply("HTML", "405 Method Not Allowed",
-               "The following HTTP request methods are allowed with application/json content type: GET, POST, PUT and DELETE.")
+               "The following HTTP request methods are allowed with application/json content type: "
+               "GET, POST, PUT and DELETE. More info: https://zza.hu/uBot_API")
 
 
 def _startJsonProcessing(path, body):
     try:
         arr = path.split("/")
-        del(arr[0])            # arr[0] is always ""
-        isPresent = [True if i < len(arr) and arr[i] != "" else False for i in range(6)]
+        arr = tuple(arr[1:])                                                                       # arr[0] is always ""
+        isPresent = tuple([True if i < len(arr) and arr[i] != "" else False for i in range(10)])
 
         result = _jsonFunction(arr, isPresent, ujson.loads(body))
         _reply("JSON", result[0], result[1], result[2])
     except Exception as e:
         logger.append(e)
-        _reply("JSON", "400 Bad Request", "The request body could not be parsed and processed.")
+        _reply("JSON", "400 Bad Request", "The request body could not be parsed and processed. "
+                                          "More info: https://zza.hu/uBot_API")
 
 
 def _reply(returnFormat, httpCode, message, data = None, allow = "GET, POST, PUT, DELETE"):

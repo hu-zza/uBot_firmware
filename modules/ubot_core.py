@@ -191,41 +191,148 @@ def executeJson(path, json):
     return results
 
 
-def executeJsonGet(pathArray, isPresent, json):
+def executeJsonGet(pathArray, isPresent, json):             ########################################### JSON GET HANDLER
     if pathArray[0] == "program":                           # get or execution
-        return "200 OK", "", ""
+        if True not in isPresent[4:]:
+            if isPresent[1:4] == (True, True, True):        # action constant is present: info / run / ... (index: 3)
+                return jsonGetProgramAction(pathArray, isPresent, json)
+            else:                                           # no constant, simple listing
+                return jsonGetProgramList(pathArray, isPresent, json)
+
     elif pathArray[0] == "system":                          # only get
-        return "200 OK", "", ""
-    elif pathArray[0] == "command" and isPresent[1]:        # only execution
-        return "200 OK", "", ""
+        if True not in isPresent[2:]:
+            return jsonGetSystemInfo(pathArray, isPresent, json)
 
-    return "403 Forbidden", "", ""
+    elif pathArray[0] == "log":                             # only get
+        if True not in isPresent[3:]:
+            if isPresent[1] and isPresent[2]:
+                return jsonGetLog(pathArray, isPresent, json)
+            else:
+                return jsonGetLogList(pathArray, isPresent, json)
+
+    elif pathArray[0] == "command":                         # only execution
+        if isPresent[1] and True not in isPresent[2:]:
+            return jsonGetCommandExe(pathArray, isPresent, json)
+
+    return "403 Forbidden", "The format of the URI is invalid. More info: https://zza.hu/uBot_API", None
 
 
-def executeJsonPost(pathArray, isPresent, json):
+def jsonGetProgramAction(pathArray, isPresent, json):
+    return "200 OK", "", ""
+
+
+def jsonGetProgramList(pathArray, isPresent, json):
+    result = getProgramListAsJson(pathArray[1] if isPresent[1] else None, pathArray[2] if isPresent[2] else None)
+    return "200 OK", "", result
+
+
+def jsonGetSystemInfo(pathArray, isPresent, json):
+    return "200 OK", "", getSystemInfoAsJson(pathArray[1] if isPresent[1] else None)
+
+
+def jsonGetLog(pathArray, isPresent, json):
+    return "200 OK", "", getLogAsJson(pathArray[1], pathArray[2])
+
+
+def jsonGetLogList(pathArray, isPresent, json):
+    return "200 OK", "", getLogListAsJson(pathArray[1] if isPresent[1] else None)
+
+
+def jsonGetCommandExe(pathArray, isPresent, json):
+    return "200 OK", "", ""
+
+
+def getProgramListAsJson(directory, filename):
+    return ""
+
+
+def getSystemInfoAsJson(propertyName):
+    return ""
+
+
+def getLogListAsJson(directory):
+    return ""
+
+
+def getLogAsJson(directory, filename):
+    return ""
+
+
+def executeJsonPost(pathArray, isPresent, json):            ########################################## JSON POST HANDLER
     if pathArray[0] == "program":                           # persistent
-        return "200 OK", "", ""
+        if isPresent[1] and isPresent[2] and True not in isPresent[3:]:
+            return jsonPostProgram(pathArray, isPresent, json)
     elif pathArray[0] == "command":                         # temporary, only execution
-        return "200 OK", "", ""
+        if True not in isPresent[1:]:
+            return jsonPostCommand(pathArray, isPresent, json)
+    elif pathArray[0] == "root":                            # ONLY DURING DEVELOPMENT
+        if True not in isPresent[1:]:
+            return jsonPostRoot(pathArray, isPresent, json)
+    return "403 Forbidden", "The format of the URI is invalid. More info: https://zza.hu/uBot_API", None
 
-    return "403 Forbidden", "", ""
+
+def jsonPostProgram(pathArray, isPresent, json):
+    return "200 OK", "", postProgram()
 
 
-def executeJsonPut(pathArray, isPresent, json):
+def jsonPostCommand(pathArray, isPresent, json):
+    return "200 OK", "", ""
+
+
+def jsonPostRoot(pathArray, isPresent, json):
+    return "200 OK", "", ""
+
+
+def postProgram(directory, fileName, program):
+    return ""
+
+
+def executeJsonPut(pathArray, isPresent, json):             ########################################### JSON PUT HANDLER
     if pathArray[0] == "program":                           # persistent
-        return "200 OK", "", ""
+        return jsonPutProgram(pathArray, isPresent, json)
     elif pathArray[0] == "system":                          # persistent
-        return "200 OK", "", ""
+        return jsonPutSystemProp(pathArray, isPresent, json)
+    return "403 Forbidden", "The format of the URI is invalid. More info: https://zza.hu/uBot_API", None
 
-    return "403 Forbidden", "", ""
+
+def jsonPutProgram(pathArray, isPresent, json):
+    return "200 OK", "", putProgram()
 
 
-def executeJsonDelete(pathArray, isPresent, json):
+def jsonPutSystemProp(pathArray, isPresent, json):
+    return "200 OK", "", putSystemProp()
+
+
+def putProgram(directory, fileName, program):
+    return ""
+
+
+def putSystemProp(property, value):
+    return ""
+
+
+def executeJsonDelete(pathArray, isPresent, json):          ######################################## JSON DELETE HANDLER
     if pathArray[0] == "program":                           # final
-        return "200 OK", "", ""
+        return jsonDeleteProgram(pathArray, isPresent, json)
+    elif pathArray[0] == "log":                             # final
+        return jsonDeleteLog(pathArray, isPresent, json)
+    return "403 Forbidden", "The format of the URI is invalid. More info: https://zza.hu/uBot_API", None
 
-    return "403 Forbidden", "", ""
 
+def jsonDeleteProgram(pathArray, isPresent, json):
+    return "200 OK", "", deleteProgram()
+
+
+def jsonDeleteLog(pathArray, isPresent, json):
+    return "200 OK", "", deleteLog()
+
+
+def deleteProgram(directory, fileName):
+    return ""
+
+
+def deleteLog(directory, fileName):
+    return ""
 
 
 
