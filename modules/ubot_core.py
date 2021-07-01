@@ -68,6 +68,10 @@ def executeCommand(command):
         for char in command[5:].strip():
             turtle.move(char)
 
+    elif command[:5] == "DRIVE_":
+        for char in command[5:].strip():
+            turtle.move(char, True)
+
     elif command[:5] == "BEEP_":
         beepArray = command[5:].strip().split(":")
         size = len(beepArray)
@@ -99,8 +103,7 @@ def executeCommand(command):
 def doProgramAction(folder, title, action):
     try:
         if action == "run":
-            turtle.loadProgramFromEeprom(folder, title)
-            turtle.press(64)
+            turtle.runProgram(folder, title)
             return "The program has started."
     except Exception as e:
         logger.append(e)

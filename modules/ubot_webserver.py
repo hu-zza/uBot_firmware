@@ -86,22 +86,18 @@ def setJsonCallback(method, jsonFunction):
 
 def start():
     global _started
-    global _processing
 
     if not _started and config.get("webServer", "active"):
         _timer.init(period=_period, mode=Timer.PERIODIC, callback=_poll)
         _started = True
-        _processing = True
 
 
 def stop():
     global _started
-    global _processing
 
     if _started:
         _timer.deinit()
         _started = False
-        _processing = False
 
 
 ################################
@@ -211,7 +207,7 @@ def _processHtmlGetQuery(path):
                 _connection.write("        <br><br><hr><hr>\n")
                 _connection.write("        <h3>Information panels</h3>\n")
 
-                for panelTitle in template.debugPanels.keys():
+                for panelTitle in sorted(template.debugPanels.keys()):
                     _connection.write(
                         "            <a href='http://{0}{1}' target='_blank'>{2}</a><br>\n".format(
                             _ap.ifconfig()[0], template.debugPanels.get(panelTitle), panelTitle))
