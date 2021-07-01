@@ -58,6 +58,58 @@ if config.get("webServer", "active"):
 ################################
 ## PUBLIC METHODS
 
+def executeCommand(command):
+    if command[:6] == "PRESS_":
+        pressedList = command[6:].strip().split(":")
+        for pressed in pressedList:
+            turtle.press(pressed)
+
+    elif command[:5] == "STEP_":
+        for char in command[5:].strip():
+            turtle.move(char)
+
+    elif command[:5] == "BEEP_":
+        beepArray = command[5:].strip().split(":")
+        size = len(beepArray)
+        buzzer.beep(float(beepArray[0]) if size > 0 else 440.0,
+                    int(beepArray[1]) if size > 1 else 100,
+                    int(beepArray[2]) if size > 2 else 100,
+                    int(beepArray[3]) if size > 3 else 1)
+
+    elif command[:5] == "MIDI_":
+        beepArray = command[5:].strip().split(":")
+        size = len(beepArray)
+        buzzer.midiBeep(int(beepArray[0]) if size > 0 else 69,
+                        int(beepArray[1]) if size > 1 else 100,
+                        int(beepArray[2]) if size > 2 else 100,
+                        int(beepArray[3]) if size > 3 else 1)
+
+    elif command[:5] == "REST_":
+        buzzer.rest(int(command[5:].strip()))
+
+    elif command[:4] == "MOT_":
+        motor.move(int(command[4]), int(command[6:].strip()))
+
+    elif command[:6] == "SLEEP_":
+        sleep_ms(int(command[6:].strip()))
+
+    return True
+
+
+def doProgramAction(folder, title, action):
+    try:
+        if action == "run":
+            turtle.loadProgramFromEeprom(folder, title)
+            turtle.press(64)
+            return "The program has started."
+    except Exception as e:
+        logger.append(e)
+        return ""
+
+
+################################
+## PRIVATE METHODS FOR REST/JSON
+
 def executeJson(path, json):
     if json.get("logging"):
         logger.append("Incoming JSON object. Title: {}".format(json.get("title")))
@@ -112,38 +164,38 @@ def executeJson(path, json):
     return results
 
 
-def executeJsonGet(pathArray, isPresent, ignoredJson):      ########################################### JSON GET HANDLER
+def _executeJsonGet(pathArray, isPresent, ignoredJson):      ########################################### JSON GET HANDLER
     if pathArray[0] == "program":                           # get or execution
         if True not in isPresent[4:]:
             if isPresent[1:4] == (True, True, True):        # action constant is present: info / run / ... (index: 3)
-                return jsonGetProgramAction(pathArray[1], pathArray[2], pathArray[3])
+                return _jsonGetProgramAction(pathArray[1], pathArray[2], pathArray[3])
             elif isPresent[1:4] == (True, True, False):     # get the code of a specific program
-                return jsonGetProgramCode(pathArray[1], pathArray[2])
+                return _jsonGetProgramCode(pathArray[1], pathArray[2])
             elif True not in isPresent[2:]:                 # list a directory or the whole 'program' dir
-                return jsonGetProgramList(pathArray[1])
+                return _jsonGetProgramList(pathArray[1])
 
     elif pathArray[0] == "system":                          # only get
         if True not in isPresent[3:]:
             if isPresent[1] and isPresent[2]:
-                return jsonGetSystemAttribute(pathArray[1], pathArray[2])
+                return _jsonGetSystemAttribute(pathArray[1], pathArray[2])
             elif not (not isPresent[1] and isPresent[2]):
-                return jsonGetSystemAttributes(pathArray[1])
+                return _jsonGetSystemAttributes(pathArray[1])
 
     elif pathArray[0] == "log":                             # only get
         if True not in isPresent[3:]:
             if isPresent[1] and isPresent[2]:
-                return jsonGetLog(pathArray[1], pathArray[2])
+                return _jsonGetLog(pathArray[1], pathArray[2])
             elif not (not isPresent[1] and isPresent[2]):
-                return jsonGetLogList(pathArray[1])
+                return _jsonGetLogList(pathArray[1])
 
     elif pathArray[0] == "command":                         # only execution
         if isPresent[1] and True not in isPresent[2:]:
-            return jsonGetCommandExecution(pathArray[1])
+            return _jsonGetCommandExecution(pathArray[1])
 
     return "403 Forbidden", "The format of the URI is invalid. More info: https://zza.hu/uBot_API", None
 
 
-def jsonGetProgramAction(folder, title, action):
+def _jsonGetProgramAction(folder, title, action):
     result = doProgramAction(folder, title, action)
 
     if result is not None and result != "":
@@ -153,7 +205,7 @@ def jsonGetProgramAction(folder, title, action):
                                            "More info: https://zza.hu/uBot_API", None
 
 
-def jsonGetProgramCode(folder, title):
+def _jsonGetProgramCode(folder, title):
     result = turtle.getProgramCode(folder, title)
 
     if result is not None and result != ():
@@ -163,8 +215,8 @@ def jsonGetProgramCode(folder, title):
                                            "More info: https://zza.hu/uBot_API", None
 
 
-def jsonGetProgramList(folder):
-    result = getProgramCatalog() if folder is None or folder == "" else turtle.getProgramList(folder)
+def _jsonGetProgramList(folder):
+    result = _getProgramCatalog() if folder is None or folder == "" else turtle.getProgramList(folder)
 
     if result is not None and result != {}:                # Empty tuple is OK -> empty dir, but empty dictionary is not
         return "200 OK", "", result
@@ -173,23 +225,12 @@ def jsonGetProgramList(folder):
                                            "More info: https://zza.hu/uBot_API", None
 
 
-def doProgramAction(folder, title, action):
-    try:
-        if action == "run":
-            turtle.loadProgramFromEeprom(folder, title)
-            turtle.press(64)
-            return "The program has started."
-    except Exception as e:
-        logger.append(e)
-        return ""
-
-
-def getProgramCatalog():
+def _getProgramCatalog():
     programFolders = turtle.getProgramFolders()
     return {folder: turtle.getProgramList(folder) for folder in programFolders}
 
 
-def jsonGetSystemAttribute(module, attribute):
+def _jsonGetSystemAttribute(module, attribute):
     result = config.get(module, attribute)
 
     if result is not None:
@@ -199,8 +240,8 @@ def jsonGetSystemAttribute(module, attribute):
                                            "More info: https://zza.hu/uBot_API", None
 
 
-def jsonGetSystemAttributes(module):
-    result = getSystemInfo() if module is None or module == "" else getModuleInfo(module)
+def _jsonGetSystemAttributes(module):
+    result = _getSystemInfo() if module is None or module == "" else _getModuleInfo(module)
 
     if result is not None and result != {}:
         return "200 OK", "", result
@@ -209,17 +250,17 @@ def jsonGetSystemAttributes(module):
                                            "More info: https://zza.hu/uBot_API", None
 
 
-def getSystemInfo():
+def _getSystemInfo():
     modules = config.getModules()
-    return {module: getModuleInfo(module) for module in modules}
+    return {module: _getModuleInfo(module) for module in modules}
 
 
-def getModuleInfo(module):
+def _getModuleInfo(module):
     attributes = config.getModuleAttributes(module)
     return {attr: config.get(module, attr) for attr in attributes}
 
 
-def jsonGetLog(category, title):
+def _jsonGetLog(category, title):
     result = logger.getLog(category, title)
 
     if result is not None and result != ():                           # There should be an initialisation entry at least
@@ -229,8 +270,8 @@ def jsonGetLog(category, title):
                                            "More info: https://zza.hu/uBot_API", None
 
 
-def jsonGetLogList(category):
-    result = getLogCatalog() if category is None or category == "" else getLogList(category)
+def _jsonGetLogList(category):
+    result = _getLogCatalog() if category is None or category == "" else _getLogList(category)
 
     if result is not None and result != {}:                # Empty tuple is OK -> empty dir, but empty dictionary is not
         return "200 OK", "", result
@@ -239,16 +280,16 @@ def jsonGetLogList(category):
                                            "More info: https://zza.hu/uBot_API", None
 
 
-def getLogCatalog():
+def _getLogCatalog():
     categories = logger.getLogCategories()
-    return {category: getLogList(category) for category in categories}
+    return {category: _getLogList(category) for category in categories}
 
 
-def getLogList(category):
+def _getLogList(category):
     return logger.getCategoryLogs(category)
 
 
-def jsonGetCommandExecution(command):
+def _jsonGetCommandExecution(command):
     if executeCommand(command.upper()):
         return "200 OK", "", "Processed commands: 1"
     else:
@@ -256,20 +297,20 @@ def jsonGetCommandExecution(command):
                                            "More info: https://zza.hu/uBot_API", "Processed commands: 0"
 
 
-def executeJsonPost(pathArray, isPresent, json):            ########################################## JSON POST HANDLER
+def _executeJsonPost(pathArray, isPresent, json):            ########################################## JSON POST HANDLER
     if pathArray[0] == "program":                           # persistent
         if isPresent[1] and isPresent[2] and True not in isPresent[3:]:
-            return jsonPostProgram(pathArray[1], pathArray[2], json)
+            return _jsonPostProgram(pathArray[1], pathArray[2], json)
     elif pathArray[0] == "command":                         # temporary, only execution
         if True not in isPresent[1:]:
-            return jsonPostCommand(json)
+            return _jsonPostCommand(json)
     elif pathArray[0] == "root":                            # ONLY DURING DEVELOPMENT
         if True not in isPresent[1:]:
-            return jsonPostRoot(json)
+            return _jsonPostRoot(json)
     return "403 Forbidden", "The format of the URI is invalid. More info: https://zza.hu/uBot_API", None
 
 
-def jsonPostProgram(folder, title, json):
+def _jsonPostProgram(folder, title, json):
     program = json.get("data")
     if program is None or program == "":
         turtle.saveLoadedProgram(folder, title)
@@ -283,7 +324,7 @@ def jsonPostProgram(folder, title, json):
                                            "More info: https://zza.hu/uBot_API", None
 
 
-def jsonPostCommand(json):
+def _jsonPostCommand(json):
     counter = 0
     try:
         for command in json.get("data"):
@@ -299,7 +340,7 @@ def jsonPostCommand(json):
                                            "More info: https://zza.hu/uBot_API", "Processed commands: {}".format(counter)
 
 
-def jsonPostRoot(json):
+def _jsonPostRoot(json):
     results = []
     try:
         for command in json.get("data"):
@@ -317,123 +358,85 @@ def jsonPostRoot(json):
                                            "More info: https://zza.hu/uBot_API", results
 
 
-def executeCommand(command):
-    if command[:6] == "PRESS_":
-        pressedList = command[6:].strip().split(":")
-        for pressed in pressedList:
-            turtle.press(pressed)
-
-    elif command[:5] == "STEP_":
-        for char in command[5:].strip():
-            turtle.move(char)
-
-    elif command[:5] == "BEEP_":
-        beepArray = command[5:].strip().split(":")
-        size = len(beepArray)
-        buzzer.beep(float(beepArray[0]) if size > 0 else 440.0,
-                    int(beepArray[1]) if size > 1 else 100,
-                    int(beepArray[2]) if size > 2 else 100,
-                    int(beepArray[3]) if size > 3 else 1)
-
-    elif command[:5] == "MIDI_":
-        beepArray = command[5:].strip().split(":")
-        size = len(beepArray)
-        buzzer.midiBeep(int(beepArray[0]) if size > 0 else 69,
-                        int(beepArray[1]) if size > 1 else 100,
-                        int(beepArray[2]) if size > 2 else 100,
-                        int(beepArray[3]) if size > 3 else 1)
-
-    elif command[:5] == "REST_":
-        buzzer.rest(int(command[5:].strip()))
-
-    elif command[:4] == "MOT_":
-        motor.move(int(command[4]), int(command[6:].strip()))
-
-    elif command[:6] == "SLEEP_":
-        sleep_ms(int(command[6:].strip()))
-
-    return True
-
-
-def executeJsonPut(pathArray, isPresent, json):             ########################################### JSON PUT HANDLER
+def _executeJsonPut(pathArray, isPresent, json):             ########################################### JSON PUT HANDLER
     if pathArray[0] == "program":                           # persistent
         if isPresent[1] and isPresent[2] and True not in isPresent[3:]:
-            return jsonPutProgram(pathArray, isPresent, json)
+            return _jsonPutProgram(pathArray, isPresent, json)
     elif pathArray[0] == "system":                          # persistent
         if isPresent[1] and True not in isPresent[2:]:
-            return jsonPutSystemProperty(pathArray, isPresent, json)
+            return _jsonPutSystemProperty(pathArray, isPresent, json)
     return "403 Forbidden", "The format of the URI is invalid. More info: https://zza.hu/uBot_API", None
 
 
-def jsonPutProgram(pathArray, isPresent, json):
-    return "200 OK", "", putProgram()
+def _jsonPutProgram(pathArray, isPresent, json):
+    return "200 OK", "", _putProgram()
 
 
-def jsonPutSystemProperty(pathArray, isPresent, json):
-    return "200 OK", "", putSystemProp()
+def _jsonPutSystemProperty(pathArray, isPresent, json):
+    return "200 OK", "", _putSystemProp()
 
 
-def putProgram(directory, fileName, program):
+def _putProgram(directory, fileName, program):
     return ""
 
 
-def putSystemProp(property, value):
+def _putSystemProp(property, value):
     return ""
 
 
-def executeJsonDelete(pathArray, isPresent, ignoredJson):   ######################################## JSON DELETE HANDLER
+def _executeJsonDelete(pathArray, isPresent, ignoredJson):   ######################################## JSON DELETE HANDLER
     if pathArray[0] == "program":                           # final
         if True not in isPresent[3:]:
             if isPresent[1:3] == (False, False):
-                return jsonDeleteEveryProgram()
+                return _jsonDeleteEveryProgram()
             elif isPresent[1]:
-                return jsonClearProgramFolder(pathArray[1])
+                return _jsonClearProgramFolder(pathArray[1])
             elif isPresent[1] and isPresent[2]:
-                return jsonDeleteProgram(pathArray, isPresent)
+                return _jsonDeleteProgram(pathArray, isPresent)
     elif pathArray[0] == "log":                             # final
         if True not in isPresent[3:]:
             if isPresent[1:3] == (False, False):
-                return jsonDeleteEveryLog()
+                return _jsonDeleteEveryLog()
             elif isPresent[1]:
-                return jsonClearLogFolder(pathArray[1])
+                return _jsonClearLogFolder(pathArray[1])
             elif isPresent[1] and isPresent[2]:
-                return jsonDeleteLog(pathArray, isPresent)
+                return _jsonDeleteLog(pathArray, isPresent)
     return "403 Forbidden", "The format of the URI is invalid. More info: https://zza.hu/uBot_API", None
 
 
-def jsonDeleteEveryProgram():
-    return "200 OK", "", deleteProgram()
+def _jsonDeleteEveryProgram():
+    return "200 OK", "", _deleteProgram()
 
 
-def jsonClearProgramFolder(subDir):
-    return "200 OK", "", deleteProgram()
+def _jsonClearProgramFolder(subDir):
+    return "200 OK", "", _deleteProgram()
 
 
-def jsonDeleteProgram(pathArray, isPresent):
-    return "200 OK", "", deleteProgram()
+def _jsonDeleteProgram(pathArray, isPresent):
+    return "200 OK", "", _deleteProgram()
 
 
-def jsonDeleteEveryLog():
-    return "200 OK", "", deleteLog()
+def _jsonDeleteEveryLog():
+    return "200 OK", "", _deleteLog()
 
 
-def jsonClearLogFolder(pathArray, isPresent):
-    return "200 OK", "", deleteLog()
+def _jsonClearLogFolder(pathArray, isPresent):
+    return "200 OK", "", _deleteLog()
 
 
-def jsonDeleteLog(pathArray, isPresent):
-    return "200 OK", "", deleteLog()
+def _jsonDeleteLog(pathArray, isPresent):
+    return "200 OK", "", _deleteLog()
 
 
-def clearFolder(path):
+def _clearFolder(path):
     return ""
 
 
-def deleteProgram(directory, fileName):
+def _deleteProgram(directory, fileName):
     return ""
 
 
-def deleteLog(directory, fileName):
+def _deleteLog(directory, fileName):
     return ""
 
 
@@ -523,10 +526,10 @@ if config.get("webRepl", "active"):
 
 if config.get("webServer", "active"):
     try:
-        webserver.setJsonCallback("GET", executeJsonGet)
-        webserver.setJsonCallback("POST", executeJsonPost)
-        webserver.setJsonCallback("PUT", executeJsonPut)
-        webserver.setJsonCallback("DELETE", executeJsonDelete)
+        webserver.setJsonCallback("GET", _executeJsonGet)
+        webserver.setJsonCallback("POST", _executeJsonPost)
+        webserver.setJsonCallback("PUT", _executeJsonPut)
+        webserver.setJsonCallback("DELETE", _executeJsonDelete)
         webserver.start()
     except Exception as e:
         logger.append(e)

@@ -29,7 +29,7 @@
     SOFTWARE.
 """
 
-import gc, ujson, uos, uselect, usocket
+import gc, network, ujson, uos, uselect, usocket
 
 from machine import Timer
 
@@ -37,6 +37,9 @@ import ubot_config   as config
 import ubot_logger   as logger
 import ubot_motor    as motor
 import ubot_template as template
+
+
+_ap = network.WLAN(network.AP_IF)
 
 _jsonFunction = 0
 _jsonGetFunction = 0
@@ -56,6 +59,7 @@ _poller = uselect.poll()
 _socket.bind(("", 80))
 _socket.listen(5)
 _poller.register(_socket, uselect.POLLIN)
+
 
 
 ################################
@@ -145,8 +149,8 @@ def _processIncoming(incoming):
                 firstSpace = line.find(" ")
                 pathEnd = line.find(" HTTP")
 
-                method = line[0:firstSpace]
-                path = line[firstSpace + 1:pathEnd]
+                method = line[0:firstSpace].upper()
+                path = line[firstSpace + 1:pathEnd].lower()
 
             if 0 <= line.lower().find("content-length:"):
                 contentLength = int(line[15:].strip())
@@ -156,6 +160,8 @@ def _processIncoming(incoming):
 
             if 0 <= line.lower().find("accept:"):
                 accept = line[7:].strip().lower()
+
+        logger.append("HTTP request:  {}  {}".format(method, path))
 
         if method in ("GET", "POST", "PUT", "DELETE"):
                 if "text/html" in contentType or "text/html" in accept:
@@ -202,20 +208,33 @@ def _processHtmlGetQuery(path):
                 _connection.write(part())
 
             if path == "/debug":
-                logFiles = (
-                    ("Exceptions", "log/exception/"),
-                    ("Events", "log/event/"),
-                    ("Objects", "log/object/")
-                )
+                _connection.write("        <br><br><hr><hr>\n")
+                _connection.write("        <h3>Information panels</h3>\n")
 
-                for logFile in logFiles:
-                    _connection.write("        <br><br><hr><hr>\n")
-                    _connection.write("        <h3>{}</h3>\n".format(logFile[0]))
-                    _sendRaw("{}{:010d}.txt".format(logFile[1], config.get("system", "powerOnCount")))
-                    _connection.write("        <br><hr><br>\n")
-                    _sendRaw("{}0000000000.txt".format(logFile[1]))
+                for panelTitle in template.debugPanels.keys():
+                    _connection.write(
+                        "            <a href='http://{0}{1}' target='_blank'>{2}</a><br>\n".format(
+                            _ap.ifconfig()[0], template.debugPanels.get(panelTitle), panelTitle))
+
+                powerOnCount = config.get("system", "powerOnCount")
+                _connection.write("        <br><br><hr><hr>\n")
+                _connection.write("        <h3>Log files</h3>\n")
+
+                for category in logger.getLogCategories():
+                    _connection.write("            <h4>{}</h4>\n".format(category))
+
+                    _connection.write(
+                        "            <a href='http://{0}/raw/log/{1}/{2:010d}.txt' target='_blank'>{2:010d}&nbsp;&nbsp;"
+                        "&nbsp;// current</a><br>\n".format(_ap.ifconfig()[0], category, powerOnCount))
+
+                    _connection.write(
+                        "            <a href='http://{0}/raw/log/{1}/0000000000.txt' target='_blank'>0000000000&nbsp;"
+                        "&nbsp;&nbsp;// fallback</a><br><br>\n".format(_ap.ifconfig()[0], category))
+
+                _connection.write("        </ul>\n")
 
             _connection.write(template.getPageFooter())
+            logger.append("HTTP response: 200 OK")
         elif path[:5] == "/raw/":
             _connection.write("HTTP/1.1 200 OK\r\n")
             _connection.write("Content-Type: text/html\r\n")
@@ -226,6 +245,7 @@ def _processHtmlGetQuery(path):
             _connection.write(template.getPageHeadEnd())
             _sendRaw(path[4:])
             _connection.write(template.getPageFooter())
+            logger.append("HTTP response: 200 OK")
         else:
             helperLinks = "        <ul class='links'>\n"
             helperLinks += "            <li>Sitemap</li>\n"
@@ -233,7 +253,7 @@ def _processHtmlGetQuery(path):
             for key in sorted(template.title.keys()):
                 if key == "/" or key[1] != "_":
                     helperLinks += "            <li><a href='{key}'>{title}</a><br><small>{host}{key}</small></li>\n".format(
-                        host="192.168.11.1", key=key, title=template.title.get(key)
+                        host=_ap.ifconfig()[0], key=key, title=template.title.get(key)
                     )
 
             helperLinks += "        </ul>\n"
@@ -271,8 +291,8 @@ def _processJsonQuery(method, path, body):
 def _startJsonProcessing(path, body):
     try:
         arr = path.split("/")
-        arr += [""] * (11 - len(arr))                           # add placeholders to prevent IndexError
-        arr = tuple([item.lower() for item in arr][1:])         # arr[0] is always empty string because of leading slash
+        arr += [""] * (11 - len(arr))                    # add placeholders to prevent IndexError
+        arr = tuple(arr[1:])                             # arr[0] is always empty string because of leading slash
         isPresent = tuple([item != "" for item in arr])
 
         result = _jsonFunction(arr, isPresent, ujson.loads(body))
@@ -310,6 +330,7 @@ def _reply(returnFormat, httpCode, message, data = None, allow = "GET, POST, PUT
                  "data": data})
 
         _connection.write(reply)                                                        # TODO: written bytes check, etc
+        logger.append("HTTP response: {}  {}".format(httpCode, message))
     except Exception:
         print("Exception @ ubot_webserver#_reply")
     finally:
@@ -319,12 +340,13 @@ def _reply(returnFormat, httpCode, message, data = None, allow = "GET, POST, PUT
 def _sendRaw(path):
     """ If the path links to a dir, sends a linked list, otherwise tries to send the content of the target entity. """
     try:
-        if path[-1] == "/":  # Directory (practical, however stat() would be more elegant)
+        if path[-1] == "/":        # Directory -> A practical, cosy, and a bit dirty constraint for simple URL handling.
             _connection.write(("        <table>\n"
                                "            <thead>\n"
                                "                <tr><th scope='col'>Filename</th><th scope='col'>File size</th></tr>\n"
                                "            </thead>\n"
-                               "            <tbody>\n"))
+                               "            <tbody>\n"
+                               "                <tr><td><a href='..'>..</a></td><td></td></tr>"))
 
             try:
                 for fileName in uos.listdir(path):

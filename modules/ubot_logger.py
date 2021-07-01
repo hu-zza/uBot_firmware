@@ -88,6 +88,9 @@ def getLog(category, title):
         return ()
 
 
+def isLogExist(category, title):
+    return title in getCategoryLogs(category)
+
 
 ################################
 ## PRIVATE, HELPER METHODS

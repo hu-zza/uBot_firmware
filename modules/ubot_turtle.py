@@ -149,10 +149,6 @@ def getProgramList(folder):
         return ()
 
 
-def isProgramExist(folder, title):
-    return title in getProgramList(folder)
-
-
 def getProgramCode(folder, title):
     try:
         with open("/program/{}/{}.txt".format(folder.lower(), title.lower()), "r") as file:
@@ -160,6 +156,10 @@ def getProgramCode(folder, title):
     except Exception as e:
         logger.append(e)
         return ()
+
+
+def isProgramExist(folder, title):
+    return title in getProgramList(folder)
 
 
 def loadProgram(program):
@@ -213,6 +213,18 @@ def clearProgram():
 
     _commandPointer = 0
     _programParts = [0]
+
+
+def getSavedProgramsCount():
+    return len(uos.listdir("program/turtle")) + len(uos.listdir("program/json"))
+
+
+def getCommandArray():
+    return _commandArray[:_commandPointer].decode()
+
+
+def getProgramArray():
+    return _programArray[:_programParts[-1]].decode()
 
 
 ################################################################

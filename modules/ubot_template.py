@@ -89,8 +89,7 @@ def getGeneralStyle():
 def getDebugStyle():
     return ("            hr    { color: #EEE; }\n"
             "            table { margin: 30px; }\n"
-            "            .system td, .ap td { padding: 5px; border-bottom: dotted 1px #AAA; }\n")
-
+            "            .data td { padding: 5px; border-bottom: dotted 1px #AAA; }\n")
 
 def getRawStyle():
     return ("            a      { text-decoration: none; }\n"
@@ -173,97 +172,92 @@ def getLicensePanel():
             "        SOFTWARE.<br>\n")
 
 
-result = ("        <h3>Commands</h3>\n"
-          "            {commands}\n"
-          "        <br><br><hr><hr>\n"
-          "        <h3>Program</h3>\n"
-          "            {program}\n"
-          "        <br><br><hr><hr>\n"
-          "        <h3>System</h3>\n"
-          "            <table class='system'>\n"
-          "                <tr><td> <strong>Power on count:</strong> </td><td>{powerOnCount}</td><td>  </td></tr>\n"
-          "                <tr><td> <strong>Saved programs:</strong> </td><td>{savedPrograms}</td><td>  </td></tr>\n"
-          "                <tr><td> <strong>Firmware:</strong> </td><td>{firmware}</td><td><a href='license'>MIT License</a></td></tr>\n"
-          "                <tr><td> <strong>Free memory:</strong> </td><td>{freeMemory}%</td><td>{memoryDetails}</td></tr>\n"
-          "                <tr><td> <strong>Free space:</strong> </td><td>{freeSpace}%</td><td>{diskDetails}</td></tr>\n"
-          "                <tr><td> <strong>System RTC:</strong> </td><td colspan='2'>{year}. {month:02d}. {day:02d}.&nbsp;&nbsp;&nbsp;{hour:02d} : {minute:02d} : {second:02d}</td></tr>\n"
-          "                <tr><td> <strong>μBot ID:</strong> </td><td colspan='2'>{idA}<br>{idB}</td></tr>"
-          "            </table>\n"
-          "        <br><br><hr><hr>\n"          
-          "        <h3>Access point</h3>\n"
-          "            <table class='ap'>\n"
-          "                <tr><td> <strong>Active:</strong> </td><td>{isApUp}</td><td>  </td></tr>\n"
-          "                <tr><td> <strong>SSID:</strong> </td><td>{ssid}</td><td>  </td></tr>\n"
-          "                <tr><td> <strong>Password:</strong> </td><td>{uBot_pwd}</td><td> </td></tr>\n"
-          "                <tr><td> <strong>MAC address:</strong> </td><td colspan='2'>{macAddress}</tr>\n"
-          "                <tr><td> <strong>IP address:</strong> </td><td>{ipAddress}</td><td>{subnetMask}</td></tr>\n"
-          "                <tr><td> <strong>Gateway:</strong> </td><td>{gateway}</td><td> </td></tr>"
-          "                <tr><td> <strong>DNS:</strong> </td><td>{dns}</td><td> </td></tr>"
-          "            </table>\n"
-          "        <br><br><hr><hr>\n"
-          "        <h3>Services</h3>\n"
-          "            <table class='ap'>\n"
-          "                <tr><td> <strong>AP:</strong> </td><td>{isApUp}</td><td>  </td></tr>\n"
-          "                <tr><td> <strong>Buzzer:</strong> </td><td>{isBuzzerUp}</td><td>  </td></tr>\n"
-          "                <tr><td> <strong>Feedback:</strong> </td><td>{isFeedbackUp}</td><td> </td></tr>\n"
-          "                <tr><td> <strong>I2C:</strong> </td><td>{isI2cUp}</td><td> </td></tr>\n"
-          "                <tr><td> <strong>Motor:</strong> </td><td>{isMotorUp}</td><td> </td></tr>\n"
-          "                <tr><td> <strong>Turtle:</strong> </td><td>{isTurtleUp}</td><td> </td></tr>\n"
-          "                <tr><td> <strong>UART:</strong> </td><td>{isUartUp}</td><td> </td></tr>\n"
-          "                <tr><td> <strong>Web server:</strong> </td><td>{isWebServerUp}</td><td> </td></tr>\n"
-          "                <tr><td> <strong>Web REPL:</strong> </td><td>{isWebReplUp}</td><td> </td></tr>\n"
-          "            </table>\n")
+def getTurtlePanel():
+    return ("        <h3>Commands</h3>\n"
+            "            {commands}\n"
+            "        <br><br><hr><hr>\n"
+            "        <h3>Program</h3>\n"
+            "            {program}\n").format(commands = turtle.getCommandArray(), program  = turtle.getProgramArray())
 
 
-def getDebugPanel():
+def getSystemPanel():
+    major, minor, patch = config.get("system", "firmware")
 
-    firmware = config.get("system", "firmware")
-    firmwareVersion = "{}.{}.{}".format(
-        firmware[0], firmware[1], firmware[2]
-    )
+    allMemory = gc.mem_free() + gc.mem_alloc()
+    freeMemoryPercent = gc.mem_free() * 100 // allMemory
 
-    allMem        = gc.mem_free() + gc.mem_alloc()
-    freePercent   = gc.mem_free() * 100 // allMem
-    memoryDetails = "{} / {}".format(gc.mem_free(), allMem)
+    stat = uos.statvfs("/")
+    freeSpace = stat[4] * stat[0]       # f_bavail * f_bsize
+    allSpace = stat[2] * stat[1]        # f_blocks * f_frsize
+    freeSpacePercent = freeSpace * 100 // allSpace
 
-    stat        = uos.statvfs("/")
-    freeSpace   = stat[4] * stat[0] * 100 // (stat[2] * stat[1])       # f_bavail * f_bsize * 100 // f_blocks * f_frsize
-    diskDetails = "{} / {}".format(stat[4] * stat[0], stat[2] * stat[1])
-    dt = config.datetime()
+    year, month, day, weekday, hour, minute, second, millisecond = config.datetime()
     uid = config.get("system", "id")
-    idA = " - ".join(uid[i:i+4] for i in range(0, 16, 4))
-    idB = " - ".join(uid[i:i+4] for i in range(16, 32, 4))
+    idA = " - ".join(uid[i:i + 4] for i in range(0, 16, 4))
+    idB = " - ".join(uid[i:i + 4] for i in range(16, 32, 4))
+
+    return ("        <h3>System</h3>\n"
+            "            <table class='data'>\n"
+            "                <tr><td> <strong>Power on count:</strong> </td><td>{powerOnCount}</td><td>  </td></tr>\n"
+            "                <tr><td> <strong>Saved programs:</strong> </td><td>{savedPrograms}</td><td>  </td></tr>\n"
+            "                <tr><td> <strong>Firmware:</strong> </td><td>{major}.{minor}.{patch}</td><td><a href='license'>MIT License</a></td></tr>\n"
+            "                <tr><td> <strong>Free memory:</strong> </td><td>{freeMemoryPercent}%</td><td>{freeMemory} / {allMemory}</td></tr>\n"
+            "                <tr><td> <strong>Free space:</strong> </td><td>{freeSpacePercent}%</td><td>{freeSpace} / {allSpace}</td></tr>\n"
+            "                <tr><td> <strong>System RTC:</strong> </td><td colspan='2'>{year}. {month:02d}. {day:02d}.&nbsp;&nbsp;&nbsp;{hour:02d} : {minute:02d} : {second:02d}</td></tr>\n"
+            "                <tr><td> <strong>μBot ID:</strong> </td><td colspan='2'>{idA}<br>{idB}</td></tr>"
+            "            </table>\n").format(powerOnCount = config.get("system", "powerOnCount"),
+                                             savedPrograms = turtle.getSavedProgramsCount(),
+                                             major = major, minor = minor, patch = patch,
+                                             freeMemoryPercent = freeMemoryPercent, freeMemory = gc.mem_free(), allMemory = allMemory,
+                                             freeSpacePercent = freeSpacePercent, freeSpace = freeSpace, allSpace = allSpace,
+                                             year = year, month = month, day = day, hour = hour, minute = minute, second = second,
+                                             idA=idA, idB=idB)
+
+
+def getServiceStatusPanel():
+    return ("        <h3>Service status</h3>\n"
+            "            <table class='data'>\n"
+            "                <tr><td> <strong>AP:</strong> </td><td>{isApUp}</td><td>  </td></tr>\n"
+            "                <tr><td> <strong>Buzzer:</strong> </td><td>{isBuzzerUp}</td><td>  </td></tr>\n"
+            "                <tr><td> <strong>Feedback:</strong> </td><td>{isFeedbackUp}</td><td> </td></tr>\n"
+            "                <tr><td> <strong>I2C:</strong> </td><td>{isI2cUp}</td><td> </td></tr>\n"
+            "                <tr><td> <strong>Motor:</strong> </td><td>{isMotorUp}</td><td> </td></tr>\n"
+            "                <tr><td> <strong>Turtle:</strong> </td><td>{isTurtleUp}</td><td> </td></tr>\n"
+            "                <tr><td> <strong>UART:</strong> </td><td>{isUartUp}</td><td> </td></tr>\n"
+            "                <tr><td> <strong>Web server:</strong> </td><td>{isWebServerUp}</td><td> </td></tr>\n"
+            "                <tr><td> <strong>Web REPL:</strong> </td><td>{isWebReplUp}</td><td> </td></tr>\n"
+            "            </table>\n").format(isApUp=config.get("ap", "active"),
+                                             isBuzzerUp=config.get("buzzer", "active"),
+                                             isFeedbackUp=config.get("feedback", "active"),
+                                             isI2cUp=config.get("i2c", "active"),
+                                             isMotorUp=config.get("motor", "active"),
+                                             isTurtleUp=config.get("turtle", "active"),
+                                             isUartUp=config.get("uart", "active"),
+                                             isWebServerUp=config.get("webServer", "active"),
+                                             isWebReplUp=config.get("webRepl", "active"))
+
+
+def getApPanel():
     ap = network.WLAN(network.AP_IF)
     if0, if1, if2, if3 = ap.ifconfig()
 
-    return result.format(
-        commands = turtle._commandArray[:turtle._commandPointer].decode(),
-        program  = turtle._programArray[:turtle._programParts[-1]].decode(),
-        powerOnCount = config.get("system", "powerOnCount"),
-        savedPrograms = len(uos.listdir("program/turtle")) + len(uos.listdir("program/json")),
-        firmware = firmwareVersion,
-        freeMemory = freePercent, memoryDetails = memoryDetails,
-        freeSpace = freeSpace, diskDetails = diskDetails,
-        year = dt[0], month = dt[1], day = dt[2],
-        hour = dt[4], minute = dt[5], second = dt[6],
-        idA=idA, idB=idB,
-        ssid = ap.config("essid"),
-        uBot_pwd = config.get("ap", "password"),
-        macAddress = hexlify(ap.config("mac"), ":").decode().replace(":", " : "),
-        ipAddress = if0,
-        subnetMask = if1,
-        gateway = if2,
-        dns = if3,
-        isApUp = config.get("ap", "active"),
-        isBuzzerUp=config.get("buzzer", "active"),
-        isFeedbackUp=config.get("feedback", "active"),
-        isI2cUp=config.get("i2c", "active"),
-        isMotorUp=config.get("motor", "active"),
-        isTurtleUp=config.get("turtle", "active"),
-        isUartUp=config.get("uart", "active"),
-        isWebServerUp=config.get("webServer", "active"),
-        isWebReplUp=config.get("webRepl", "active")
-    )
+    return ("        <h3>Access point</h3>\n"
+            "            <table class='data'>\n"
+            "                <tr><td> <strong>Active:</strong> </td><td>{isApUp}</td><td>  </td></tr>\n"
+            "                <tr><td> <strong>SSID:</strong> </td><td>{ssid}</td><td>  </td></tr>\n"
+            "                <tr><td> <strong>Password:</strong> </td><td>{uBot_pwd}</td><td> </td></tr>\n"
+            "                <tr><td> <strong>MAC address:</strong> </td><td colspan='2'>{macAddress}</tr>\n"
+            "                <tr><td> <strong>IP address:</strong> </td><td>{ipAddress}</td><td>{subnetMask}</td></tr>\n"
+            "                <tr><td> <strong>Gateway:</strong> </td><td>{gateway}</td><td> </td></tr>"
+            "                <tr><td> <strong>DNS:</strong> </td><td>{dns}</td><td> </td></tr>"
+            "            </table>\n").format(isApUp=config.get("ap", "active"),
+                                             ssid = ap.config("essid"),
+                                             uBot_pwd = config.get("ap", "password"),
+                                             macAddress = hexlify(ap.config("mac"), ":").decode().replace(":", " : "),
+                                             ipAddress = if0,
+                                             subnetMask = if1,
+                                             gateway = if2,
+                                             dns = if3)
 
 
 def getDrivePanel():
@@ -403,33 +397,27 @@ def getCalibrationPanel():
 _sender =  ("\n"
             "        <script>\n"
             "            function send(value) {{\n"
-            "                let object = {{\n"
-            "                   \"title\" : \"{title}\",\n"
-            "                   \"logging\" : {logging},\n"
-            "                   {body}"
-            "                }}\n\n"
-            "                let json = JSON.stringify(object);\n\n"
             "                let xhr = new XMLHttpRequest();\n"
-            "                xhr.open('POST', '', false);\n"
+            "                xhr.open('GET', '/command/{}, false);\n"
             "                xhr.setRequestHeader('Content-Type', 'application/json');\n"
-            "                xhr.send(json);\n"
+            "                xhr.send();\n"
             "            }}\n"
             "        </script>\n")
 
 
 def getTurtleMoveSender():
-    return _sender.format(title = "Immediate command | μBot Drive", logging = "false", body = "\"command\" : [ \"STEP \" + value ]\n")
+    return _sender.format("STEP_' + value")
 
 
 def getButtonPressSender():
-    return _sender.format(title = "Pressed button | μBot Command", logging = "false", body = "\"command\" : [ \"PRESS \" + value ]\n")
+    return _sender.format("PRESS_' + value")
 
 
-def getServiceRequestSender():
+def getServiceRequestSender(): # TODO: refactor
     return _sender.format(title = "Service request | μBot Settings", logging = "true", body = "\"service\" : [ value ]\n")
 
 
-def getDateTimeSender():
+def getDateTimeSender(): # TODO: refactor
     getters = "document.getElementById(\"date\").value, document.getElementById(\"time\").value"
     return _sender.format(title = "DateTime setting | μBot Settings", body = "\"dateTime\" : [ {} ]\n".format(getters))
 
@@ -512,6 +500,11 @@ title = {
     "/_webrepl"     : "&microBot WebREPL",
     "/_calibration" : "&microBot Calibration",
     "/debug"        : "&microBot Debug",
+    "/_system"      : "&microBot Debug - System",
+    "/_services"    : "&microBot Debug - Service status",
+    "/_ap"          : "&microBot Debug - Access point",
+
+    "/turtle"       : "&microBot TurtleCode",
     "/drive"        : "&microBot Drive",
     "/license"      : "&microBot MIT License",
     "/simple"       : "&microBot Simple",
@@ -524,8 +517,13 @@ style = {
     "/_webrepl"     : (getGeneralStyle, getSimpleStyle),
     "/_calibration" : (getGeneralStyle, getSimpleStyle),
     "/debug"        : (getGeneralStyle, getDebugStyle),
+    "/_system"      : (getGeneralStyle, getDebugStyle),
+    "/_services"    : (getGeneralStyle, getDebugStyle),
+    "/_ap"          : (getGeneralStyle, getDebugStyle),
+
+    "/turtle"       : (getGeneralStyle, getDebugStyle),
     "/drive"        : (getGeneralStyle, getPanelStyle),
-    "/license"      : (getGeneralStyle,),
+    "/license"      : (getGeneralStyle, ),
     "/simple"       : (getGeneralStyle, getPanelStyle),
     "/pro"          : (getGeneralStyle, getPanelStyle)
 }
@@ -535,7 +533,12 @@ parts = {
     "/_datetime"    : (getDateTimePanel, getDateTimeSender),
     "/_webrepl"     : (getWebReplPanel, getServiceRequestSender),
     "/_calibration" : (getCalibrationPanel, getServiceRequestSender),
-    "/debug"        : (getDebugPanel,),
+    "/debug"        : (getTurtlePanel,),
+    "/_system"      : (getSystemPanel,),
+    "/_services"    : (getServiceStatusPanel,),
+    "/_ap"          : (getApPanel,),
+
+    "/turtle"       : (getTurtlePanel,),
 
     "/drive"        : (getSvgDefinitionHead, getArrowSymbol, getSvgDefinitionFooter, getDrivePanel, getTurtleMoveSender),
 
@@ -549,6 +552,12 @@ parts = {
                        getProPanel, getButtonPressSender)
 }
 
+debugPanels = {
+    "System"         : "/_system",
+    "Service status" : "/_services",
+    "Access point"   : "/_ap"
+}
+
 title["/"] = title["/simple"]
 style["/"] = style["/simple"]
 parts["/"] = parts["/simple"]
@@ -556,3 +565,7 @@ parts["/"] = parts["/simple"]
 title["/professional"] = title["/pro"]
 style["/professional"] = style["/pro"]
 parts["/professional"] = parts["/pro"]
+
+title["/turtlecode"] = title["/turtle"]
+style["/turtlecode"] = style["/turtle"]
+parts["/turtlecode"] = parts["/turtle"]
