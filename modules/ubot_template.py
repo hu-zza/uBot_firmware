@@ -206,7 +206,7 @@ def getSystemPanel():
             "                <tr><td> <strong>System RTC:</strong> </td><td colspan='2'>{year}. {month:02d}. {day:02d}.&nbsp;&nbsp;&nbsp;{hour:02d} : {minute:02d} : {second:02d}</td></tr>\n"
             "                <tr><td> <strong>μBot ID:</strong> </td><td colspan='2'>{idA}<br>{idB}</td></tr>"
             "            </table>\n").format(powerOnCount = config.get("system", "powerOnCount"),
-                                             savedPrograms = turtle.getSavedProgramsCount(),
+                                             savedPrograms = turtle.getProgramsCount(),
                                              major = major, minor = minor, patch = patch,
                                              freeMemoryPercent = freeMemoryPercent, freeMemory = gc.mem_free(), allMemory = allMemory,
                                              freeSpacePercent = freeSpacePercent, freeSpace = freeSpace, allSpace = allSpace,
@@ -406,7 +406,7 @@ _sender =  ("\n"
 
 
 def getTurtleMoveSender():
-    return _sender.format("STEP_' + value")
+    return _sender.format("DRIVE_' + value")
 
 
 def getButtonPressSender():

@@ -76,6 +76,10 @@ _commandPointer = 0                                         # Pointer for _comma
 _programArray   = bytearray()                               # High-level: Result of one or more added _commandArray.
 _programParts   = [0]                                       # Positions by which _programArray can be split into _commandArray(s).
 
+_temporaryCommandPointer = 0                                # For stateless run
+_temporaryProgramArray   = bytearray()                      # with the capability of
+_temporaryProgramParts   = [0]                              # restore unsaved stuff.
+
 _loopCounter    = 0                                         # At loop creation this holds iteration count.
 
 _functionPosition = [-1, -1, -1]                            # -1 : not defined, -0.1 : under definition, 0+ : defined
@@ -95,9 +99,23 @@ _blockBoundaries   = ((40, 41), (123, 125), (126, 126))     # (("(", ")"), ("{",
 ################################
 ## PUBLIC METHODS
 
-def move(direction):
+
+def press(pressed):  # pressed = 1<<buttonOrdinal
+    if isinstance(pressed, str):
+        pressed = int(pressed)
+
+    _logLastPressed(pressed)
+    _addCommand(pressed)
+
+
+def move(direction, silent = False):
+    global _stepSignal
+
     if isinstance(direction, str):
         direction = ord(direction)
+
+    if silent:
+        _stepSignal = ""
 
     if direction == 70:                 # "F" - FORWARD
         motor.move(1, _moveLength)
@@ -118,17 +136,16 @@ def move(direction):
     elif direction == 81:               # "Q" - RIGHT (45°)     alias for URI usage ( R - 1 = r )
         motor.move(3, _turnLength // 2) #                       Placeholder...
 
-
-def press(pressed):                     # pressed = 1<<buttonOrdinal
-    if isinstance(pressed, str):
-        pressed = int(pressed)
-
-    _logLastPressed(pressed)
-    _addCommand(pressed)
+    if silent:
+        _stepSignal = config.get("turtle", "stepSignal")
 
 
-def checkButtons(timer = None):
-    _addCommand(_getValidatedPressedButton())
+def getCommandArray():
+    return _commandArray[:_commandPointer].decode()
+
+
+def getProgramArray():
+    return _programArray[:_programParts[-1]].decode()
 
 
 def getProgramFolders():
@@ -158,27 +175,43 @@ def getProgramCode(folder, title):
         return ()
 
 
-def isProgramExist(folder, title):
-    return title in getProgramList(folder)
+def runProgram(folder, title):
+    global _temporaryCommandPointer
+    global _temporaryProgramParts
+    global _temporaryProgramArray
+    global _commandPointer
+    global _programParts
+    global _programArray
+
+    _temporaryCommandPointer = _commandPointer
+    _temporaryProgramParts = _programParts
+    _temporaryProgramArray = _programArray
+
+    loadProgram(folder, title)
+    press(64)
+
+    _commandPointer = _temporaryCommandPointer
+    _programParts = _temporaryProgramParts
+    _programArray = _temporaryProgramArray
 
 
-def loadProgram(program):
+def loadProgram(folder, title):
+    try:
+        with open("program/{}/{}.txt".format(folder.lower(), title.lower()), "r") as file:
+            loadProgramFromString(ujson.loads(file.readline()))
+    except Exception as e:
+        logger.append(e)
+
+
+def loadProgramFromString(program):
     global _programArray
     global _programParts
 
     try:
         array = program.encode()
-        clearProgram()
+        clear()
         _programArray = array
         _programParts = [len(array)]
-    except Exception as e:
-        logger.append(e)
-
-
-def loadProgramFromEeprom(folder, title):
-    try:
-        with open("program/{}/{}.txt".format(folder.lower(), title.lower()), "r") as file:
-            loadProgram(ujson.loads(file.readline()))
     except Exception as e:
         logger.append(e)
 
@@ -207,7 +240,15 @@ def saveProgram(program, folder = None, title = None):
             _savedCount -= 1
 
 
-def clearProgram():
+def isProgramExist(folder, title):
+    return title in getProgramList(folder)
+
+
+def getProgramsCount():
+    return sum([len(getProgramList(folder)) for folder in getProgramFolders()])
+
+
+def clear():
     global _commandPointer
     global _programParts
 
@@ -215,16 +256,9 @@ def clearProgram():
     _programParts = [0]
 
 
-def getSavedProgramsCount():
-    return len(uos.listdir("program/turtle")) + len(uos.listdir("program/json"))
+def checkButtons(timer = None):
+    _addCommand(_getValidatedPressedButton())
 
-
-def getCommandArray():
-    return _commandArray[:_commandPointer].decode()
-
-
-def getProgramArray():
-    return _programArray[:_programParts[-1]].decode()
 
 
 ################################################################
