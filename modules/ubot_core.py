@@ -138,7 +138,7 @@ def executeJsonGet(pathArray, isPresent, ignoredJson):      ####################
 
     elif pathArray[0] == "command":                         # only execution
         if isPresent[1] and True not in isPresent[2:]:
-            return jsonGetCommandExecution(isPresent[1])
+            return jsonGetCommandExecution(pathArray[1])
 
     return "403 Forbidden", "The format of the URI is invalid. More info: https://zza.hu/uBot_API", None
 
@@ -146,7 +146,7 @@ def executeJsonGet(pathArray, isPresent, ignoredJson):      ####################
 def jsonGetProgramAction(folder, title, action):
     result = doProgramAction(folder, title, action)
 
-    if result is not None:
+    if result is not None and result != "":
         return "200 OK", "", result
     else:
         return "403 Forbidden", "The processing of the request failed. Cause: Semantic error in URI. " \
@@ -156,7 +156,7 @@ def jsonGetProgramAction(folder, title, action):
 def jsonGetProgramCode(folder, title):
     result = turtle.getProgramCode(folder, title)
 
-    if result is not None:
+    if result is not None and result != ():
         return "200 OK", "", result
     else:
         return "404 Not Found", "The processing of the request failed. Cause: No such program. " \
@@ -169,7 +169,7 @@ def jsonGetProgramList(folder):
     if result is not None and result != {}:                # Empty tuple is OK -> empty dir, but empty dictionary is not
         return "200 OK", "", result
     else:
-        return "404 Not Found", "The processing of the request failed. Cause: No such program folder. " \
+        return "404 Not Found", "The processing of the request failed. Cause: 'Program' folder is not available. " \
                                            "More info: https://zza.hu/uBot_API", None
 
 
@@ -181,6 +181,7 @@ def doProgramAction(folder, title, action):
             return "The program has started."
     except Exception as e:
         logger.append(e)
+        return ""
 
 
 def getProgramCatalog():
@@ -248,7 +249,7 @@ def getLogList(category):
 
 
 def jsonGetCommandExecution(command):
-    if executeCommand(command):
+    if executeCommand(command.upper()):
         return "200 OK", "", "Processed commands: 1"
     else:
         return "403 Forbidden", "The processing of the request failed. Cause: Semantic error in URI. " \
@@ -317,16 +318,16 @@ def jsonPostRoot(json):
 
 
 def executeCommand(command):
-    if command[:6] == "press_":
+    if command[:6] == "PRESS_":
         pressedList = command[6:].strip().split(":")
         for pressed in pressedList:
             turtle.press(pressed)
 
-    elif command[:5] == "step_":
+    elif command[:5] == "STEP_":
         for char in command[5:].strip():
             turtle.move(char)
 
-    elif command[:5] == "beep_":
+    elif command[:5] == "BEEP_":
         beepArray = command[5:].strip().split(":")
         size = len(beepArray)
         buzzer.beep(float(beepArray[0]) if size > 0 else 440.0,
@@ -334,7 +335,7 @@ def executeCommand(command):
                     int(beepArray[2]) if size > 2 else 100,
                     int(beepArray[3]) if size > 3 else 1)
 
-    elif command[:5] == "midi_":
+    elif command[:5] == "MIDI_":
         beepArray = command[5:].strip().split(":")
         size = len(beepArray)
         buzzer.midiBeep(int(beepArray[0]) if size > 0 else 69,
@@ -342,13 +343,13 @@ def executeCommand(command):
                         int(beepArray[2]) if size > 2 else 100,
                         int(beepArray[3]) if size > 3 else 1)
 
-    elif command[:5] == "rest_":
+    elif command[:5] == "REST_":
         buzzer.rest(int(command[5:].strip()))
 
-    elif command[:4] == "mot_":
+    elif command[:4] == "MOT_":
         motor.move(int(command[4]), int(command[6:].strip()))
 
-    elif command[:6] == "sleep_":
+    elif command[:6] == "SLEEP_":
         sleep_ms(int(command[6:].strip()))
 
     return True

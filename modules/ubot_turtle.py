@@ -113,6 +113,10 @@ def move(direction):
         motor.move(3, _turnLength // 2) #                       Placeholder...
     elif direction == 80:               # "P" - PAUSE
         motor.move(0, _moveLength)
+    elif direction == 75:               # "K" - LEFT (45°)      alias for URI usage ( L - 1 = l )
+        motor.move(2, _turnLength // 2) #                       Placeholder...
+    elif direction == 81:               # "Q" - RIGHT (45°)     alias for URI usage ( R - 1 = r )
+        motor.move(3, _turnLength // 2) #                       Placeholder...
 
 
 def press(pressed):                     # pressed = 1<<buttonOrdinal
@@ -133,18 +137,20 @@ def getProgramFolders():
         return tuple([folder for folder in programFolders if uos.stat("program/{}".format(folder))[0] == 0x04000]) #dirs
     except Exception as e:
         logger.append(e)
+        return ()
 
 
 def getProgramList(folder):
     try:
-        programFiles = uos.listdir("/log/{}".format(folder.lower()))
+        programFiles = uos.listdir("/program/{}".format(folder.lower()))
         return tuple([fileName[:-4] for fileName in programFiles if fileName[-4:] == ".txt"])
     except Exception as e:
         logger.append(e)
+        return ()
 
 
-def isProgramExist(directory, title):
-    return title[:-4] in uos.listdir("program/{}".format(directory.lower()))
+def isProgramExist(folder, title):
+    return title in getProgramList(folder)
 
 
 def getProgramCode(folder, title):
@@ -153,6 +159,7 @@ def getProgramCode(folder, title):
             return tuple([line[:-1] for line in file])
     except Exception as e:
         logger.append(e)
+        return ()
 
 
 def loadProgram(program):
@@ -168,9 +175,9 @@ def loadProgram(program):
         logger.append(e)
 
 
-def loadProgramFromEeprom(directory, title):
+def loadProgramFromEeprom(folder, title):
     try:
-        with open("program/{}/{}.txt".format(directory.lower(), title.lower()), "r") as file:
+        with open("program/{}/{}.txt".format(folder.lower(), title.lower()), "r") as file:
             loadProgram(ujson.loads(file.readline()))
     except Exception as e:
         logger.append(e)
@@ -180,15 +187,15 @@ def hasProgramLoaded():
     return 0 < len(_programArray[:_programParts[-1]].decode())
 
 
-def saveLoadedProgram(directory = None, title = None):
-    saveProgram(_programArray[:_programParts[-1]].decode(), _defaultDir if directory is None else directory, title)
+def saveLoadedProgram(folder = None, title = None):
+    saveProgram(_programArray[:_programParts[-1]].decode(), _defaultDir if folder is None else folder, title)
 
 
-def saveProgram(program, directory = None, title = None):
+def saveProgram(program, folder = None, title = None):
     global _savedCount
 
-    directory = _defaultDir if directory is None else directory
-    path = _generateFullPath() if title is None else "program/{}/{}.txt".format(directory.lower(), title.lower())
+    folder = _defaultDir if folder is None else folder
+    path = _generateFullPath() if title is None else "program/{}/{}.txt".format(folder.lower(), title.lower())
 
     try:
         with open(path, "w") as file:

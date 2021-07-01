@@ -45,6 +45,7 @@ def getModules():
         return tuple([module for module in moduleFolders if uos.stat("etc/{}".format(module))[0] == 0x04000])    # only dirs
     except Exception as e:
         logger.append(e)
+        return ()
 
 
 def getModuleAttributes(module):
@@ -54,6 +55,7 @@ def getModuleAttributes(module):
         return tuple([fileName[:-4] for fileName in moduleFiles if fileName[-4:] == ".txt"])
     except Exception as e:
         logger.append(e)
+        return ()
 
 
 def get(module, attribute):
@@ -107,7 +109,7 @@ def saveDateTime():
 
 def _manageAttribute(dir, name, mode, value = None, extension = "txt"):
     try:
-        with open("etc/{}/{}.{}".format(dir, name, extension), mode.lower()) as file:
+        with open("etc/{}/{}.{}".format(dir, name, extension), mode) as file:
             if mode == "r":
                 return ujson.loads(file.readline())
             elif mode == "w":

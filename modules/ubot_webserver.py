@@ -305,7 +305,8 @@ def _reply(returnFormat, httpCode, message, data = None, allow = "GET, POST, PUT
             reply = template.getSimplePage().format(title=httpCode, style=style, body=message)
         elif returnFormat == "JSON":
             reply = ujson.dumps(
-                {"meta": {"dateTime": config.datetime(), "code": httpCode[:3], "status": httpCode, "message": message},
+                {"meta": {"dateTime": config.datetime(), "code": int(httpCode[:3]), "status": httpCode,
+                          "message": message},
                  "data": data})
 
         _connection.write(reply)                                                        # TODO: written bytes check, etc

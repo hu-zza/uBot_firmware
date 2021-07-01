@@ -67,6 +67,7 @@ def getLogCategories():
         return tuple([category for category in logFolders if uos.stat("log/{}".format(category))[0] == 0x04000]) # only dirs
     except Exception as e:
         append(e)
+        return ()
 
 
 def getCategoryLogs(category):
@@ -75,6 +76,7 @@ def getCategoryLogs(category):
         return tuple([fileName[:-4] for fileName in logFiles if fileName[-4:] == ".txt"])
     except Exception as e:
         append(e)
+        return ()
 
 
 def getLog(category, title):
@@ -83,6 +85,7 @@ def getLog(category, title):
             return tuple([line[:-1] for line in file])
     except Exception as e:
         append(e)
+        return ()
 
 
 
