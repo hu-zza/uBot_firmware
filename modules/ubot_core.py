@@ -70,7 +70,7 @@ def executeCommand(command):
 
     elif command[:6] == "DRIVE_":
         breath = motor.getBreath()
-        motor.setBreath(100)
+        motor.setBreath(0)
         for char in command[6:].strip():
             turtle.move(char, True)
         motor.setBreath(breath)
@@ -171,31 +171,32 @@ def executeJson(path, json):
 
 
 def _executeJsonGet(pathArray, isPresent, ignoredJson):      ########################################### JSON GET HANDLER
+    secondImpliesFirst = not isPresent[2] or isPresent[1]
     if pathArray[0] == "program":                           # get or execution
-        if True not in isPresent[4:]:
-            if isPresent[1:4] == (True, True, True):        # action constant is present: info / run / ... (index: 3)
+        if not any(isPresent[4:]):
+            if all(isPresent[1:4]):                         # action constant is present: info / run / ... (index: 3)
                 return _jsonGetProgramAction(pathArray[1], pathArray[2], pathArray[3])
-            elif isPresent[1:4] == (True, True, False):     # get the code of a specific program
+            elif all(isPresent[1:3]) and not isPresent[3]:  # get the code of a specific program
                 return _jsonGetProgramCode(pathArray[1], pathArray[2])
-            elif True not in isPresent[2:]:                 # list a directory or the whole 'program' dir
+            elif not any(isPresent[2:]):                    # list a directory or the whole 'program' dir
                 return _jsonGetProgramList(pathArray[1])
 
     elif pathArray[0] == "system":                          # only get
-        if True not in isPresent[3:]:
-            if isPresent[1] and isPresent[2]:
+        if not any(isPresent[3:]):
+            if all(isPresent[1:3]):
                 return _jsonGetSystemAttribute(pathArray[1], pathArray[2])
-            elif not (not isPresent[1] and isPresent[2]):
+            elif secondImpliesFirst:
                 return _jsonGetSystemAttributes(pathArray[1])
 
     elif pathArray[0] == "log":                             # only get
-        if True not in isPresent[3:]:
-            if isPresent[1] and isPresent[2]:
+        if not any(isPresent[3:]):
+            if all(isPresent[1:3]):
                 return _jsonGetLog(pathArray[1], pathArray[2])
-            elif not (not isPresent[1] and isPresent[2]):
+            elif secondImpliesFirst:
                 return _jsonGetLogList(pathArray[1])
 
     elif pathArray[0] == "command":                         # only execution
-        if isPresent[1] and True not in isPresent[2:]:
+        if isPresent[1] and not any(isPresent[2:]):
             return _jsonGetCommandExecution(pathArray[1])
 
     return "403 Forbidden", "The format of the URI is invalid. More info: https://zza.hu/uBot_API", None
@@ -319,13 +320,13 @@ def _jsonGetCommandExecution(command):
 
 def _executeJsonPost(pathArray, isPresent, json):            ########################################## JSON POST HANDLER
     if pathArray[0] == "program":                           # persistent
-        if isPresent[1] and isPresent[2] and True not in isPresent[3:]:
+        if all(isPresent[1:3]) and not any(isPresent[3:]):
             return _jsonPostProgram(pathArray[1], pathArray[2], json)
     elif pathArray[0] == "command":                         # temporary, only execution
-        if True not in isPresent[1:]:
+        if not any(isPresent[1:]):
             return _jsonPostCommand(json)
     elif pathArray[0] == "root":                            # ONLY DURING DEVELOPMENT
-        if True not in isPresent[1:]:
+        if not any(isPresent[1:]):
             return _jsonPostRoot(json)
     return "403 Forbidden", "The format of the URI is invalid. More info: https://zza.hu/uBot_API", None
 

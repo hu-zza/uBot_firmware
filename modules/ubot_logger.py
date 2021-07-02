@@ -37,11 +37,15 @@ import ubot_config as config
 
 
 _fileName = 0
-                #    Name   | List |   Directory
+                #   Name   | List | Path
 _logFiles = (
-                ["Exception", [], "log/exception/"],
-                ["Event",     [], "log/event/"],
-                ["Object",    [], "log/object/"]
+                ["Exception", [],   ""],
+                ["Event",     [],   ""],
+                ["Object",    [],   ""],
+
+                ["Executed/Commands", [], ""],      # Managed by ubot_turtle, only initialisation
+                ["Executed/DateTime", [], ""],      # Managed by ubot_turtle, only initialisation
+                ["Executed/Program",  [], ""],      # Managed by ubot_turtle, only initialisation
             )
 
 
@@ -51,7 +55,7 @@ _logFiles = (
 def append(item):
     if _fileName != 0:
         try:
-            with open(_logFiles[_defineIndex(item)][2] + _fileName, "a") as file:
+            with open(_logFiles[_defineIndex(item)][2], "a") as file:
                 _writeOutItem(config.datetime(), file, item)
         except Exception as e:
             _appendToList(e)
@@ -151,10 +155,10 @@ def _writeOutItem(dateTime, file, item):
 def _defineIndex(item):
     if isinstance(item, Exception):
         return 0
-    elif isinstance(item, dict):
-        return 2
-    else:
+    elif isinstance(item, str):
         return 1
+    else:
+        return 2
 
 
 
@@ -169,10 +173,11 @@ try:
 except Exception as e:
     _appendToList(e)
 
-for logFile in _logFiles:
+for _logFile in _logFiles:
+    _logFile[2] = "/log/{}/{}".format(_logFile[0].lower(), _fileName)
     try:
-        with open(logFile[2] + _fileName, "w") as file:
-            file.write("{}\n{} log initialised successfully.\n\n".format(config.datetime(), logFile[0]))
-            _saveFromList(logFile)
+        with open(_logFile[2], "w") as file:
+            file.write("{}\n{} log initialised successfully.\n\n".format(config.datetime(), _logFile[0]))
+            _saveFromList(_logFile)
     except Exception as e:
         _appendToList(e)

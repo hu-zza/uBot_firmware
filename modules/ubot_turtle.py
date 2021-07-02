@@ -115,12 +115,14 @@ def press(pressed):  # pressed = 1<<buttonOrdinal
 
 def move(direction, silent = False):
     global _skipOneStepSignal
+    global _skipOneEndSignal
 
     if isinstance(direction, str):
         direction = ord(direction)
 
     if silent:
         _skipOneStepSignal = True
+        _skipOneEndSignal = True
 
     if direction == 70:                 # "F" - FORWARD
         motor.move(1, _moveLength)
@@ -816,8 +818,8 @@ def _callbackStep():
 
 
 def _callbackEnd():
-    global _runningProgram
     global _skipOneEndSignal
+    global _runningProgram
 
     if _endSignalEnabled and not _skipOneEndSignal and _endSignal != "":
         buzzer.keyBeep(_endSignal)
@@ -897,6 +899,7 @@ _functionMapping = {
 
 _currentMapping = _defaultMapping
 
+motor.setCallback(0, _callbackEnd)
 motor.setCallback(1, _callbackStep)
 
 _startButtonChecking()

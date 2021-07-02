@@ -159,7 +159,7 @@ def _processIncoming(incoming):
 
         logger.append("HTTP request:  {}  {}".format(method, path))
 
-        if method in ("GET", "POST", "PUT", "DELETE"):
+        if method in {"GET", "POST", "PUT", "DELETE"}:
                 if "text/html" in contentType or "text/html" in accept:
                     _processHtmlQuery(method, path, body)
                 elif "application/json" in contentType or "application/json" in accept or "*/*" in accept:
@@ -267,7 +267,7 @@ def _processHtmlPostQuery(path, body):
 def _processJsonQuery(method, path, body):
     global _jsonFunction
 
-    if method in ("GET", "POST", "PUT", "DELETE"):
+    if method in {"GET", "POST", "PUT", "DELETE"}:
         if method == "GET":
             _jsonFunction = _jsonGetFunction
         elif method == "POST":
@@ -277,7 +277,7 @@ def _processJsonQuery(method, path, body):
         else:
             _jsonFunction = _jsonDeleteFunction
 
-        _startJsonProcessing(path, body if method in ("POST", "PUT") else "{}")
+        _startJsonProcessing(path, body if method in {"POST", "PUT"} else "{}")
     else:
         _reply("HTML", "405 Method Not Allowed",
                "The following HTTP request methods are allowed with application/json content type: "
