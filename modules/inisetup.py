@@ -55,6 +55,12 @@ i2c = {
 }
 
 
+logger = {
+    "active"        : True,
+    "activeLogs"    : ("Exception", "Object", "Run")    # All: ("Exception", "Event", "Object", "Run")
+}
+
+
 motor = {
     "active"        : True,
     "T0Period"      : 10,
@@ -71,8 +77,8 @@ motor = {
 system = {
     "id"            : hexlify(uos.urandom(32)).decode(),
     "chk"           : hexlify(uos.urandom(32)).decode(),
-    "firmware"      : (0, 1, 125),
-    "initDateTime"  : (2021, 7, 2, 0, 19, 45, 0, 0),
+    "firmware"      : (0, 1, 126),
+    "initDateTime"  : (2021, 7, 2, 0, 21, 0, 0, 0),
     "powerOnCount"  : 0
 }
 
@@ -119,6 +125,7 @@ configModules = {
     "buzzer"    : buzzer,
     "feedback"  : feedback,
     "i2c"       : i2c,
+    "logger"    : logger,
     "motor"     : motor,
     "system"    : system,
     "turtle"    : turtle,

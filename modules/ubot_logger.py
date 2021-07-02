@@ -37,31 +37,37 @@ import ubot_config as config
 import ubot_turtle as turtle
 
 _fileName = 0
-                #   Name   | List | Path
+_enabled = config.get("logger", "active")
+
+                # Name        | List  | Path  | Enabled
 _logFiles = (
-                ["Exception", [],   ""],
-                ["Event",     [],   ""],
-                ["Object",    [],   ""],
-                ["Run",       [],   ""])
+                ["Exception",   [],     "",     "Exception" in config.get("logger", "activeLogs")],
+                ["Event",       [],     "",     "Event" in config.get("logger", "activeLogs")],
+                ["Object",      [],     "",     "Object" in config.get("logger", "activeLogs")],
+                ["Run",         [],     "",     "Run" in config.get("logger", "activeLogs")])
 
 
 ################################
 ## PUBLIC METHODS
 
 def append(item, logIndex = None):
-    if _fileName != 0:
-        try:
-            with open(_logFiles[_defineIndex(item) if logIndex is None else logIndex][2], "a") as file:
-                _writeOutItem(config.datetime(), file, item)
-        except Exception as e:
-            _appendToList(e)
+    if _enabled:
+        if _fileName != 0:
+            try:
+                logIndex = _defineIndex(item) if logIndex is None else logIndex
+                if 0 <= logIndex:
+                    with open(_logFiles[logIndex][2], "a") as file:
+                        _writeOutItem(config.datetime(), file, item)
+            except Exception as e:
+                _appendToList(e)
+                _appendToList(item)
+        else:
             _appendToList(item)
-    else:
-        _appendToList(item)
 
 
 def logCommandsAndProgram():
-    append((turtle.getCommandArray(), turtle.getProgramArray()), 3)
+    if _logFiles[3][3]:
+        append((turtle.getCommandArray(), turtle.getProgramArray()), 3)
 
 
 def getLogCategories():
@@ -103,23 +109,24 @@ def _appendToList(item):
 
     index = _defineIndex(item)
 
-    try:
-        _logFiles[index][1].append((config.datetime(), item))
+    if 0 <= index:
+        try:
+            _logFiles[index][1].append((config.datetime(), item))
 
-        if 30 < len(_logFiles[index][1]):
-            try:
-                _saveFromList(_logFiles[index])
-            except Exception as e:
-                _logFiles[index][1] = _logFiles[index][1][10:]              # Reassign list (Delete the oldest 10 items.)
+            if 30 < len(_logFiles[index][1]):
+                try:
+                    _saveFromList(_logFiles[index])
+                except Exception as e:
+                    _logFiles[index][1] = _logFiles[index][1][10:]         # Reassign list (Delete the oldest 10 items.)
 
-    except Exception as e:
-        usys.print_exception(e)
-        if index == 0:
-            usys.print_exception(item)
+        except Exception as e:
+            usys.print_exception(e)
+            if index == 0:
+                usys.print_exception(item)
 
 
 def _saveFromList(logFile, fallback = False):
-    if logFile[1]:                                                  # If this list contains item(s).
+    if _enabled and logFile[3] and 0 < len(logFile[1]):             # Logger and log is active and log list has item(s).
 
         if _fileName == 0:                                          # If filename is undefined.
             fallback = True
@@ -153,12 +160,14 @@ def _writeOutItem(dateTime, file, item):
 
 
 def _defineIndex(item):
-    if isinstance(item, Exception):
-        return 0
+    if not _enabled:
+        return -1
+    elif isinstance(item, Exception):
+        return 0 if _logFiles[0][3] else -1
     elif isinstance(item, str):
-        return 1
+        return 1 if _logFiles[1][3] else -1
     else:
-        return 2
+        return 2 if _logFiles[2][3] else -1
 
 
 
