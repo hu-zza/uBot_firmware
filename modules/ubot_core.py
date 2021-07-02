@@ -68,9 +68,12 @@ def executeCommand(command):
         for char in command[5:].strip():
             turtle.move(char)
 
-    elif command[:5] == "DRIVE_":
-        for char in command[5:].strip():
+    elif command[:6] == "DRIVE_":
+        breath = motor.getBreath()
+        motor.setBreath(100)
+        for char in command[6:].strip():
             turtle.move(char, True)
+        motor.setBreath(breath)
 
     elif command[:5] == "BEEP_":
         beepArray = command[5:].strip().split(":")
@@ -202,7 +205,7 @@ def _jsonGetProgramAction(folder, title, action):
     result = doProgramAction(folder, title, action)
 
     if result is not None and result != "":
-        return "200 OK", "", result
+        return "200 OK", "The program action has started.", result
     else:
         return "403 Forbidden", "The processing of the request failed. Cause: Semantic error in URI. " \
                                            "More info: https://zza.hu/uBot_API", None
@@ -210,9 +213,23 @@ def _jsonGetProgramAction(folder, title, action):
 
 def _jsonGetProgramCode(folder, title):
     result = turtle.getProgramCode(folder, title)
+    host = "http://{}".format(AP.ifconfig()[0])
+    programDirLink = host + "/program"
+    programLink = "{}/{}/{}".format(programDirLink, folder, title)
 
     if result is not None and result != ():
-        return "200 OK", "", result
+        return "200 OK", "", {
+            "title": title,
+            "code": result,
+            "href": programLink,
+            "file": "{}/raw/program/{}/{}.txt".format(host, folder, title),
+            "folder": {
+                "name": folder,
+                "href": "{}/{}".format(programDirLink, folder)
+            },
+            "action": {
+                "run": programLink + "/run"
+            }}
     else:
         return "404 Not Found", "The processing of the request failed. Cause: No such program. " \
                                            "More info: https://zza.hu/uBot_API", None

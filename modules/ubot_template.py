@@ -263,9 +263,9 @@ def getApPanel():
 def getDrivePanel():
     return ("        <table class = 'drive panel'>\n"
             "            <tr>\n"
-            "                <td><svg onclick='send(\"l\")' style='transform: rotate(-45deg);'><use xlink:href='#arrow'></use></svg></td>\n"
+            "                <td><svg onclick='send(\"K\")' style='transform: rotate(-45deg);'><use xlink:href='#arrow'></use></svg></td>\n"
             "                <td><svg onclick='send(\"F\")'><use xlink:href='#arrow'></use></svg></td>\n"
-            "                <td><svg onclick='send(\"r\")' style='transform: rotate(45deg);'><use xlink:href='#arrow'></use></svg></td>\n"
+            "                <td><svg onclick='send(\"Q\")' style='transform: rotate(45deg);'><use xlink:href='#arrow'></use></svg></td>\n"
             "            </tr>\n"
             "            <tr>\n"
             "                <td><svg onclick='send(\"L\")' style='transform: rotate(-90deg);'><use xlink:href='#arrow'></use></svg></td>\n"

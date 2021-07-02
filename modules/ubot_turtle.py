@@ -65,6 +65,11 @@ _moveLength   = config.get("turtle", "moveLength")
 _turnLength   = config.get("turtle", "turnLength")
 _breathLength = config.get("turtle", "breathLength")
 
+_endSignalEnabled  = True
+_skipOneEndSignal  = False
+_stepSignalEnabled = True
+_skipOneStepSignal = False
+
 _endSignal    = config.get("turtle", "endSignal")           # Sound indicates the end of a step during execution: buzzer.keyBeep(_stepSignal)
 _stepSignal   = config.get("turtle", "stepSignal")          # Sound indicates the end of program execution:       buzzer.keyBeep(_endSignal)
 
@@ -109,13 +114,13 @@ def press(pressed):  # pressed = 1<<buttonOrdinal
 
 
 def move(direction, silent = False):
-    global _stepSignal
+    global _skipOneStepSignal
 
     if isinstance(direction, str):
         direction = ord(direction)
 
     if silent:
-        _stepSignal = ""
+        _skipOneStepSignal = True
 
     if direction == 70:                 # "F" - FORWARD
         motor.move(1, _moveLength)
@@ -131,13 +136,10 @@ def move(direction, silent = False):
         motor.move(3, _turnLength // 2) #                       Placeholder...
     elif direction == 80:               # "P" - PAUSE
         motor.move(0, _moveLength)
-    elif direction == 75:               # "K" - LEFT (45°)      alias for URI usage ( L - 1 = l )
+    elif direction == 75:               # "K" - LEFT (45°)      alias for URI usage ( L - 1 = K   ~ l )
         motor.move(2, _turnLength // 2) #                       Placeholder...
-    elif direction == 81:               # "Q" - RIGHT (45°)     alias for URI usage ( R - 1 = r )
+    elif direction == 81:               # "Q" - RIGHT (45°)     alias for URI usage ( R - 1 = Q   ~ r )
         motor.move(3, _turnLength // 2) #                       Placeholder...
-
-    if silent:
-        _stepSignal = config.get("turtle", "stepSignal")
 
 
 def getCommandArray():
@@ -522,7 +524,7 @@ def _start(arguments):                # (blockLevel,)
     config.saveDateTime()
     _logExecuted()
 
-    motor.setCallback(0, _callbackEnd, True)      # Set as temporary, because not every execution need it.
+    motor.setCallback(0, _callbackEnd)
 
     #counter = 0                                   #    Debug
     #print("_toPlay[:_pointer]", "_toPlay[_pointer:]", "\t\t\t", "counter", "_pointer", "_toPlay[_pointer]") # Debug
@@ -530,9 +532,6 @@ def _start(arguments):                # (blockLevel,)
     while _processingProgram:
         remaining = _upperBoundary - 1 - _pointer #    Remaining bytes in _toPlay bytearray. 0 if _toPlay[_pointer] == _toPlay[-1]
         checkCounter = False
-
-        #if _pointer < _upperBoundary:            #    Debug
-        #    print(_toPlay[:_pointer].decode(), _toPlay[_pointer:].decode(), "\t\t\t", counter, _pointer, _toPlay[_pointer])
 
         if remaining < 0:                         #    If everything is executed, exits.
             _processingProgram = False
@@ -599,10 +598,6 @@ def _start(arguments):                # (blockLevel,)
                 del _pointerStack[-1]           #      Delete the loop's starting position from stack.
                 del _counterStack[-1]           #      Delete the loop's counter from stack.
                 _pointer += 2                   #      Jump to the loop's closing parentheses: ")"
-
-        #if _pointer < _upperBoundary:           #      Debug
-        #    print(_toPlay[:_pointer].decode(), _toPlay[_pointer:].decode(), "\t\t\t", counter, _pointer, _toPlay[_pointer], "\n")
-        #counter += 1                            #      Debug
 
         _pointer += 1
 
@@ -811,18 +806,24 @@ def _customMapping():
 ## CALLBACK FUNCTIONS
 
 def _callbackStep():
-    if _stepSignal != "":
+    global _skipOneStepSignal
+
+    if _stepSignalEnabled and not _skipOneStepSignal and _stepSignal != "":
         buzzer.keyBeep(_stepSignal)
+
+    _skipOneStepSignal = False
     checkButtons()
 
 
 def _callbackEnd():
     global _runningProgram
+    global _skipOneEndSignal
 
-    _runningProgram    = False
-
-    if _endSignal != "":
+    if _endSignalEnabled and not _skipOneEndSignal and _endSignal != "":
         buzzer.keyBeep(_endSignal)
+
+    _skipOneEndSignal = False
+    _runningProgram   = False
 
 
 

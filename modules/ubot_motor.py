@@ -200,6 +200,11 @@ def deleteCallback(slot = 0):
     _callbacks[slot] = ()
 
 
+def getBreath():
+    """ Getter method for _breath that is the pause in ms between movements. Use case: turtle mode """
+    return _breath
+
+
 def setBreath(breathLength):
     global _breath
     """ Setter method for _breath that is the pause in ms between movements. Use case: turtle mode """
