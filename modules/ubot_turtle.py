@@ -41,7 +41,6 @@ import ubot_motor  as motor
 
 _powerOnCount = config.get("system", "powerOnCount")
 _defaultDir   = "json"
-_fileName     = "{:010d}.txt".format(_powerOnCount)
 _savedCount   = 0
 
 _clockPin = Pin(13, Pin.OUT)                                # Advances the decade counter (U3).
@@ -155,7 +154,7 @@ def getProgramArray():
 def getProgramFolders():
     try:
         programFolders = uos.listdir("/program")
-        return tuple([folder for folder in programFolders if uos.stat("program/{}".format(folder))[0] == 0x04000]) #dirs
+        return tuple([folder for folder in programFolders if uos.stat("/program/{}".format(folder))[0] == 0x04000]) #dirs
     except Exception as e:
         logger.append(e)
         return ()
@@ -201,7 +200,7 @@ def runProgram(folder, title):
 
 def loadProgram(folder, title):
     try:
-        with open("program/{}/{}.txt".format(folder.lower(), title.lower()), "r") as file:
+        with open("/program/{}/{}.txt".format(folder.lower(), title.lower()), "r") as file:
             loadProgramFromString(ujson.loads(file.readline()))
     except Exception as e:
         logger.append(e)
@@ -221,18 +220,18 @@ def loadProgramFromString(program):
 
 
 def hasProgramLoaded():
-    return 0 < len(_programArray[:_programParts[-1]].decode())
+    return 0 < len(getProgramArray())
 
 
 def saveLoadedProgram(folder = None, title = None):
-    saveProgram(_programArray[:_programParts[-1]].decode(), _defaultDir if folder is None else folder, title)
+    saveProgram(getProgramArray(), _defaultDir if folder is None else folder, title)
 
 
 def saveProgram(program, folder = None, title = None):
     global _savedCount
 
     folder = _defaultDir if folder is None else folder
-    path = _generateFullPath() if title is None else "program/{}/{}.txt".format(folder.lower(), title.lower())
+    path = _generateFullPath() if title is None else "/program/{}/{}.txt".format(folder.lower(), title.lower())
 
     try:
         with open(path, "w") as file:
@@ -276,7 +275,7 @@ def _generateFullPath():
     global _savedCount
 
     _savedCount += 1
-    return "program/turtle/{:010d}_{:03d}.txt".format(_powerOnCount, _savedCount)
+    return "/program/turtle/{:010d}_{:03d}.txt".format(_powerOnCount, _savedCount)
 
 
 ################################
@@ -477,30 +476,6 @@ def _isTagBoundary(commandPointer):
 
 
 ################################
-## HELPER METHODS FOR LOGS
-
-def _logExecuted():
-    try:
-        with open("log/executed/datetime/{}".format(_fileName), "a") as file:
-            file.write("{}\n".format(config.datetime()))
-    except Exception as e:
-        logger.append(e)
-
-    try:
-        with open("log/executed/commands/{}".format(_fileName), "a") as file:
-            file.write("{}\n".format(_commandArray[:_commandPointer].decode()))
-    except Exception as e:
-        logger.append(e)
-
-    try:
-        with open("log/executed/program/{}".format(_fileName), "a") as file:
-            file.write("{}\n".format(_programArray[:_programParts[-1]].decode()))
-    except Exception as e:
-        logger.append(e)
-
-
-
-################################
 ## STANDARDIZED FUNCTIONS
 
 def _start(arguments):                # (blockLevel,)
@@ -524,7 +499,7 @@ def _start(arguments):                # (blockLevel,)
     _counterStack = []
 
     config.saveDateTime()
-    _logExecuted()
+    logger.logCommandsAndProgram()
 
     motor.setCallback(0, _callbackEnd)
 

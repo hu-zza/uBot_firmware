@@ -34,7 +34,7 @@ import uos, usys
 from machine import RTC
 
 import ubot_config as config
-
+import ubot_turtle as turtle
 
 _fileName = 0
                 #   Name   | List | Path
@@ -42,20 +42,16 @@ _logFiles = (
                 ["Exception", [],   ""],
                 ["Event",     [],   ""],
                 ["Object",    [],   ""],
-
-                ["Executed/Commands", [], ""],      # Managed by ubot_turtle, only initialisation
-                ["Executed/DateTime", [], ""],      # Managed by ubot_turtle, only initialisation
-                ["Executed/Program",  [], ""],      # Managed by ubot_turtle, only initialisation
-            )
+                ["Run",       [],   ""])
 
 
 ################################
 ## PUBLIC METHODS
 
-def append(item):
+def append(item, logIndex = None):
     if _fileName != 0:
         try:
-            with open(_logFiles[_defineIndex(item)][2], "a") as file:
+            with open(_logFiles[_defineIndex(item) if logIndex is None else logIndex][2], "a") as file:
                 _writeOutItem(config.datetime(), file, item)
         except Exception as e:
             _appendToList(e)
@@ -64,10 +60,14 @@ def append(item):
         _appendToList(item)
 
 
+def logCommandsAndProgram():
+    append((turtle.getCommandArray(), turtle.getProgramArray()), 3)
+
+
 def getLogCategories():
     try:
         logFolders = uos.listdir("/log")
-        return tuple([category for category in logFolders if uos.stat("log/{}".format(category))[0] == 0x04000]) # only dirs
+        return tuple([category for category in logFolders if uos.stat("/log/{}".format(category))[0] == 0x04000]) # only dirs
     except Exception as e:
         append(e)
         return ()
@@ -143,7 +143,7 @@ def _writeOutItem(dateTime, file, item):
     if _defineIndex(item) == 0:
         usys.print_exception(item, file)
     else:
-        if isinstance(item, list):
+        if isinstance(item, tuple) or isinstance(item, list):
             for i in item:
                 file.write("{}\n".format(i))
         else:
@@ -168,7 +168,7 @@ def _defineIndex(item):
 _fileName = "{:010d}.txt".format(int(config.get("system", "powerOnCount")))
 
 try:
-    with open("log/datetime.txt", "a") as file:
+    with open("/log/datetime.txt", "a") as file:
         file.write("{}\n{}\n\n".format(config.datetime(), _fileName))
 except Exception as e:
     _appendToList(e)

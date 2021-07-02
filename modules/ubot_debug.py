@@ -121,7 +121,7 @@ except Exception as e:
 
 def listExceptions():
     stopSignal()
-    exceptionFiles = uos.listdir("log/exception")
+    exceptionFiles = uos.listdir("/log/exception")
     print()
     for fileName in exceptionFiles:
         print("{}\t{}".format(int(fileName[:-4]), fileName))        # [:-4] strip the file extension: .txt
@@ -136,13 +136,13 @@ def printExceptions(nr = None):
                "You can list ordinals and file names with\n"
                "listExceptions() command.\n"))
     else:
-        exceptionFiles = uos.listdir("log/exception")
+        exceptionFiles = uos.listdir("/log/exception")
         fileName = "{:010d}.txt".format(nr)
 
         if fileName in exceptionFiles:
             try:
                 print()
-                with open("log/exception/" + fileName) as file:
+                with open("/log/exception/" + fileName) as file:
                     for line in file:
                         print(line, end="")
                 print()
