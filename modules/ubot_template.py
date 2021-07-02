@@ -215,26 +215,17 @@ def getSystemPanel():
 
 
 def getServiceStatusPanel():
+    moduleMap = {config.get(module, "name"): config.get(module, "active") for module in config.getModules()}
+
+    statusReport = ""
+    for name in sorted(moduleMap.keys()):
+        statusReport += "                <tr><td> <strong>{}</strong> </td><td>{}</td><td>  </td></tr>\n"\
+                        .format(name, moduleMap.get(name))
+
     return ("        <h3>Service status</h3>\n"
             "            <table class='data'>\n"
-            "                <tr><td> <strong>AP:</strong> </td><td>{isApUp}</td><td>  </td></tr>\n"
-            "                <tr><td> <strong>Buzzer:</strong> </td><td>{isBuzzerUp}</td><td>  </td></tr>\n"
-            "                <tr><td> <strong>Feedback:</strong> </td><td>{isFeedbackUp}</td><td> </td></tr>\n"
-            "                <tr><td> <strong>I2C:</strong> </td><td>{isI2cUp}</td><td> </td></tr>\n"
-            "                <tr><td> <strong>Motor:</strong> </td><td>{isMotorUp}</td><td> </td></tr>\n"
-            "                <tr><td> <strong>Turtle:</strong> </td><td>{isTurtleUp}</td><td> </td></tr>\n"
-            "                <tr><td> <strong>UART:</strong> </td><td>{isUartUp}</td><td> </td></tr>\n"
-            "                <tr><td> <strong>Web server:</strong> </td><td>{isWebServerUp}</td><td> </td></tr>\n"
-            "                <tr><td> <strong>Web REPL:</strong> </td><td>{isWebReplUp}</td><td> </td></tr>\n"
-            "            </table>\n").format(isApUp=config.get("ap", "active"),
-                                             isBuzzerUp=config.get("buzzer", "active"),
-                                             isFeedbackUp=config.get("feedback", "active"),
-                                             isI2cUp=config.get("i2c", "active"),
-                                             isMotorUp=config.get("motor", "active"),
-                                             isTurtleUp=config.get("turtle", "active"),
-                                             isUartUp=config.get("uart", "active"),
-                                             isWebServerUp=config.get("webServer", "active"),
-                                             isWebReplUp=config.get("webRepl", "active"))
+            + statusReport +
+            "            </table>\n")
 
 
 def getApPanel():

@@ -11,6 +11,7 @@ AP = network.WLAN(network.AP_IF)
 ## CONFIG SUBDICTIONARIES
 
 ap = {
+    "name"          : "Access point",
     "active"        : True,
     "essid"         : "uBot__" + hexlify(AP.config("mac"), ":").decode()[9:],
     "password"      : "uBot_pwd"
@@ -18,6 +19,7 @@ ap = {
 
 
 buzzer = {
+    "name"          : "Buzzer",
     "active"        : True,
 
     "step"          : ((None, 200), (60, 50, 0, 1)),
@@ -43,11 +45,13 @@ buzzer = {
 
 
 feedback = {
-    "active"        : True
+    "name"          : "Motion feedback",
+    "active"        : False
 }
 
 
 i2c = {
+    "name"          : "I2C Bus",
     "active"        : False,
     "sda"           : 0,
     "scl"           : 2,
@@ -56,12 +60,14 @@ i2c = {
 
 
 logger = {
+    "name"          : "Logger",
     "active"        : True,
     "activeLogs"    : ("Exception", "Object", "Run")    # All: ("Exception", "Event", "Object", "Run")
 }
 
 
 motor = {
+    "name"          : "Motor driver",
     "active"        : True,
     "T0Period"      : 10,
     "T0Duration"    : 6,
@@ -75,15 +81,18 @@ motor = {
 
 
 system = {
+    "name"          : "System",
+    "active"        : True,     # Just for unity
     "id"            : hexlify(uos.urandom(32)).decode(),
     "chk"           : hexlify(uos.urandom(32)).decode(),
-    "firmware"      : (0, 1, 126),
-    "initDateTime"  : (2021, 7, 2, 0, 21, 0, 0, 0),
+    "firmware"      : (0, 1, 127),
+    "initDateTime"  : (2021, 7, 2, 0, 23, 10, 0, 0),
     "powerOnCount"  : 0
 }
 
 
 turtle = {
+    "name"          : "Turtle",
     "active"        : True,
     "moveLength"    : 890,
     "turnLength"    : 359,
@@ -100,11 +109,13 @@ turtle = {
 
 
 uart = {
+    "name"          : "UART",
     "active"        : True
 }
 
 
 webServer = {
+    "name"          : "Web server",
     "active"        : True,
     "period"        : 1000,
     "timeout"       : 750
@@ -112,6 +123,7 @@ webServer = {
 
 
 webRepl = {
+    "name"          : "MicroPython WebREPL",
     "active"        : False,
     "password"      : "uBot_REPL"
 }

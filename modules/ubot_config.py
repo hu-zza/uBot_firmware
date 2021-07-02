@@ -42,7 +42,7 @@ def getModules():
     """ Returns a tuple consists all available modules, or an empty tuple. """
     try:
         moduleFolders = uos.listdir("/etc")
-        return tuple([module for module in moduleFolders if uos.stat("/etc/{}".format(module))[0] == 0x04000])    # only dirs
+        return tuple([module for module in moduleFolders if uos.stat("/etc/{}".format(module))[0] == 0x04000]) # only dirs
     except Exception as e:
         logger.append(e)
         return ()
