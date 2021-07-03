@@ -97,7 +97,7 @@ def getLog(category, title):
         return ()
 
 
-def isLogExist(category, title):
+def doesLogExist(category, title):
     return title in getCategoryLogs(category)
 
 

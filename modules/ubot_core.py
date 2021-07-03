@@ -61,7 +61,7 @@ if config.get("webServer", "active"):
 def getFolders():
     try:
         rootFolders = uos.listdir("/")
-        return tuple([folder for folder in rootFolders if uos.stat("/{}".format(folder))[0] == 0x04000]) #dirs
+        return tuple([folder for folder in rootFolders if uos.stat("/{}".format(folder))[0] == 0x04000]) # only dirs
     except Exception as e:
         logger.append(e)
         return ()
@@ -126,9 +126,30 @@ def doProgramAction(folder, title, action):
 
 def _executeJsonGet(pathArray, isPresent, ignoredJson):     ########################################### JSON GET HANDLER
     secondImpliesFirst = not isPresent[2] or isPresent[1]
-    if pathArray[0] == "":                                  ### get
+    if pathArray[0] == "":                                  ### GET
         return _jsonGetRoot()
-    if pathArray[0] == "program":                           ### get or execution
+
+    elif pathArray[0] == "command":                         ### EXECUTION
+        if isPresent[1] and not any(isPresent[2:]):
+            return _jsonGetCommandExecution(pathArray[1])
+
+    elif pathArray[0] == "etc":                             ### GET
+        if not any(isPresent[3:]):
+            if all(isPresent[1:3]):
+                return _jsonGetEtcAttribute(pathArray[1], pathArray[2])
+            elif isPresent[1]:
+                return _jsonGetEtcModule(pathArray[1])
+            else:
+                return _jsonGetEtcRoot()
+
+    elif pathArray[0] == "log":                             ### GET
+        if not any(isPresent[3:]):
+            if all(isPresent[1:3]):
+                return _jsonGetLog(pathArray[1], pathArray[2])
+            elif secondImpliesFirst:
+                return _jsonGetLogList(pathArray[1])
+
+    elif pathArray[0] == "program":                        ### GET or EXECUTION
         if not any(isPresent[4:]):
             if all(isPresent[1:4]):                         # program / <folder> / <title> / <action>
                 return _jsonGetStartProgramAction(pathArray[1], pathArray[2], pathArray[3])
@@ -137,28 +158,10 @@ def _executeJsonGet(pathArray, isPresent, ignoredJson):     ####################
             elif isPresent[1]:                              # program / <folder>
                 return _jsonGetFolder(pathArray[1])
             else:                                           # program
-                return _jsonGetProgramFolder()
+                return _jsonGetProgramRoot()
 
-    elif pathArray[0] == "system":                          ### only get
-        if not any(isPresent[3:]):
-            if all(isPresent[1:3]):
-                return _jsonGetSystemAttribute(pathArray[1], pathArray[2])
-            elif secondImpliesFirst:
-                return _jsonGetSystemAttributes(pathArray[1])
-
-    elif pathArray[0] == "log":                             ### only get
-        if not any(isPresent[3:]):
-            if all(isPresent[1:3]):
-                return _jsonGetLog(pathArray[1], pathArray[2])
-            elif secondImpliesFirst:
-                return _jsonGetLogList(pathArray[1])
-
-    elif pathArray[0] == "raw":                             ### only get
+    elif pathArray[0] == "raw":                             ### GET
         return _jsonGetRaw(pathArray, isPresent)
-
-    elif pathArray[0] == "command":                         ### only execution
-        if isPresent[1] and not any(isPresent[2:]):
-            return _jsonGetCommandExecution(pathArray[1])
 
     return "403 Forbidden", "The format of the URI is invalid.", {}
 
@@ -195,7 +198,7 @@ def _jsonGetStartProgramAction(folder, title, action):
 def _jsonGetProgram(folder, title):
     job = "Request: Get the program '{}' ({}).".format(title, folder)
 
-    if turtle.isProgramExist(folder, title):
+    if turtle.doesProgramExist(folder, title):
         programCode = turtle.getProgramCode(folder, title)
 
         return "200 OK", job, {
@@ -221,7 +224,7 @@ def _jsonGetProgram(folder, title):
 def _jsonGetFolder(folder):
     job = "Request: Get the folder '{}'.".format(folder)
 
-    if folder in turtle.getProgramFolders():
+    if turtle.doesFolderExist(folder):
         children = [{"name": program, "type": "program", "href": "{}{}/{}".format(_programDirLink, folder, program),
                     "raw": "{}{}/{}.txt".format(_programRawDirLink, folder, program)}
                     for program in turtle.getProgramList(folder)]
@@ -242,10 +245,11 @@ def _jsonGetFolder(folder):
         return "404 Not Found", job + " Cause: No such program folder.", {}
 
 
-def _jsonGetProgramFolder():
+def _jsonGetProgramRoot():
     programFolders = turtle.getProgramFolders()
-    if programFolders != ():
+    job = "Request: Get the folder 'program'."
 
+    if programFolders != ():
         children = [{"name": folder, "type": "folder", "href": "{}{}/".format(_programDirLink, folder),
                      "raw": "{}{}/".format(_programRawDirLink, folder)} for folder in programFolders]
 
@@ -262,35 +266,78 @@ def _jsonGetProgramFolder():
             },
             "children": children}
     else:
-        return "404 Not Found", "The processing of the request failed. Cause: Root folder of programs is not available.", {}
+        return "404 Not Found", job + " Cause: Root folder of programs is not available.", {}
 
 
-def _jsonGetSystemAttribute(module, attribute):
-    result = config.get(module, attribute)
+def _jsonGetEtcAttribute(module, attribute):
+    job = "Request: Get the system attribute '{}' ({}).".format(attribute, module)
 
-    if result is not None:
-        return "200 OK", "", result
+    if config.doesAttributeExist(module, attribute):
+        value = config.get(module, attribute)
+
+        return "200 OK", job, {
+            "name": attribute,
+            "type": "attribute",
+            "href": "{}{}/{}".format(_etcDirLink, module, attribute),
+            "raw":  "{}{}/{}.txt".format(_etcRawDirLink, module, attribute),
+            "parent": {
+                "name": module,
+                "type": "folder",
+                "href": "{}{}".format(_etcDirLink, module),
+                "raw":  "{}{}".format(_etcRawDirLink, module)
+            },
+            "children": [],
+            "value": value}
     else:
-        return "404 Not Found", "The processing of the request failed. Cause: No such system attribute.", {}
+        return "404 Not Found", job + " Cause: No such system attribute.", {}
 
 
-def _jsonGetSystemAttributes(module):
-    result = _getSystemInfo() if module is None or module == "" else _getModuleInfo(module)
+def _jsonGetEtcModule(module):
+    job = "Request: Get the folder '{}'.".format(module)
 
-    if result is not None and result != {}:
-        return "200 OK", "", result
+    if module in config.getModules():
+        children = [{"name": attribute, "type": "attribute", "href": "{}{}/{}".format(_etcDirLink, module, attribute),
+                     "raw": "{}{}/{}.txt".format(_etcRawDirLink, module, attribute)}
+                    for attribute in config.getModuleAttributes(module)]
+
+        return "200 OK", job, {
+            "name": module,
+            "type": "folder",
+            "href": "{}{}/".format(_etcDirLink, module),
+            "raw":  "{}{}/".format(_etcRawDirLink, module),
+            "parent": {
+                "name": "etc",
+                "type": "folder",
+                "href": _etcDirLink,
+                "raw":  _etcRawDirLink
+            },
+            "children": children}
     else:
-        return "404 Not Found", "The processing of the request failed. Cause: No such system module.", {}
+        return "404 Not Found", job + " Cause: No such system folder.", {}
 
 
-def _getSystemInfo():
+def _jsonGetEtcRoot():
     modules = config.getModules()
-    return {module: _getModuleInfo(module) for module in modules}
+    job = "Request: Get the folder 'etc'."
 
+    if modules != ():
+        children = [{"name": module, "type": "folder", "href": "{}{}/".format(_programDirLink, module),
+                     "raw": "{}{}/".format(_programRawDirLink, module)} for module in modules]
 
-def _getModuleInfo(module):
-    attributes = config.getModuleAttributes(module)
-    return {attr: config.get(module, attr) for attr in attributes}
+        return "200 OK", "", {
+            "name": "etc",
+            "type": "folder",
+            "href": _programDirLink,
+            "raw":  _programRawDirLink,
+            "parent": {
+                "name": "root",
+                "type": "folder",
+                "href": _hostLink,
+                "raw":  _rawLink
+            },
+            "children": children}
+    else:
+        return "404 Not Found", job + " Cause: Root folder of programs is not available.", {}
 
 
 def _jsonGetLog(category, title):
@@ -352,7 +399,7 @@ def _jsonPostProgram(folder, title, json):
     else:
         turtle.saveProgram(program, folder, title)
 
-    if turtle.isProgramExist(folder, title):
+    if turtle.doesProgramExist(folder, title):
         return "201 Created", "", "http://{}/program/{}/{}".format(AP.ifconfig()[0], folder, title)
     else:
         return "422 Unprocessable Entity", "The processing of the request failed. Cause: Semantic error in JSON.", {}
@@ -396,7 +443,7 @@ def _executeJsonPut(pathArray, isPresent, json):            ####################
     if pathArray[0] == "program":                           ### persistent
         if isPresent[1] and isPresent[2] and True not in isPresent[3:]:
             return _jsonPutProgram(pathArray, isPresent, json)
-    elif pathArray[0] == "system":                          ### persistent
+    elif pathArray[0] == "etc":                             ### persistent
         if isPresent[1] and True not in isPresent[2:]:
             return _jsonPutSystemProperty(pathArray, isPresent, json)
     return "403 Forbidden", "The format of the URI is invalid.", {}
@@ -548,7 +595,13 @@ _hostLink = "http://{}/".format(AP.ifconfig()[0])
 _rawLink  = _hostLink + "raw/"
 
 _programDirLink    = _hostLink + "program/"
-_programRawDirLink = _rawLink + "program/"
+_programRawDirLink = _rawLink  + "program/"
+
+_etcDirLink    = _hostLink + "etc/"
+_etcRawDirLink = _rawLink  + "etc/"
+
+_logDirLink    = _hostLink + "log/"
+_logRawDirLink = _rawLink  + "log/"
 
 ###########
 ## GENERAL

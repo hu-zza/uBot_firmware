@@ -228,7 +228,7 @@ def saveProgram(program, folder = None, title = None):
     path = _generateFullPath() if title is None else "/program/{}/{}.txt".format(folder.lower(), title.lower())
 
     try:
-        if not isFolderExist(folder):
+        if not doesFolderExist(folder):
             createFolder(folder)
 
         try:
@@ -243,7 +243,7 @@ def saveProgram(program, folder = None, title = None):
         logger.append(e)
 
 
-def isProgramExist(folder, title):
+def doesProgramExist(folder, title):
     return title in getProgramList(folder)
 
 
@@ -251,7 +251,7 @@ def getProgramsCount():
     return sum([len(getProgramList(folder)) for folder in getProgramFolders()])
 
 
-def isFolderExist(folder):
+def doesFolderExist(folder):
     return folder in getProgramFolders()
 
 
@@ -303,12 +303,12 @@ def checkButtons(timer = None):
 
 def _throwIfNotExistAndReturnBoolean(folder, title = None):
     if title is None:
-        if isFolderExist(folder):
+        if doesFolderExist(folder):
             return True
         else:
             logger.append(AttributeError("The folder '{}' doesn't exist.".format(folder)))
     else:
-        if isProgramExist(folder, title):
+        if doesProgramExist(folder, title):
             return True
         else:
             logger.append(AttributeError("The program '{}' ({}) doesn't exist.".format(title, folder)))

@@ -50,22 +50,33 @@ def getModules():
 
 def getModuleAttributes(module):
     """ Returns a tuple consists all available attributes, or an empty tuple. """
-    try:
-        moduleFiles = uos.listdir("/etc/{}".format(module.lower()))
-        return tuple([fileName[:-4] for fileName in moduleFiles if fileName[-4:] == ".txt"])
-    except Exception as e:
-        logger.append(e)
-        return ()
+    if _throwIfNotExistAndReturnBoolean(module):
+        try:
+            moduleFiles = uos.listdir("/etc/{}".format(module.lower()))
+            return tuple([fileName[:-4] for fileName in moduleFiles if fileName[-4:] == ".txt"])
+        except Exception as e:
+            logger.append(e)
+    return ()
 
 
 def get(module, attribute):
     """ Returns the value of the attribute, or None. Firstly reads it from file, then deserializes it. """
-    return _manageAttribute(module, attribute, "r")
+    if _throwIfNotExistAndReturnBoolean(module, attribute):
+        return _manageAttribute(module, attribute, "r")
 
 
 def getDefault(module, attribute):
     """ Returns the default value of the attribute, or None. Firstly reads it from file, then deserializes it. """
-    return _manageAttribute(module, attribute, "r", None, "def")
+    if _throwIfNotExistAndReturnBoolean(module, attribute):   # Biased solution, however... Does this feature necessary?
+        return _manageAttribute(module, attribute, "r", None, "def")
+
+
+def doesModuleExist(module):
+    return module in getModules()
+
+
+def doesAttributeExist(module, attribute):
+    return attribute in getModuleAttributes(module)
 
 
 def restore(module, attribute):
@@ -76,15 +87,15 @@ def restore(module, attribute):
             ("Configuration: /etc/{dir}/{file}.txt could not be read. "
              "It has been replaced with /etc/{dir}/{file}.def").format(dir = module, file = attribute)
         )
-        return value
     except Exception as e:
         logger.append(e)
 
 
 def set(module, attribute, value):
     """ Sets the value of the attribute. Firstly serializes it and then writes it out. """
-    _manageRelated(module, attribute, value)    # Can not be at _manageAttribute's mode == "w" branch: too deep.
-    return _manageAttribute(module, attribute, "w", value)
+    _manageWebReplFile(module, attribute, value)        # Can not be at _manageAttribute's mode == "w" branch: too deep.
+    if _throwIfNotExistAndReturnBoolean(module):
+        return _manageAttribute(module, attribute, "w", value)
 
 
 def datetime(newDateTime = None):
@@ -107,9 +118,9 @@ def saveDateTime():
 ################################
 ## PRIVATE, HELPER METHODS
 
-def _manageAttribute(dir, name, mode, value = None, extension = "txt"):
+def _manageAttribute(module, attribute, mode, value = None, extension ="txt"):
     try:
-        with open("/etc/{}/{}.{}".format(dir, name, extension), mode) as file:
+        with open("/etc/{}/{}.{}".format(module, attribute, extension), mode) as file:
             if mode == "r":
                 return ujson.loads(file.readline())
             elif mode == "w":
@@ -118,21 +129,34 @@ def _manageAttribute(dir, name, mode, value = None, extension = "txt"):
         logger.append(e)
 
 
-def _manageRelated(module, attribute, value):
-    try:
-        if module == "webRepl" and attribute == "active":
+def _manageWebReplFile(module, attribute, value):
+    if module == "webRepl" and attribute == "active":
+        try:
                 if value and ".webrepl_cfg.py" in uos.listdir("/"):
                     uos.rename("/.webrepl_cfg.py", "/webrepl_cfg.py")
                 elif not value and "webrepl_cfg.py" in uos.listdir("/"):
                     uos.rename("/webrepl_cfg.py", "/.webrepl_cfg.py")
-    except Exception as e:
-        logger.append(e)
+        except Exception as e:
+            logger.append(e)
 
 
-def _readOrThrow(dir, file):
-    with open("/etc/{}/{}.txt".format(dir, file), "r") as file:
+def _readOrThrow(module, attribute):
+    with open("/etc/{}/{}.txt".format(module, attribute), "r") as file:
         return ujson.loads(file.readline())
 
+
+def _throwIfNotExistAndReturnBoolean(module, attribute = None):
+    if attribute is None:
+        if doesModuleExist(module):
+            return True
+        else:
+            logger.append(AttributeError("The module '{}' doesn't exist.".format(module)))
+    else:
+        if doesAttributeExist(module, attribute):
+            return True
+        else:
+            logger.append(AttributeError("The attribute '{}' ({}) doesn't exist.".format(attribute, module)))
+    return False
 
 
 ################################
