@@ -58,6 +58,15 @@ if config.get("webServer", "active"):
 ################################
 ## PUBLIC METHODS
 
+def getFolders():
+    try:
+        rootFolders = uos.listdir("/")
+        return tuple([folder for folder in rootFolders if uos.stat("/{}".format(folder))[0] == 0x04000]) #dirs
+    except Exception as e:
+        logger.append(e)
+        return ()
+
+
 def executeCommand(command):
     if command[:6] == "PRESS_":
         pressedList = command[6:].strip().split(":")
@@ -116,139 +125,144 @@ def doProgramAction(folder, title, action):
 ################################
 ## PRIVATE METHODS FOR REST/JSON
 
-def executeJson(path, json):
-    if json.get("logging"):
-        logger.append("Incoming JSON object. Title: {}".format(json.get("title")))
-        logger.append(json)
-
-    results = []
-
-    if json.get("dateTime"):
-        dateTime = json.get("dateTime")
-
-        if len(dateTime) == 8:              # For classical tuple format
-            config.datetime(dateTime)
-        elif len(dateTime) == 2:            # For human readable format: ("yyyy-mm-dd", "hh:mm") or ("yyyy-mm-dd", "hh:mm:ss")
-            date = dateTime[0].split("-")
-            time = dateTime[1].split(":")
-            seconds = int(time[2]) if 2 < len(time) else 0
-            config.datetime((int(date[0]), int(date[1]), int(date[2]), 0, int(time[0]), int(time[1]), seconds, 0))
-
-        results.append("New date and time has been set.")
-
-    if json.get("service"):
-        for command in json.get("service"):
-            if command == "START UART":
-                config.set("uart", "active", True)
-                uos.dupterm(UART(0, 115200), 1)
-                results.append("UART has started.")
-
-            elif command == "STOP UART":
-                config.set("uart", "active", False)
-                uos.dupterm(None, 1)
-                results.append("UART has stopped.")
-
-            elif command == "START WEBREPL":
-                config.set("webRepl", "active", True)
-                webrepl.start()
-                results.append("WebREPL has started.")
-
-            elif command == "STOP WEBREPL":
-                config.set("webRepl", "active", False)
-                webrepl.stop()
-                results.append("WebREPL has stopped.")
-
-            elif command == "STOP WEBSERVER":
-                webserver.stop()
-                results.append("WebServer has stopped.")
-
-    if len(results) == 0:
-        results = ["Processing has completed without any return value."]
-    if json.get("logging"):
-        logger.append(results)
-
-    return results
-
-
-def _executeJsonGet(pathArray, isPresent, ignoredJson):      ########################################### JSON GET HANDLER
+def _executeJsonGet(pathArray, isPresent, ignoredJson):     ########################################### JSON GET HANDLER
     secondImpliesFirst = not isPresent[2] or isPresent[1]
-    if pathArray[0] == "program":                           # get or execution
+    if pathArray[0] == "":                                  ### get
+        return _jsonGetRoot()
+    if pathArray[0] == "program":                           ### get or execution
         if not any(isPresent[4:]):
-            if all(isPresent[1:4]):                         # action constant is present: info / run / ... (index: 3)
+            if all(isPresent[1:4]):                         # program / <folder> / <title> / <action>
                 return _jsonGetProgramAction(pathArray[1], pathArray[2], pathArray[3])
-            elif all(isPresent[1:3]) and not isPresent[3]:  # get the code of a specific program
+            elif all(isPresent[1:3]):                       # program / <folder> / <title>
                 return _jsonGetProgramCode(pathArray[1], pathArray[2])
-            elif not any(isPresent[2:]):                    # list a directory or the whole 'program' dir
+            elif isPresent[1]:                              # program / <folder>
                 return _jsonGetProgramList(pathArray[1])
+            else:                                           # program
+                return _jsonGetProgramDirList()
 
-    elif pathArray[0] == "system":                          # only get
+    elif pathArray[0] == "system":                          ### only get
         if not any(isPresent[3:]):
             if all(isPresent[1:3]):
                 return _jsonGetSystemAttribute(pathArray[1], pathArray[2])
             elif secondImpliesFirst:
                 return _jsonGetSystemAttributes(pathArray[1])
 
-    elif pathArray[0] == "log":                             # only get
+    elif pathArray[0] == "log":                             ### only get
         if not any(isPresent[3:]):
             if all(isPresent[1:3]):
                 return _jsonGetLog(pathArray[1], pathArray[2])
             elif secondImpliesFirst:
                 return _jsonGetLogList(pathArray[1])
 
-    elif pathArray[0] == "command":                         # only execution
+    elif pathArray[0] == "raw":                             ### only get
+        return _jsonGetRaw(pathArray, isPresent)
+
+    elif pathArray[0] == "command":                         ### only execution
         if isPresent[1] and not any(isPresent[2:]):
             return _jsonGetCommandExecution(pathArray[1])
 
-    return "403 Forbidden", "The format of the URI is invalid. More info: https://zza.hu/uBot_API", None
+    return "403 Forbidden", "The format of the URI is invalid. More info: https://zza.hu/uBot_API", []
 
+
+def _jsonGetRoot():
+    folders = getFolders()
+
+    if folders != ():
+        children = [{"name": folder, "type": "folder", "href": "{}{}/".format(_hostLink, folder),
+                     "raw": "{}{}/".format(_rawLink, folder)} for folder in folders]
+
+        return "200 OK", "", {
+            "name": "root",
+            "type": "folder",
+            "href": _hostLink,
+            "raw":  _rawLink,
+            "parent": {},
+            "children": children}
+    else:
+        return "404 Not Found", "The processing of the request failed. Cause: Root folder is not available. " \
+                                "More info: https://zza.hu/uBot_API", []
 
 def _jsonGetProgramAction(folder, title, action):
     result = doProgramAction(folder, title, action)
 
-    if result is not None and result != "":
+    if result != "":
         return "200 OK", "The program action has started.", result
     else:
         return "403 Forbidden", "The processing of the request failed. Cause: Semantic error in URI. " \
-                                           "More info: https://zza.hu/uBot_API", None
+                                "More info: https://zza.hu/uBot_API", []
 
 
 def _jsonGetProgramCode(folder, title):
-    result = turtle.getProgramCode(folder, title)
-    host = "http://{}".format(AP.ifconfig()[0])
-    programDirLink = host + "/program"
-    programLink = "{}/{}/{}".format(programDirLink, folder, title)
+    if turtle.isProgramExist(folder, title):
+        programCode = turtle.getProgramCode(folder, title)
 
-    if result is not None and result != ():
         return "200 OK", "", {
-            "title": title,
-            "code": result,
-            "href": programLink,
-            "file": "{}/raw/program/{}/{}.txt".format(host, folder, title),
-            "folder": {
+            "name": title,
+            "type": "program",
+            "href": "{}{}/{}".format(_programDirLink, folder, title),
+            "raw":  "{}{}/{}.txt".format(_programRawDirLink, folder, title),
+            "parent": {
                 "name": folder,
-                "href": "{}/{}".format(programDirLink, folder)
+                "type": "folder",
+                "href": "{}{}".format(_programDirLink, folder),
+                "raw":  "{}{}".format(_programRawDirLink, folder)
             },
+            "children": [],
+            "code": programCode,
             "action": {
-                "run": programLink + "/run"
+                "run": "{}{}/{}/run".format(_programDirLink, folder, title)
             }}
     else:
         return "404 Not Found", "The processing of the request failed. Cause: No such program. " \
-                                           "More info: https://zza.hu/uBot_API", None
+                                "More info: https://zza.hu/uBot_API", []
 
 
 def _jsonGetProgramList(folder):
-    result = _getProgramCatalog() if folder is None or folder == "" else turtle.getProgramList(folder)
+    if folder in turtle.getProgramFolders():
+        children = [{"name": program, "type": "program", "href": "{}{}/{}".format(_programDirLink, folder, program),
+                    "raw": "{}{}/{}.txt".format(_programRawDirLink, folder, program)}
+                    for program in turtle.getProgramList(folder)]
 
-    if result is not None and result != {}:                # Empty tuple is OK -> empty dir, but empty dictionary is not
-        return "200 OK", "", result
+        return "200 OK", "", {
+            "name": folder,
+            "type": "folder",
+            "href": "{}{}/".format(_programDirLink, folder),
+            "raw":  "{}{}/".format(_programRawDirLink, folder),
+            "parent": {
+                "name": "program",
+                "type": "folder",
+                "href": _programDirLink,
+                "raw": _programRawDirLink
+            },
+            "children": children}
     else:
-        return "404 Not Found", "The processing of the request failed. Cause: 'Program' folder is not available. " \
-                                           "More info: https://zza.hu/uBot_API", None
+        return "404 Not Found", "The processing of the request failed. Cause: No such program folder. " \
+                                "More info: https://zza.hu/uBot_API", []
 
 
-def _getProgramCatalog():
+def _jsonGetProgramDirList():
     programFolders = turtle.getProgramFolders()
-    return {folder: turtle.getProgramList(folder) for folder in programFolders}
+    if programFolders != ():
+
+        children = [{"name": folder, "type": "folder", "href": "{}{}/".format(_programDirLink, folder),
+                     "raw": "{}{}/".format(_programRawDirLink, folder)} for folder in programFolders]
+
+        return "200 OK", "", {
+            "name": "program",
+            "type": "folder",
+            "href": _programDirLink,
+            "raw":  _programRawDirLink,
+            "parent": {
+                "name": "root",
+                "type": "folder",
+                "href": _hostLink,
+                "raw":  _rawLink
+            },
+            "children": children}
+    else:
+        return "404 Not Found", "The processing of the request failed. Cause: Root folder of programs is not " \
+                                "available. More info: https://zza.hu/uBot_API", []
+
 
 
 def _jsonGetSystemAttribute(module, attribute):
@@ -258,7 +272,7 @@ def _jsonGetSystemAttribute(module, attribute):
         return "200 OK", "", result
     else:
         return "404 Not Found", "The processing of the request failed. Cause: No such system attribute. " \
-                                           "More info: https://zza.hu/uBot_API", None
+                                "More info: https://zza.hu/uBot_API", []
 
 
 def _jsonGetSystemAttributes(module):
@@ -268,7 +282,7 @@ def _jsonGetSystemAttributes(module):
         return "200 OK", "", result
     else:
         return "404 Not Found", "The processing of the request failed. Cause: No such system module. " \
-                                           "More info: https://zza.hu/uBot_API", None
+                                "More info: https://zza.hu/uBot_API", []
 
 
 def _getSystemInfo():
@@ -288,7 +302,7 @@ def _jsonGetLog(category, title):
         return "200 OK", "", result
     else:
         return "404 Not Found", "The processing of the request failed. Cause: No such log file. " \
-                                           "More info: https://zza.hu/uBot_API", None
+                                "More info: https://zza.hu/uBot_API", []
 
 
 def _jsonGetLogList(category):
@@ -298,7 +312,7 @@ def _jsonGetLogList(category):
         return "200 OK", "", result
     else:
         return "404 Not Found", "The processing of the request failed. Cause: No such log category. " \
-                                           "More info: https://zza.hu/uBot_API", None
+                                "More info: https://zza.hu/uBot_API", []
 
 
 def _getLogCatalog():
@@ -310,25 +324,30 @@ def _getLogList(category):
     return logger.getCategoryLogs(category)
 
 
+def _jsonGetRaw(pathArray, isPresent):
+    pass
+
+
 def _jsonGetCommandExecution(command):
     if executeCommand(command.upper()):
         return "200 OK", "", "Processed commands: 1"
     else:
         return "403 Forbidden", "The processing of the request failed. Cause: Semantic error in URI. " \
-                                           "More info: https://zza.hu/uBot_API", "Processed commands: 0"
+                                "More info: https://zza.hu/uBot_API", "Processed commands: 0"
 
 
-def _executeJsonPost(pathArray, isPresent, json):            ########################################## JSON POST HANDLER
-    if pathArray[0] == "program":                           # persistent
+
+def _executeJsonPost(pathArray, isPresent, json):           ########################################## JSON POST HANDLER
+    if pathArray[0] == "program":                           ### persistent
         if all(isPresent[1:3]) and not any(isPresent[3:]):
             return _jsonPostProgram(pathArray[1], pathArray[2], json)
-    elif pathArray[0] == "command":                         # temporary, only execution
+    elif pathArray[0] == "command":                         ### temporary, only execution
         if not any(isPresent[1:]):
             return _jsonPostCommand(json)
-    elif pathArray[0] == "root":                            # ONLY DURING DEVELOPMENT
+    elif pathArray[0] == "root":                            ### ONLY DURING DEVELOPMENT
         if not any(isPresent[1:]):
             return _jsonPostRoot(json)
-    return "403 Forbidden", "The format of the URI is invalid. More info: https://zza.hu/uBot_API", None
+    return "403 Forbidden", "The format of the URI is invalid. More info: https://zza.hu/uBot_API", []
 
 
 def _jsonPostProgram(folder, title, json):
@@ -342,7 +361,7 @@ def _jsonPostProgram(folder, title, json):
         return "201 Created", "", "http://{}/program/{}/{}".format(AP.ifconfig()[0], folder, title)
     else:
         return "422 Unprocessable Entity", "The processing of the request failed. Cause: Semantic error in JSON. " \
-                                           "More info: https://zza.hu/uBot_API", None
+                                           "More info: https://zza.hu/uBot_API", []
 
 
 def _jsonPostCommand(json):
@@ -379,14 +398,15 @@ def _jsonPostRoot(json):
                                            "More info: https://zza.hu/uBot_API", results
 
 
-def _executeJsonPut(pathArray, isPresent, json):             ########################################### JSON PUT HANDLER
-    if pathArray[0] == "program":                           # persistent
+
+def _executeJsonPut(pathArray, isPresent, json):            ########################################### JSON PUT HANDLER
+    if pathArray[0] == "program":                           ### persistent
         if isPresent[1] and isPresent[2] and True not in isPresent[3:]:
             return _jsonPutProgram(pathArray, isPresent, json)
-    elif pathArray[0] == "system":                          # persistent
+    elif pathArray[0] == "system":                          ### persistent
         if isPresent[1] and True not in isPresent[2:]:
             return _jsonPutSystemProperty(pathArray, isPresent, json)
-    return "403 Forbidden", "The format of the URI is invalid. More info: https://zza.hu/uBot_API", None
+    return "403 Forbidden", "The format of the URI is invalid. More info: https://zza.hu/uBot_API", []
 
 
 def _jsonPutProgram(pathArray, isPresent, json):
@@ -405,8 +425,9 @@ def _putSystemProp(property, value):
     return ""
 
 
-def _executeJsonDelete(pathArray, isPresent, ignoredJson):   ######################################## JSON DELETE HANDLER
-    if pathArray[0] == "program":                           # final
+
+def _executeJsonDelete(pathArray, isPresent, ignoredJson):  ######################################## JSON DELETE HANDLER
+    if pathArray[0] == "program":                           ### final
         if True not in isPresent[3:]:
             if isPresent[1:3] == (False, False):
                 return _jsonDeleteEveryProgram()
@@ -414,7 +435,7 @@ def _executeJsonDelete(pathArray, isPresent, ignoredJson):   ###################
                 return _jsonClearProgramFolder(pathArray[1])
             elif isPresent[1] and isPresent[2]:
                 return _jsonDeleteProgram(pathArray, isPresent)
-    elif pathArray[0] == "log":                             # final
+    elif pathArray[0] == "log":                             ### final
         if True not in isPresent[3:]:
             if isPresent[1:3] == (False, False):
                 return _jsonDeleteEveryLog()
@@ -422,7 +443,7 @@ def _executeJsonDelete(pathArray, isPresent, ignoredJson):   ###################
                 return _jsonClearLogFolder(pathArray[1])
             elif isPresent[1] and isPresent[2]:
                 return _jsonDeleteLog(pathArray, isPresent)
-    return "403 Forbidden", "The format of the URI is invalid. More info: https://zza.hu/uBot_API", None
+    return "403 Forbidden", "The format of the URI is invalid. More info: https://zza.hu/uBot_API", []
 
 
 def _jsonDeleteEveryProgram():
@@ -526,6 +547,15 @@ try:
 except Exception as e:
     logger.append(e)
 
+
+###########
+## JSON VAR
+
+_hostLink = "http://{}/".format(AP.ifconfig()[0])
+_rawLink  = _hostLink + "raw/"
+
+_programDirLink    = _hostLink + "program/"
+_programRawDirLink = _rawLink + "program/"
 
 ###########
 ## GENERAL

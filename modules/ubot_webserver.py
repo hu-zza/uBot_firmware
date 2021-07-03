@@ -299,7 +299,7 @@ def _startJsonProcessing(path, body):
                                           "More info: https://zza.hu/uBot_API")
 
 
-def _reply(returnFormat, httpCode, message, data = None, allow = "GET, POST, PUT, DELETE"):
+def _reply(returnFormat, httpCode, message, result = [], allow = "GET, POST, PUT, DELETE"):
     """ Try to reply with a text/html or application/json
         if the connection is alive, then closes it. """
 
@@ -321,9 +321,7 @@ def _reply(returnFormat, httpCode, message, data = None, allow = "GET, POST, PUT
             reply = template.getSimplePage().format(title=httpCode, style=style, body=message)
         elif returnFormat == "JSON":
             reply = ujson.dumps(
-                {"meta": {"dateTime": config.datetime(), "code": int(httpCode[:3]), "status": httpCode,
-                          "message": message},
-                 "data": data})
+                {"meta": {"code": int(httpCode[:3]), "status": httpCode, "message": message}, "result": result})
 
         _connection.write(reply)                                                        # TODO: written bytes check, etc
         logger.append("HTTP response: {}  {}".format(httpCode, message))
