@@ -33,7 +33,6 @@ import ujson, uos
 
 from machine import RTC
 
-_exceptions = []
 
 
 ################################
@@ -45,7 +44,7 @@ def getModules():
         moduleFolders = uos.listdir("/etc")
         return tuple([module for module in moduleFolders if uos.stat("/etc/{}".format(module))[0] == 0x04000]) # only dirs
     except Exception as e:
-        _exceptions.append(e)
+        logger.append(e)
         return ()
 
 
@@ -55,20 +54,18 @@ def getModuleAttributes(module):
         moduleFiles = uos.listdir("/etc/{}".format(module.lower()))
         return tuple([fileName[:-4] for fileName in moduleFiles if fileName[-4:] == ".txt"])
     except Exception as e:
-        _exceptions.append(e)
+        logger.append(e)
         return ()
 
 
 def get(module, attribute):
     """ Returns the value of the attribute, or None. Firstly reads it from file, then deserializes it. """
-    if _throwIfNotExistAndReturnBoolean(module, attribute):
-        return _manageAttribute(module, attribute, "r")
+    return _manageAttribute(module, attribute, "r")
 
 
 def getDefault(module, attribute):
     """ Returns the default value of the attribute, or None. Firstly reads it from file, then deserializes it. """
-    if _throwIfNotExistAndReturnBoolean(module, attribute):   # Biased solution, however... Does this feature necessary?
-        return _manageAttribute(module, attribute, "r", None, "def")
+    return _manageAttribute(module, attribute, "r", None, "def")
 
 
 def doesModuleExist(module):
@@ -88,14 +85,13 @@ def restore(module, attribute):
              "It has been replaced with /etc/{dir}/{file}.def").format(dir = module, file = attribute)
         )
     except Exception as e:
-        _exceptions.append(e)
+        logger.append(e)
 
 
 def set(module, attribute, value):
     """ Sets the value of the attribute. Firstly serializes it and then writes it out. """
     _manageWebReplFile(module, attribute, value)        # Can not be at _manageAttribute's mode == "w" branch: too deep.
-    if _throwIfNotExistAndReturnBoolean(module):
-        return _manageAttribute(module, attribute, "w", value)
+    return _manageAttribute(module, attribute, "w", value)
 
 
 def datetime(newDateTime = None):
@@ -111,11 +107,7 @@ def saveDateTime():
         with open("/etc/datetime.py", "w") as file:
             file.write("DT = {}".format(dateTime.datetime()))
     except Exception as e:
-        _exceptions.append(e)
-
-
-def getExceptions():
-    return _exceptions
+        logger.append(e)
 
 
 ################################
@@ -129,7 +121,7 @@ def _manageAttribute(module, attribute, mode, value = None, extension = "txt"):
             elif mode == "w":
                 return file.write("{}\n".format(ujson.dumps(value)))
     except Exception as e:
-        _exceptions.append(e)
+        logger.append(e)
 
 
 def _manageWebReplFile(module, attribute, value):
@@ -140,7 +132,7 @@ def _manageWebReplFile(module, attribute, value):
             elif not value and "webrepl_cfg.py" in uos.listdir("/"):
                 uos.rename("/webrepl_cfg.py", "/.webrepl_cfg.py")
         except Exception as e:
-            _exceptions.append(e)
+            logger.append(e)
 
 
 def _readOrThrow(module, attribute):
@@ -148,25 +140,12 @@ def _readOrThrow(module, attribute):
         return ujson.loads(file.readline())
 
 
-def _throwIfNotExistAndReturnBoolean(module, attribute = None):
-    if attribute is None:
-        if doesModuleExist(module):
-            return True
-        else:
-            _exceptions.append(AttributeError("The module '{}' doesn't exist.".format(module)))
-    else:
-        if doesAttributeExist(module, attribute):
-            return True
-        else:
-            _exceptions.append(AttributeError("The attribute '{}' ({}) doesn't exist.".format(attribute, module)))
-    return False
-
-
 ################################
 ## INITIALISATION
 
 dateTime       = RTC()
 dateTimeSource = "factory default"
+_exceptions    = []
 
 try:
     import etc.datetime

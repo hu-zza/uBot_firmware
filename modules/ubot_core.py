@@ -295,7 +295,7 @@ def _jsonGetEtcAttribute(module, attribute):
 def _jsonGetEtcModule(module):
     job = "Request: Get the folder '{}'.".format(module)
 
-    if module in config.getModules():
+    if config.doesModuleExist(module):
         children = [{"name": attribute, "type": "attribute", "href": "{}{}/{}".format(_etcDirLink, module, attribute),
                      "raw": "{}{}/{}.txt".format(_etcRawDirLink, module, attribute)}
                     for attribute in config.getModuleAttributes(module)]
