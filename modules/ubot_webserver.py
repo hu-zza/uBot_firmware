@@ -88,7 +88,7 @@ def start():
     global _started
 
     if not _started and config.get("webServer", "active"):
-        _timer.init(period=_period, mode=Timer.PERIODIC, callback=_poll)
+        _timer.init(period = _period, mode = Timer.PERIODIC, callback = _poll)
         _started = True
 
 
@@ -246,7 +246,7 @@ def _processHtmlGetQuery(path):
             for key in sorted(template.title.keys()):
                 if key == "/" or key[1] != "_":
                     helperLinks += "            <li><a href='{key}'>{title}</a><br><small>{host}{key}</small></li>\n".format(
-                        host=_ap.ifconfig()[0], key=key, title=template.title.get(key)
+                        host = _ap.ifconfig()[0], key = key, title = template.title.get(key)
                     )
 
             helperLinks += "        </ul>\n"
@@ -299,7 +299,7 @@ def _reply(returnFormat, responseStatus, message, result = None, allow ="GET, PO
         if the connection is alive, then closes it. """
 
     if result is None:
-        result = []
+        result = {}
 
     try:
         _connection.write("HTTP/1.1 " + responseStatus + "\r\n")
@@ -318,15 +318,15 @@ def _reply(returnFormat, responseStatus, message, result = None, allow ="GET, PO
 
         if returnFormat == "HTML":
             style = template.getGeneralStyle() + template.getSimpleStyle()
-            reply = template.getSimplePage().format(title=responseStatus, style=style, body=message)
+            reply = template.getSimplePage().format(title = responseStatus, style = style, body = message)
         elif returnFormat == "JSON":
             reply = ujson.dumps(
                 {"meta": {"code": statusCode, "status": responseStatus, "message": message}, "result": result})
 
         _connection.write(reply)                                                        # TODO: written bytes check, etc
-        logger.append("HTTP response: {}  {}".format(responseStatus, message))
-    except Exception:
-        print("Exception @ ubot_webserver#_reply")
+        logger.append("HTTP response: {}".format(responseStatus))
+    except Exception as e:
+        logger.append(e)
     finally:
         _connection.close()
 
@@ -366,12 +366,12 @@ def _sendRaw(path):
 
                         if stat[0] == 0x04000:  # Directory
                             _connection.write(
-                                "<td><a href='{fileName}/'>{fileName}/</a></td><td>-</td>".format(fileName=fileName))
+                                "<td><a href='{fileName}/'>{fileName}/</a></td><td>-</td>".format(fileName = fileName))
 
                         elif stat[0] == 0x08000:  # File
                             _connection.write(
                                 "<td><a href='{fileName}'>{fileName}</a></td><td>{fileSize:,} B</td>".format(
-                                    fileName=fileName, fileSize=stat[6]))
+                                    fileName = fileName, fileSize = stat[6]))
 
                         else:
                             _connection.write("<td colspan='2'>{}</td>".format(fileName))

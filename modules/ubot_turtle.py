@@ -154,65 +154,59 @@ def getProgramArray():
 def getProgramFolders():
     try:
         programFolders = uos.listdir("/program")
-        return tuple([folder for folder in programFolders if uos.stat("/program/{}".format(folder))[0] == 0x04000]) #dirs
+        return tuple([folder for folder in programFolders if uos.stat("/program/{}".format(folder))[0] == 0x04000]) # dirs
     except Exception as e:
         logger.append(e)
         return ()
 
 
 def getProgramList(folder):
-    try:
-        programFiles = uos.listdir("/program/{}".format(folder.lower()))
-        return tuple([fileName[:-4] for fileName in programFiles if fileName[-4:] == ".txt"])
-    except Exception as e:
-        logger.append(e)
-        return ()
+    if _throwIfNotExistAndReturnBoolean(folder):
+        try:
+            programFiles = uos.listdir("/program/{}".format(folder.lower()))
+            return tuple([fileName[:-4] for fileName in programFiles if fileName[-4:] == ".txt"])
+        except Exception as e:
+            logger.append(e)
+    return ()
 
 
 def getProgramCode(folder, title):
-    try:
-        with open("/program/{}/{}.txt".format(folder.lower(), title.lower()), "r") as file:
-            return tuple([line[:-1] for line in file])
-    except Exception as e:
-        logger.append(e)
-        return ()
+    if _throwIfNotExistAndReturnBoolean(folder, title):
+        try:
+            with open("/program/{}/{}.txt".format(folder.lower(), title.lower()), "r") as file:
+                return tuple([line[:-1] for line in file])
+        except Exception as e:
+            logger.append(e)
+    return ()
 
 
 def runProgram(folder, title):
-    global _temporaryCommandPointer
-    global _temporaryProgramParts
-    global _temporaryProgramArray
-    global _commandPointer
-    global _programParts
-    global _programArray
-
-    _temporaryCommandPointer = _commandPointer
-    _temporaryProgramParts = _programParts
-    _temporaryProgramArray = _programArray
-
-    loadProgram(folder, title)
-    press(64)
-
-    _commandPointer = _temporaryCommandPointer
-    _programParts = _temporaryProgramParts
-    _programArray = _temporaryProgramArray
+    if _throwIfNotExistAndReturnBoolean(folder, title):
+        retainInTemporary()
+        loadProgram(folder, title)
+        press(64)
+        loadFromTemporary()
+        return True
+    return False
 
 
 def loadProgram(folder, title):
-    try:
-        with open("/program/{}/{}.txt".format(folder.lower(), title.lower()), "r") as file:
-            loadProgramFromString(ujson.loads(file.readline()))
-    except Exception as e:
-        logger.append(e)
+    clearMemory()
+    if _throwIfNotExistAndReturnBoolean(folder, title):
+        try:
+            with open("/program/{}/{}.txt".format(folder.lower(), title.lower()), "r") as file:
+                loadProgramFromString(ujson.loads(file.readline()))
+        except Exception as e:
+            logger.append(e)
 
 
 def loadProgramFromString(program):
     global _programArray
     global _programParts
 
+    clearMemory()
     try:
         array = program.encode()
-        clear()
         _programArray = array
         _programParts = [len(array)]
     except Exception as e:
@@ -234,13 +228,19 @@ def saveProgram(program, folder = None, title = None):
     path = _generateFullPath() if title is None else "/program/{}/{}.txt".format(folder.lower(), title.lower())
 
     try:
-        with open(path, "w") as file:
-            writtenBytes = file.write("{}\n".format(ujson.dumps(program)))
-            return writtenBytes
+        if not isFolderExist(folder):
+            createFolder(folder)
+
+        try:
+            with open(path, "w") as file:
+                writtenBytes = file.write("{}\n".format(ujson.dumps(program)))
+                return writtenBytes
+        except Exception as e:
+            logger.append(e)
+            if title is None:
+                _savedCount -= 1
     except Exception as e:
         logger.append(e)
-        if title is None:
-            _savedCount -= 1
 
 
 def isProgramExist(folder, title):
@@ -251,12 +251,43 @@ def getProgramsCount():
     return sum([len(getProgramList(folder)) for folder in getProgramFolders()])
 
 
-def clear():
+def isFolderExist(folder):
+    return folder in getProgramFolders()
+
+
+def createFolder(folder):
+    try:
+        uos.mkdir("/program/{}".format(folder))
+    except Exception as e:
+        logger.append(e)
+
+
+def clearMemory():
     global _commandPointer
     global _programParts
 
     _commandPointer = 0
     _programParts = [0]
+
+
+def retainInTemporary():
+    global _temporaryCommandPointer
+    global _temporaryProgramParts
+    global _temporaryProgramArray
+
+    _temporaryCommandPointer = _commandPointer
+    _temporaryProgramParts = _programParts
+    _temporaryProgramArray = _programArray
+
+
+def loadFromTemporary():
+    global _commandPointer
+    global _programParts
+    global _programArray
+
+    _commandPointer = _temporaryCommandPointer
+    _programParts = _temporaryProgramParts
+    _programArray = _temporaryProgramArray
 
 
 def checkButtons(timer = None):
@@ -269,6 +300,19 @@ def checkButtons(timer = None):
 ##########
 ##########  PRIVATE, CLASS-LEVEL METHODS
 ##########
+
+def _throwIfNotExistAndReturnBoolean(folder, title = None):
+    if title is None:
+        if isFolderExist(folder):
+            return True
+        else:
+            logger.append(AttributeError("The folder '{}' doesn't exist.".format(folder)))
+    else:
+        if isProgramExist(folder, title):
+            return True
+        else:
+            logger.append(AttributeError("The program '{}' ({}) doesn't exist.".format(title, folder)))
+    return False
 
 
 def _generateFullPath():

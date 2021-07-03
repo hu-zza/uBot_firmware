@@ -196,7 +196,7 @@ def getSystemPanel():
     idA = " - ".join(uid[i:i + 4] for i in range(0, 16, 4))
     idB = " - ".join(uid[i:i + 4] for i in range(16, 32, 4))
 
-    return ("        <h3>System</h3>\n"
+    return ("        <h3>System info</h3>\n"
             "            <table class='data'>\n"
             "                <tr><td> <strong>Power on count:</strong> </td><td>{powerOnCount}</td><td>  </td></tr>\n"
             "                <tr><td> <strong>Saved programs:</strong> </td><td>{savedPrograms}</td><td>  </td></tr>\n"
@@ -211,7 +211,7 @@ def getSystemPanel():
                                              freeMemoryPercent = freeMemoryPercent, freeMemory = gc.mem_free(), allMemory = allMemory,
                                              freeSpacePercent = freeSpacePercent, freeSpace = freeSpace, allSpace = allSpace,
                                              year = year, month = month, day = day, hour = hour, minute = minute, second = second,
-                                             idA=idA, idB=idB)
+                                             idA = idA, idB = idB)
 
 
 def getServiceStatusPanel():
@@ -241,7 +241,7 @@ def getApPanel():
             "                <tr><td> <strong>IP address:</strong> </td><td>{ipAddress}</td><td>{subnetMask}</td></tr>\n"
             "                <tr><td> <strong>Gateway:</strong> </td><td>{gateway}</td><td> </td></tr>"
             "                <tr><td> <strong>DNS:</strong> </td><td>{dns}</td><td> </td></tr>"
-            "            </table>\n").format(isApUp=config.get("ap", "active"),
+            "            </table>\n").format(isApUp = config.get("ap", "active"),
                                              ssid = ap.config("essid"),
                                              uBot_pwd = config.get("ap", "password"),
                                              macAddress = hexlify(ap.config("mac"), ":").decode().replace(":", " : "),
@@ -491,7 +491,7 @@ title = {
     "/_webrepl"     : "&microBot WebREPL",
     "/_calibration" : "&microBot Calibration",
     "/debug"        : "&microBot Debug",
-    "/_system"      : "&microBot Debug - System",
+    "/_system"      : "&microBot Debug - System info",
     "/_services"    : "&microBot Debug - Service status",
     "/_ap"          : "&microBot Debug - Access point",
 
@@ -544,7 +544,7 @@ parts = {
 }
 
 debugPanels = {
-    "System"         : "/_system",
+    "System info"    : "/_system",
     "Service status" : "/_services",
     "Access point"   : "/_ap"
 }

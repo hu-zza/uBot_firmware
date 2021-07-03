@@ -115,11 +115,10 @@ def executeCommand(command):
 def doProgramAction(folder, title, action):
     try:
         if action == "run":
-            turtle.runProgram(folder, title)
-            return "The program has started."
+            return turtle.runProgram(folder, title), {}
     except Exception as e:
         logger.append(e)
-        return ""
+    return False, {}
 
 
 ################################
@@ -132,13 +131,13 @@ def _executeJsonGet(pathArray, isPresent, ignoredJson):     ####################
     if pathArray[0] == "program":                           ### get or execution
         if not any(isPresent[4:]):
             if all(isPresent[1:4]):                         # program / <folder> / <title> / <action>
-                return _jsonGetProgramAction(pathArray[1], pathArray[2], pathArray[3])
+                return _jsonGetStartProgramAction(pathArray[1], pathArray[2], pathArray[3])
             elif all(isPresent[1:3]):                       # program / <folder> / <title>
-                return _jsonGetProgramCode(pathArray[1], pathArray[2])
+                return _jsonGetProgram(pathArray[1], pathArray[2])
             elif isPresent[1]:                              # program / <folder>
-                return _jsonGetProgramList(pathArray[1])
+                return _jsonGetFolder(pathArray[1])
             else:                                           # program
-                return _jsonGetProgramDirList()
+                return _jsonGetProgramFolder()
 
     elif pathArray[0] == "system":                          ### only get
         if not any(isPresent[3:]):
@@ -161,12 +160,12 @@ def _executeJsonGet(pathArray, isPresent, ignoredJson):     ####################
         if isPresent[1] and not any(isPresent[2:]):
             return _jsonGetCommandExecution(pathArray[1])
 
-    return "403 Forbidden", "The format of the URI is invalid.", []
+    return "403 Forbidden", "The format of the URI is invalid.", {}
 
 
 def _jsonGetRoot():
     folders = getFolders()
-    job = "Request: Listing folders in 'root'."
+    job = "Request: Get the folder 'root'."
 
     if folders != ():
         children = [{"name": folder, "type": "folder", "href": "{}{}/".format(_hostLink, folder),
@@ -180,20 +179,21 @@ def _jsonGetRoot():
             "parent": {},
             "children": children}
     else:
-        return "404 Not Found", job + " Cause: Root folder is not available.", []
+        return "404 Not Found", job + " Cause: Root folder is not available.", {}
 
-def _jsonGetProgramAction(folder, title, action):
+
+def _jsonGetStartProgramAction(folder, title, action):
     result = doProgramAction(folder, title, action)
     job = "Request: Starting action '{}' of program '{}' ({}).".format(action, title, folder)
 
-    if result != "":
-        return "200 OK", job, result
+    if result[0]:
+        return "200 OK", job, result[1]
     else:
-        return "403 Forbidden", job + " Cause: Semantic error in URI.", []
+        return "403 Forbidden", job + " Cause: Semantic error in URI.", {}
 
 
-def _jsonGetProgramCode(folder, title):
-    job = "Request: Get the source code of program '{}' ({}).".format(title, folder)
+def _jsonGetProgram(folder, title):
+    job = "Request: Get the program '{}' ({}).".format(title, folder)
 
     if turtle.isProgramExist(folder, title):
         programCode = turtle.getProgramCode(folder, title)
@@ -215,16 +215,18 @@ def _jsonGetProgramCode(folder, title):
                 "run": "{}{}/{}/run".format(_programDirLink, folder, title)
             }}
     else:
-        return "404 Not Found", job + " Cause: No such program.", []
+        return "404 Not Found", job + " Cause: No such program.", {}
 
 
-def _jsonGetProgramList(folder):
+def _jsonGetFolder(folder):
+    job = "Request: Get the folder '{}'.".format(folder)
+
     if folder in turtle.getProgramFolders():
         children = [{"name": program, "type": "program", "href": "{}{}/{}".format(_programDirLink, folder, program),
                     "raw": "{}{}/{}.txt".format(_programRawDirLink, folder, program)}
                     for program in turtle.getProgramList(folder)]
 
-        return "200 OK", "", {
+        return "200 OK", job, {
             "name": folder,
             "type": "folder",
             "href": "{}{}/".format(_programDirLink, folder),
@@ -233,14 +235,14 @@ def _jsonGetProgramList(folder):
                 "name": "program",
                 "type": "folder",
                 "href": _programDirLink,
-                "raw": _programRawDirLink
+                "raw":  _programRawDirLink
             },
             "children": children}
     else:
-        return "404 Not Found", "The processing of the request failed. Cause: No such program folder.", []
+        return "404 Not Found", job + " Cause: No such program folder.", {}
 
 
-def _jsonGetProgramDirList():
+def _jsonGetProgramFolder():
     programFolders = turtle.getProgramFolders()
     if programFolders != ():
 
@@ -260,8 +262,7 @@ def _jsonGetProgramDirList():
             },
             "children": children}
     else:
-        return "404 Not Found", "The processing of the request failed. Cause: Root folder of programs is not available.", []
-
+        return "404 Not Found", "The processing of the request failed. Cause: Root folder of programs is not available.", {}
 
 
 def _jsonGetSystemAttribute(module, attribute):
@@ -270,7 +271,7 @@ def _jsonGetSystemAttribute(module, attribute):
     if result is not None:
         return "200 OK", "", result
     else:
-        return "404 Not Found", "The processing of the request failed. Cause: No such system attribute.", []
+        return "404 Not Found", "The processing of the request failed. Cause: No such system attribute.", {}
 
 
 def _jsonGetSystemAttributes(module):
@@ -279,7 +280,7 @@ def _jsonGetSystemAttributes(module):
     if result is not None and result != {}:
         return "200 OK", "", result
     else:
-        return "404 Not Found", "The processing of the request failed. Cause: No such system module.", []
+        return "404 Not Found", "The processing of the request failed. Cause: No such system module.", {}
 
 
 def _getSystemInfo():
@@ -298,7 +299,7 @@ def _jsonGetLog(category, title):
     if result is not None and result != ():                           # There should be an initialisation entry at least
         return "200 OK", "", result
     else:
-        return "404 Not Found", "The processing of the request failed. Cause: No such log file.", []
+        return "404 Not Found", "The processing of the request failed. Cause: No such log file.", {}
 
 
 def _jsonGetLogList(category):
@@ -307,7 +308,7 @@ def _jsonGetLogList(category):
     if result is not None and result != {}:                # Empty tuple is OK -> empty dir, but empty dictionary is not
         return "200 OK", "", result
     else:
-        return "404 Not Found", "The processing of the request failed. Cause: No such log category.", []
+        return "404 Not Found", "The processing of the request failed. Cause: No such log category.", {}
 
 
 def _getLogCatalog():
@@ -327,7 +328,7 @@ def _jsonGetCommandExecution(command):
     if executeCommand(command.upper()):
         return "200 OK", "", "Processed commands: 1"
     else:
-        return "403 Forbidden", "The processing of the request failed. Cause: Semantic error in URI.", []
+        return "403 Forbidden", "The processing of the request failed. Cause: Semantic error in URI.", {}
 
 
 
@@ -341,7 +342,7 @@ def _executeJsonPost(pathArray, isPresent, json):           ####################
     elif pathArray[0] == "root":                            ### ONLY DURING DEVELOPMENT
         if not any(isPresent[1:]):
             return _jsonPostRoot(json)
-    return "403 Forbidden", "The format of the URI is invalid.", []
+    return "403 Forbidden", "The format of the URI is invalid.", {}
 
 
 def _jsonPostProgram(folder, title, json):
@@ -354,7 +355,7 @@ def _jsonPostProgram(folder, title, json):
     if turtle.isProgramExist(folder, title):
         return "201 Created", "", "http://{}/program/{}/{}".format(AP.ifconfig()[0], folder, title)
     else:
-        return "422 Unprocessable Entity", "The processing of the request failed. Cause: Semantic error in JSON.", []
+        return "422 Unprocessable Entity", "The processing of the request failed. Cause: Semantic error in JSON.", {}
 
 
 def _jsonPostCommand(json):
@@ -398,7 +399,7 @@ def _executeJsonPut(pathArray, isPresent, json):            ####################
     elif pathArray[0] == "system":                          ### persistent
         if isPresent[1] and True not in isPresent[2:]:
             return _jsonPutSystemProperty(pathArray, isPresent, json)
-    return "403 Forbidden", "The format of the URI is invalid.", []
+    return "403 Forbidden", "The format of the URI is invalid.", {}
 
 
 def _jsonPutProgram(pathArray, isPresent, json):
@@ -435,7 +436,7 @@ def _executeJsonDelete(pathArray, isPresent, ignoredJson):  ####################
                 return _jsonClearLogFolder(pathArray[1])
             elif isPresent[1] and isPresent[2]:
                 return _jsonDeleteLog(pathArray, isPresent)
-    return "403 Forbidden", "The format of the URI is invalid.", []
+    return "403 Forbidden", "The format of the URI is invalid.", {}
 
 
 def _jsonDeleteEveryProgram():
