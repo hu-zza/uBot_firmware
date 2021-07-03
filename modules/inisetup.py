@@ -91,8 +91,8 @@ system = {
     "active"        : True,     # Just for unity
     "id"            : hexlify(uos.urandom(32)).decode(),
     "chk"           : hexlify(uos.urandom(32)).decode(),
-    "firmware"      : (0, 1, 129),
-    "initDateTime"  : (2021, 7, 3, 0, 23, 40, 0, 0),
+    "firmware"      : (0, 1, 130),
+    "initDateTime"  : (2021, 7, 4, 0, 1, 0, 0, 0),
     "powerOnCount"  : 0
 }
 
@@ -120,7 +120,7 @@ uart = {
 }
 
 
-webServer = {
+web_server = {
     "name"          : "Web server",
     "active"        : True,
     "period"        : 1000,
@@ -128,7 +128,7 @@ webServer = {
 }
 
 
-webRepl = {
+web_repl = {
     "name"          : "MicroPython WebREPL",
     "active"        : False,
     "password"      : "uBot_REPL"
@@ -139,18 +139,18 @@ webRepl = {
 ## CONFIG DICTIONARY
 
 configModules = {
-    "ap"        : ap,
-    "buzzer"    : buzzer,
-    "constant"  : constant,
-    "feedback"  : feedback,
-    "i2c"       : i2c,
-    "logger"    : logger,
-    "motor"     : motor,
-    "system"    : system,
-    "turtle"    : turtle,
-    "uart"      : uart,
-    "webRepl"   : webRepl,
-    "webServer" : webServer
+    "ap"            : ap,
+    "buzzer"        : buzzer,
+    "constant"      : constant,
+    "feedback"      : feedback,
+    "i2c"           : i2c,
+    "logger"        : logger,
+    "motor"         : motor,
+    "system"        : system,
+    "turtle"        : turtle,
+    "uart"          : uart,
+    "web_repl"      : web_repl,
+    "web_server"    : web_server
 }
 
 
@@ -227,10 +227,10 @@ def setup():
 
     with open("/.webrepl_cfg.py", "w") as file:
         file.write(firmwareComment)
-        file.write("PASS = '{}'\n\n".format(webRepl.get("password")))
+        file.write("PASS = '{}'\n\n".format(web_repl.get("password")))
         file.write(footerComment)
 
-    if webRepl.get("active"):
+    if web_repl.get("active"):
         uos.rename("/.webrepl_cfg.py", "/webrepl_cfg.py")
 
     with open("/boot.py", "w") as file:

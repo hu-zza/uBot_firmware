@@ -50,8 +50,8 @@ _connection = 0
 _address = 0
 
 _started = False
-_period = config.get("webServer", "period")
-_timeout = config.get("webServer", "timeout")
+_period = config.get("web_server", "period")
+_timeout = config.get("web_server", "timeout")
 _timer = Timer(-1)
 _socket = usocket.socket(usocket.AF_INET, usocket.SOCK_STREAM)
 _poller = uselect.poll()
@@ -87,7 +87,7 @@ def setJsonCallback(method, jsonFunction):
 def start():
     global _started
 
-    if not _started and config.get("webServer", "active"):
+    if not _started and config.get("web_server", "active"):
         _timer.init(period = _period, mode = Timer.PERIODIC, callback = _poll)
         _started = True
 

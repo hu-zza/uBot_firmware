@@ -161,13 +161,12 @@ def getProgramFolders():
 
 
 def getProgramList(folder):
-    if _throwIfNotExistAndReturnBoolean(folder):
-        try:
-            programFiles = uos.listdir("/program/{}".format(folder.lower()))
-            return tuple([fileName[:-4] for fileName in programFiles if fileName[-4:] == ".txt"])
-        except Exception as e:
-            logger.append(e)
-    return ()
+    try:
+        programFiles = uos.listdir("/program/{}".format(folder.lower()))
+        return tuple([fileName[:-4] for fileName in programFiles if fileName[-4:] == ".txt"])
+    except Exception as e:
+        logger.append(e)
+        return ()
 
 
 def getProgramCode(folder, title):

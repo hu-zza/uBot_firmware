@@ -33,6 +33,7 @@ import ujson, uos
 
 from machine import RTC
 
+_exceptions = []
 
 
 ################################
@@ -44,19 +45,18 @@ def getModules():
         moduleFolders = uos.listdir("/etc")
         return tuple([module for module in moduleFolders if uos.stat("/etc/{}".format(module))[0] == 0x04000]) # only dirs
     except Exception as e:
-        logger.append(e)
+        _exceptions.append(e)
         return ()
 
 
 def getModuleAttributes(module):
     """ Returns a tuple consists all available attributes, or an empty tuple. """
-    if _throwIfNotExistAndReturnBoolean(module):
-        try:
-            moduleFiles = uos.listdir("/etc/{}".format(module.lower()))
-            return tuple([fileName[:-4] for fileName in moduleFiles if fileName[-4:] == ".txt"])
-        except Exception as e:
-            logger.append(e)
-    return ()
+    try:
+        moduleFiles = uos.listdir("/etc/{}".format(module.lower()))
+        return tuple([fileName[:-4] for fileName in moduleFiles if fileName[-4:] == ".txt"])
+    except Exception as e:
+        _exceptions.append(e)
+        return ()
 
 
 def get(module, attribute):
@@ -88,7 +88,7 @@ def restore(module, attribute):
              "It has been replaced with /etc/{dir}/{file}.def").format(dir = module, file = attribute)
         )
     except Exception as e:
-        logger.append(e)
+        _exceptions.append(e)
 
 
 def set(module, attribute, value):
@@ -111,14 +111,17 @@ def saveDateTime():
         with open("/etc/datetime.py", "w") as file:
             file.write("DT = {}".format(dateTime.datetime()))
     except Exception as e:
-        logger.append(e)
+        _exceptions.append(e)
 
+
+def getExceptions():
+    return _exceptions
 
 
 ################################
 ## PRIVATE, HELPER METHODS
 
-def _manageAttribute(module, attribute, mode, value = None, extension ="txt"):
+def _manageAttribute(module, attribute, mode, value = None, extension = "txt"):
     try:
         with open("/etc/{}/{}.{}".format(module, attribute, extension), mode) as file:
             if mode == "r":
@@ -126,18 +129,18 @@ def _manageAttribute(module, attribute, mode, value = None, extension ="txt"):
             elif mode == "w":
                 return file.write("{}\n".format(ujson.dumps(value)))
     except Exception as e:
-        logger.append(e)
+        _exceptions.append(e)
 
 
 def _manageWebReplFile(module, attribute, value):
-    if module == "webRepl" and attribute == "active":
+    if module == "web_repl" and attribute == "active":
         try:
-                if value and ".webrepl_cfg.py" in uos.listdir("/"):
-                    uos.rename("/.webrepl_cfg.py", "/webrepl_cfg.py")
-                elif not value and "webrepl_cfg.py" in uos.listdir("/"):
-                    uos.rename("/webrepl_cfg.py", "/.webrepl_cfg.py")
+            if value and ".webrepl_cfg.py" in uos.listdir("/"):
+                uos.rename("/.webrepl_cfg.py", "/webrepl_cfg.py")
+            elif not value and "webrepl_cfg.py" in uos.listdir("/"):
+                uos.rename("/webrepl_cfg.py", "/.webrepl_cfg.py")
         except Exception as e:
-            logger.append(e)
+            _exceptions.append(e)
 
 
 def _readOrThrow(module, attribute):
@@ -150,19 +153,17 @@ def _throwIfNotExistAndReturnBoolean(module, attribute = None):
         if doesModuleExist(module):
             return True
         else:
-            logger.append(AttributeError("The module '{}' doesn't exist.".format(module)))
+            _exceptions.append(AttributeError("The module '{}' doesn't exist.".format(module)))
     else:
         if doesAttributeExist(module, attribute):
             return True
         else:
-            logger.append(AttributeError("The attribute '{}' ({}) doesn't exist.".format(attribute, module)))
+            _exceptions.append(AttributeError("The attribute '{}' ({}) doesn't exist.".format(attribute, module)))
     return False
 
 
 ################################
 ## INITIALISATION
-
-initExceptions = []
 
 dateTime       = RTC()
 dateTimeSource = "factory default"
@@ -172,15 +173,14 @@ try:
     dateTime.datetime(etc.datetime.DT)
     dateTimeSource = "etc.datetime module"
 except Exception as e:
-    initExceptions.append(e)
+    _exceptions.append(e)
 
     try:
         initDateTime = _readOrThrow("system", "initDateTime")
         dateTime.datetime(initDateTime)
         dateTimeSource = "firmware default"
     except Exception as e:
-        initExceptions.append(e)
-
+        _exceptions.append(e)
 
 
 powerOnCount       = 0
@@ -190,7 +190,7 @@ try:
     powerOnCount       = _readOrThrow("system", "powerOnCount")
     powerOnCountSource = "configuration file (/etc/system)"
 except Exception as e:
-    initExceptions.append(e)
+    _exceptions.append(e)
 
     powerOnCount = int(uos.listdir("/log/exception")[-1][:-4])   # [last file][cut extension]
     powerOnCountSource = "guessing based on filenames"
@@ -201,8 +201,9 @@ _manageAttribute("system", "powerOnCount", "w", powerOnCount)   # and save it
 
 import ubot_logger as logger
 
-for exception in initExceptions:
+for exception in _exceptions:
     logger.append(exception)
 
-logger.append("System RTC has been set. Source: {}".format(dateTimeSource))
-logger.append("'Power on count' has been set. Source: {}".format(powerOnCountSource))
+_exceptions = logger
+_exceptions.append("System RTC has been set. Source: {}".format(dateTimeSource))
+_exceptions.append("'Power on count' has been set. Source: {}".format(powerOnCountSource))

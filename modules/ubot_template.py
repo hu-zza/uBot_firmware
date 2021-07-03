@@ -345,7 +345,7 @@ def getDateTimePanel():
 
 
 def getWebReplPanel():
-    if config.get("webRepl", "active"):
+    if config.get("web_repl", "active"):
         str0 = ""
         str1 = "STOP"
         str2 = "Stop"

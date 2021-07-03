@@ -31,8 +31,6 @@
 
 import uos, usys
 
-from machine import RTC
-
 import ubot_config as config
 import ubot_turtle as turtle
 

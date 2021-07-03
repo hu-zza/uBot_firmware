@@ -50,7 +50,7 @@ if config.get("motor", "active"):
 if config.get("turtle", "active"):
     import ubot_turtle as turtle
 
-if config.get("webServer", "active"):
+if config.get("web_server", "active"):
     import ubot_webserver as webserver
 
 
@@ -321,14 +321,14 @@ def _jsonGetEtcRoot():
     job = "Request: Get the folder 'etc'."
 
     if modules != ():
-        children = [{"name": module, "type": "folder", "href": "{}{}/".format(_programDirLink, module),
-                     "raw": "{}{}/".format(_programRawDirLink, module)} for module in modules]
+        children = [{"name": module, "type": "folder", "href": "{}{}/".format(_etcDirLink, module),
+                     "raw": "{}{}/".format(_etcRawDirLink, module)} for module in modules]
 
         return "200 OK", "", {
             "name": "etc",
             "type": "folder",
-            "href": _programDirLink,
-            "raw":  _programRawDirLink,
+            "href": _etcDirLink,
+            "raw":  _etcRawDirLink,
             "parent": {
                 "name": "root",
                 "type": "folder",
@@ -614,14 +614,14 @@ if not config.get("uart", "active"):    # The REPL is attached by default to UAR
     uos.dupterm(None, 1)
 
 
-if config.get("webRepl", "active"):
+if config.get("web_repl", "active"):
     try:
         webrepl.start()
     except Exception as e:
         logger.append(e)
 
 
-if config.get("webServer", "active"):
+if config.get("web_server", "active"):
     try:
         webserver.setJsonCallback("GET", _executeJsonGet)
         webserver.setJsonCallback("POST", _executeJsonPost)
