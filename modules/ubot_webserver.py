@@ -166,12 +166,10 @@ def _processIncoming(incoming):
                     _processJsonQuery(method, path, body)
                 else:
                     _reply("HTML", "415 Unsupported Media Type",
-                           "'Content-Type' / 'Accept' should be 'text/html' or 'application/json'. "
-                           "More info: https://zza.hu/uBot_API")
+                           "'Content-Type' / 'Accept' should be 'text/html' or 'application/json'.")
         else:
             _reply("HTML", "405 Method Not Allowed",
-                   "The following HTTP request methods are allowed: GET, POST, PUT and DELETE. "
-                   "More info: https://zza.hu/uBot_API")
+                   "The following HTTP request methods are allowed: GET, POST, PUT and DELETE.")
     finally:
         _connection.close()
 
@@ -183,8 +181,7 @@ def _processHtmlQuery(method, path, body):
         _processHtmlPostQuery(path, body)
     else:
         _reply("HTML", "405 Method Not Allowed",
-               "Only GET and POST HTTP request methods are allowed with text/html content type. "
-               "More info: https://zza.hu/uBot_API", "GET, POST")
+               "Only GET and POST HTTP request methods are allowed with text/html content type.", "GET, POST")
 
 
 def _processHtmlGetQuery(path):
@@ -261,7 +258,7 @@ def _processHtmlGetQuery(path):
 
 
 def _processHtmlPostQuery(path, body):
-    _reply("HTML", "501 Not Implemented", "This service is not implemented yet. More info: https://zza.hu/uBot_API")
+    _reply("HTML", "501 Not Implemented", "This service is not implemented yet.")
 
 
 def _processJsonQuery(method, path, body):
@@ -279,9 +276,8 @@ def _processJsonQuery(method, path, body):
 
         _startJsonProcessing(path, body if method in {"POST", "PUT"} else "{}")
     else:
-        _reply("HTML", "405 Method Not Allowed",
-               "The following HTTP request methods are allowed with application/json content type: "
-               "GET, POST, PUT and DELETE. More info: https://zza.hu/uBot_API")
+        _reply("HTML", "405 Method Not Allowed", "The following HTTP request methods are allowed with "
+                                                 "application/json content type: GET, POST, PUT and DELETE.")
 
 
 def _startJsonProcessing(path, body):
@@ -295,16 +291,20 @@ def _startJsonProcessing(path, body):
         _reply("JSON", result[0], result[1], result[2])
     except Exception as e:
         logger.append(e)
-        _reply("JSON", "400 Bad Request", "The request body could not be parsed and processed. "
-                                          "More info: https://zza.hu/uBot_API")
+        _reply("JSON", "400 Bad Request", "The request body could not be parsed and processed.")
 
 
-def _reply(returnFormat, httpCode, message, result = [], allow = "GET, POST, PUT, DELETE"):
+def _reply(returnFormat, responseStatus, message, result = None, allow ="GET, POST, PUT, DELETE"):
     """ Try to reply with a text/html or application/json
         if the connection is alive, then closes it. """
 
+    if result is None:
+        result = []
+
     try:
-        _connection.write("HTTP/1.1 " + httpCode + "\r\n")
+        _connection.write("HTTP/1.1 " + responseStatus + "\r\n")
+        statusCode = int(responseStatus[:3])
+        message = _getMessageWithFlags(message, statusCode)
 
         reply = "text/plain"
         if returnFormat == "HTML":
@@ -318,17 +318,32 @@ def _reply(returnFormat, httpCode, message, result = [], allow = "GET, POST, PUT
 
         if returnFormat == "HTML":
             style = template.getGeneralStyle() + template.getSimpleStyle()
-            reply = template.getSimplePage().format(title=httpCode, style=style, body=message)
+            reply = template.getSimplePage().format(title=responseStatus, style=style, body=message)
         elif returnFormat == "JSON":
             reply = ujson.dumps(
-                {"meta": {"code": int(httpCode[:3]), "status": httpCode, "message": message}, "result": result})
+                {"meta": {"code": statusCode, "status": responseStatus, "message": message}, "result": result})
 
         _connection.write(reply)                                                        # TODO: written bytes check, etc
-        logger.append("HTTP response: {}  {}".format(httpCode, message))
+        logger.append("HTTP response: {}  {}".format(responseStatus, message))
     except Exception:
         print("Exception @ ubot_webserver#_reply")
     finally:
         _connection.close()
+
+
+def _getMessageWithFlags(message, statusCode):
+    result = message
+
+    if 100 <= statusCode < 200:
+        result = "[INFO] " + message
+    elif 200 <= statusCode < 300:
+        result = "[DONE] " + message
+    elif 300 <= statusCode < 400:
+        result = "[LINK] " + message
+    elif 400 <= statusCode < 600:
+        result = "[FAIL] {}  // More info: {}".format(message, config.get("constant", "apiDoc"))
+
+    return result
 
 
 def _sendRaw(path):

@@ -43,6 +43,12 @@ buzzer = {
     "saved"         : ((64, 300, 50, 1), (64, 100, 50, 1), (64, 300, 50, 1))
 }
 
+constant = {
+    "name"          : "Constant provider",
+    "active"        : True,     # Just for unity
+    "apiDoc"        : "https://zza.hu/uBot_API"
+}
+
 
 feedback = {
     "name"          : "Motion feedback",
@@ -135,6 +141,7 @@ webRepl = {
 configModules = {
     "ap"        : ap,
     "buzzer"    : buzzer,
+    "constant"  : constant,
     "feedback"  : feedback,
     "i2c"       : i2c,
     "logger"    : logger,

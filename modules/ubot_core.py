@@ -161,17 +161,18 @@ def _executeJsonGet(pathArray, isPresent, ignoredJson):     ####################
         if isPresent[1] and not any(isPresent[2:]):
             return _jsonGetCommandExecution(pathArray[1])
 
-    return "403 Forbidden", "The format of the URI is invalid. More info: https://zza.hu/uBot_API", []
+    return "403 Forbidden", "The format of the URI is invalid.", []
 
 
 def _jsonGetRoot():
     folders = getFolders()
+    job = "Request: Listing folders in 'root'."
 
     if folders != ():
         children = [{"name": folder, "type": "folder", "href": "{}{}/".format(_hostLink, folder),
                      "raw": "{}{}/".format(_rawLink, folder)} for folder in folders]
 
-        return "200 OK", "", {
+        return "200 OK", job, {
             "name": "root",
             "type": "folder",
             "href": _hostLink,
@@ -179,24 +180,25 @@ def _jsonGetRoot():
             "parent": {},
             "children": children}
     else:
-        return "404 Not Found", "The processing of the request failed. Cause: Root folder is not available. " \
-                                "More info: https://zza.hu/uBot_API", []
+        return "404 Not Found", job + " Cause: Root folder is not available.", []
 
 def _jsonGetProgramAction(folder, title, action):
     result = doProgramAction(folder, title, action)
+    job = "Request: Starting action '{}' of program '{}' ({}).".format(action, title, folder)
 
     if result != "":
-        return "200 OK", "The program action has started.", result
+        return "200 OK", job, result
     else:
-        return "403 Forbidden", "The processing of the request failed. Cause: Semantic error in URI. " \
-                                "More info: https://zza.hu/uBot_API", []
+        return "403 Forbidden", job + " Cause: Semantic error in URI.", []
 
 
 def _jsonGetProgramCode(folder, title):
+    job = "Request: Get the source code of program '{}' ({}).".format(title, folder)
+
     if turtle.isProgramExist(folder, title):
         programCode = turtle.getProgramCode(folder, title)
 
-        return "200 OK", "", {
+        return "200 OK", job, {
             "name": title,
             "type": "program",
             "href": "{}{}/{}".format(_programDirLink, folder, title),
@@ -213,8 +215,7 @@ def _jsonGetProgramCode(folder, title):
                 "run": "{}{}/{}/run".format(_programDirLink, folder, title)
             }}
     else:
-        return "404 Not Found", "The processing of the request failed. Cause: No such program. " \
-                                "More info: https://zza.hu/uBot_API", []
+        return "404 Not Found", job + " Cause: No such program.", []
 
 
 def _jsonGetProgramList(folder):
@@ -236,8 +237,7 @@ def _jsonGetProgramList(folder):
             },
             "children": children}
     else:
-        return "404 Not Found", "The processing of the request failed. Cause: No such program folder. " \
-                                "More info: https://zza.hu/uBot_API", []
+        return "404 Not Found", "The processing of the request failed. Cause: No such program folder.", []
 
 
 def _jsonGetProgramDirList():
@@ -260,8 +260,7 @@ def _jsonGetProgramDirList():
             },
             "children": children}
     else:
-        return "404 Not Found", "The processing of the request failed. Cause: Root folder of programs is not " \
-                                "available. More info: https://zza.hu/uBot_API", []
+        return "404 Not Found", "The processing of the request failed. Cause: Root folder of programs is not available.", []
 
 
 
@@ -271,8 +270,7 @@ def _jsonGetSystemAttribute(module, attribute):
     if result is not None:
         return "200 OK", "", result
     else:
-        return "404 Not Found", "The processing of the request failed. Cause: No such system attribute. " \
-                                "More info: https://zza.hu/uBot_API", []
+        return "404 Not Found", "The processing of the request failed. Cause: No such system attribute.", []
 
 
 def _jsonGetSystemAttributes(module):
@@ -281,8 +279,7 @@ def _jsonGetSystemAttributes(module):
     if result is not None and result != {}:
         return "200 OK", "", result
     else:
-        return "404 Not Found", "The processing of the request failed. Cause: No such system module. " \
-                                "More info: https://zza.hu/uBot_API", []
+        return "404 Not Found", "The processing of the request failed. Cause: No such system module.", []
 
 
 def _getSystemInfo():
@@ -301,8 +298,7 @@ def _jsonGetLog(category, title):
     if result is not None and result != ():                           # There should be an initialisation entry at least
         return "200 OK", "", result
     else:
-        return "404 Not Found", "The processing of the request failed. Cause: No such log file. " \
-                                "More info: https://zza.hu/uBot_API", []
+        return "404 Not Found", "The processing of the request failed. Cause: No such log file.", []
 
 
 def _jsonGetLogList(category):
@@ -311,8 +307,7 @@ def _jsonGetLogList(category):
     if result is not None and result != {}:                # Empty tuple is OK -> empty dir, but empty dictionary is not
         return "200 OK", "", result
     else:
-        return "404 Not Found", "The processing of the request failed. Cause: No such log category. " \
-                                "More info: https://zza.hu/uBot_API", []
+        return "404 Not Found", "The processing of the request failed. Cause: No such log category.", []
 
 
 def _getLogCatalog():
@@ -332,8 +327,7 @@ def _jsonGetCommandExecution(command):
     if executeCommand(command.upper()):
         return "200 OK", "", "Processed commands: 1"
     else:
-        return "403 Forbidden", "The processing of the request failed. Cause: Semantic error in URI. " \
-                                "More info: https://zza.hu/uBot_API", "Processed commands: 0"
+        return "403 Forbidden", "The processing of the request failed. Cause: Semantic error in URI.", []
 
 
 
@@ -347,7 +341,7 @@ def _executeJsonPost(pathArray, isPresent, json):           ####################
     elif pathArray[0] == "root":                            ### ONLY DURING DEVELOPMENT
         if not any(isPresent[1:]):
             return _jsonPostRoot(json)
-    return "403 Forbidden", "The format of the URI is invalid. More info: https://zza.hu/uBot_API", []
+    return "403 Forbidden", "The format of the URI is invalid.", []
 
 
 def _jsonPostProgram(folder, title, json):
@@ -360,8 +354,7 @@ def _jsonPostProgram(folder, title, json):
     if turtle.isProgramExist(folder, title):
         return "201 Created", "", "http://{}/program/{}/{}".format(AP.ifconfig()[0], folder, title)
     else:
-        return "422 Unprocessable Entity", "The processing of the request failed. Cause: Semantic error in JSON. " \
-                                           "More info: https://zza.hu/uBot_API", []
+        return "422 Unprocessable Entity", "The processing of the request failed. Cause: Semantic error in JSON.", []
 
 
 def _jsonPostCommand(json):
@@ -376,8 +369,8 @@ def _jsonPostCommand(json):
     if counter == len(json.get("data")):
         return "200 OK", "", "Processed commands: {}".format(counter)
     else:
-        return "422 Unprocessable Entity", "The processing of the request failed. Cause: Semantic error in JSON. " \
-                                           "More info: https://zza.hu/uBot_API", "Processed commands: {}".format(counter)
+        return "422 Unprocessable Entity", "The processing of the request failed. Cause: Semantic error in JSON.",\
+               "Processed commands: {}".format(counter)
 
 
 def _jsonPostRoot(json):
@@ -394,8 +387,7 @@ def _jsonPostRoot(json):
     if len(results) == len(json.get("data")):
         return "200 OK", "", results
     else:
-        return "422 Unprocessable Entity", "The processing of the request failed. Cause: Semantic error in JSON. " \
-                                           "More info: https://zza.hu/uBot_API", results
+        return "422 Unprocessable Entity", "The processing of the request failed. Cause: Semantic error in JSON.", results
 
 
 
@@ -406,7 +398,7 @@ def _executeJsonPut(pathArray, isPresent, json):            ####################
     elif pathArray[0] == "system":                          ### persistent
         if isPresent[1] and True not in isPresent[2:]:
             return _jsonPutSystemProperty(pathArray, isPresent, json)
-    return "403 Forbidden", "The format of the URI is invalid. More info: https://zza.hu/uBot_API", []
+    return "403 Forbidden", "The format of the URI is invalid.", []
 
 
 def _jsonPutProgram(pathArray, isPresent, json):
@@ -443,7 +435,7 @@ def _executeJsonDelete(pathArray, isPresent, ignoredJson):  ####################
                 return _jsonClearLogFolder(pathArray[1])
             elif isPresent[1] and isPresent[2]:
                 return _jsonDeleteLog(pathArray, isPresent)
-    return "403 Forbidden", "The format of the URI is invalid. More info: https://zza.hu/uBot_API", []
+    return "403 Forbidden", "The format of the URI is invalid.", []
 
 
 def _jsonDeleteEveryProgram():
