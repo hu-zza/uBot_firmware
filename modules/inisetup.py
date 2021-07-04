@@ -46,6 +46,7 @@ buzzer = {
 constant = {
     "name"          : "Constant provider",
     "active"        : True,     # Just for unity
+    "host"          : "http://192.168.11.1",
     "apiDoc"        : "https://zza.hu/uBot_API"
 }
 
@@ -91,8 +92,8 @@ system = {
     "active"        : True,     # Just for unity
     "id"            : hexlify(uos.urandom(32)).decode(),
     "chk"           : hexlify(uos.urandom(32)).decode(),
-    "firmware"      : (0, 1, 131),
-    "initDateTime"  : (2021, 7, 4, 0, 1, 20, 0, 0),
+    "firmware"      : (0, 1, 132),
+    "initDateTime"  : (2021, 7, 4, 0, 23, 50, 0, 0),
     "powerOnCount"  : 0
 }
 

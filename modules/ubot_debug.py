@@ -33,7 +33,6 @@ import esp, network, uos, usys, webrepl
 
 from machine   import Pin, PWM, Timer, UART
 from ubinascii import hexlify
-from utime     import sleep_ms
 
 import ubot_logger as logger
 

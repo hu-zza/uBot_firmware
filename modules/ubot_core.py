@@ -29,15 +29,15 @@
     SOFTWARE.
 """
 
-import esp, network, uasyncio, uos, uselect, webrepl
+import esp, network, uos, webrepl
 
-from machine     import Pin, UART
-from ubinascii   import hexlify
-from utime       import sleep_ms
+from machine import Pin
+from utime   import sleep_ms
 
-import ubot_config    as config
-import ubot_logger    as logger
-import ubot_buzzer    as buzzer
+import ubot_config as config
+import ubot_logger as logger
+import ubot_buzzer as buzzer
+import ubot_structure as structure
 
 buzzer.keyBeep("started")
 
@@ -57,15 +57,6 @@ if config.get("web_server", "active"):
 
 ################################
 ## PUBLIC METHODS
-
-def getFolders():
-    try:
-        rootFolders = uos.listdir("/")
-        return tuple([folder for folder in rootFolders if uos.stat("/{}".format(folder))[0] == 0x04000]) # only dirs
-    except Exception as e:
-        logger.append(e)
-        return ()
-
 
 def executeCommand(command):
     if command[:6] == "PRESS_":
@@ -127,7 +118,7 @@ def doProgramAction(folder, title, action):
 def _executeJsonGet(pathArray, isPresent, ignoredJson):     ########################################### JSON GET HANDLER
     secondImpliesFirst = not isPresent[2] or isPresent[1]
     if pathArray[0] == "":                                  ### GET
-        return _jsonGetRoot()
+        return structure.createJsonInstanceFrom()
 
     elif pathArray[0] == "command":                         ### EXECUTION
         if isPresent[1] and not any(isPresent[2:]):
@@ -139,15 +130,17 @@ def _executeJsonGet(pathArray, isPresent, ignoredJson):     ####################
                 return _jsonGetEtcAttribute(pathArray[1], pathArray[2])
             elif isPresent[1]:
                 return _jsonGetEtcModule(pathArray[1])
-            else:
-                return _jsonGetEtcRoot()
+            elif not any(isPresent[1:]):
+                return structure.createJsonInstanceFrom("etc")
 
     elif pathArray[0] == "log":                             ### GET
         if not any(isPresent[3:]):
             if all(isPresent[1:3]):
                 return _jsonGetLog(pathArray[1], pathArray[2])
-            elif secondImpliesFirst:
-                return _jsonGetLogList(pathArray[1])
+            elif isPresent[1]:
+                return structure.createJsonInstanceFrom("log", pathArray[1])
+            elif not any(isPresent[1:]):
+                return structure.createJsonInstanceFrom("log")
 
     elif pathArray[0] == "program":                        ### GET or EXECUTION
         if not any(isPresent[4:]):
@@ -157,32 +150,14 @@ def _executeJsonGet(pathArray, isPresent, ignoredJson):     ####################
                 return _jsonGetProgram(pathArray[1], pathArray[2])
             elif isPresent[1]:                              # program / <folder>
                 return _jsonGetFolder(pathArray[1])
-            else:                                           # program
-                return _jsonGetProgramRoot()
+            elif not any(isPresent[1:]):                    # program
+                structure.createJsonInstanceFrom("log")
 
     elif pathArray[0] == "raw":                             ### GET
-        return _jsonGetRaw(pathArray, isPresent)
+        if not any(isPresent[4:]):
+            return structure.createJsonInstanceFrom(pathArray[1], pathArray[2], pathArray[3])
 
-    return "403 Forbidden", "The format of the URI is invalid.", {}
-
-
-def _jsonGetRoot():
-    folders = getFolders()
-    job = "Request: Get the folder 'root'."
-
-    if folders != ():
-        children = [{"name": folder, "type": "folder", "href": "{}{}/".format(_hostLink, folder),
-                     "raw": "{}{}/".format(_rawLink, folder)} for folder in folders]
-
-        return "200 OK", job, {
-            "name": "root",
-            "type": "folder",
-            "href": _hostLink,
-            "raw":  _rawLink,
-            "parent": {},
-            "children": children}
-    else:
-        return "404 Not Found", job + " Cause: Root folder is not available.", {}
+    return "403 Forbidden", "Job: [REST] GET request. Cause: The format of the URI is invalid.", {}
 
 
 def _jsonGetStartProgramAction(folder, title, action):
@@ -245,30 +220,6 @@ def _jsonGetFolder(folder):
         return "404 Not Found", job + " Cause: No such program folder.", {}
 
 
-def _jsonGetProgramRoot():
-    programFolders = turtle.getProgramFolders()
-    job = "Request: Get the folder 'program'."
-
-    if programFolders != ():
-        children = [{"name": folder, "type": "folder", "href": "{}{}/".format(_programDirLink, folder),
-                     "raw": "{}{}/".format(_programRawDirLink, folder)} for folder in programFolders]
-
-        return "200 OK", "", {
-            "name": "program",
-            "type": "folder",
-            "href": _programDirLink,
-            "raw":  _programRawDirLink,
-            "parent": {
-                "name": "root",
-                "type": "folder",
-                "href": _hostLink,
-                "raw":  _rawLink
-            },
-            "children": children}
-    else:
-        return "404 Not Found", job + " Cause: Root folder of programs is not available.", {}
-
-
 def _jsonGetEtcAttribute(module, attribute):
     job = "Request: Get the system attribute '{}' ({}).".format(attribute, module)
 
@@ -316,30 +267,6 @@ def _jsonGetEtcModule(module):
         return "404 Not Found", job + " Cause: No such system folder.", {}
 
 
-def _jsonGetEtcRoot():
-    modules = config.getModules()
-    job = "Request: Get the folder 'etc'."
-
-    if modules != ():
-        children = [{"name": module, "type": "folder", "href": "{}{}/".format(_etcDirLink, module),
-                     "raw": "{}{}/".format(_etcRawDirLink, module)} for module in modules]
-
-        return "200 OK", "", {
-            "name": "etc",
-            "type": "folder",
-            "href": _etcDirLink,
-            "raw":  _etcRawDirLink,
-            "parent": {
-                "name": "root",
-                "type": "folder",
-                "href": _hostLink,
-                "raw":  _rawLink
-            },
-            "children": children}
-    else:
-        return "404 Not Found", job + " Cause: Root folder of programs is not available.", {}
-
-
 def _jsonGetLog(category, title):
     result = logger.getLog(category, title)
 
@@ -347,28 +274,6 @@ def _jsonGetLog(category, title):
         return "200 OK", "", result
     else:
         return "404 Not Found", "The processing of the request failed. Cause: No such log file.", {}
-
-
-def _jsonGetLogList(category):
-    result = _getLogCatalog() if category is None or category == "" else _getLogList(category)
-
-    if result is not None and result != {}:                # Empty tuple is OK -> empty dir, but empty dictionary is not
-        return "200 OK", "", result
-    else:
-        return "404 Not Found", "The processing of the request failed. Cause: No such log category.", {}
-
-
-def _getLogCatalog():
-    categories = logger.getLogCategories()
-    return {category: _getLogList(category) for category in categories}
-
-
-def _getLogList(category):
-    return logger.getCategoryLogs(category)
-
-
-def _jsonGetRaw(pathArray, isPresent):
-    pass
 
 
 def _jsonGetCommandExecution(command):
@@ -389,7 +294,7 @@ def _executeJsonPost(pathArray, isPresent, json):           ####################
     elif pathArray[0] == "root":                            ### ONLY DURING DEVELOPMENT
         if not any(isPresent[1:]):
             return _jsonPostRoot(json)
-    return "403 Forbidden", "The format of the URI is invalid.", {}
+    return "403 Forbidden", "Job: [REST] POST request. Cause: The format of the URI is invalid.", {}
 
 
 def _jsonPostProgram(folder, title, json):
@@ -446,7 +351,7 @@ def _executeJsonPut(pathArray, isPresent, json):            ####################
     elif pathArray[0] == "etc":                             ### persistent
         if isPresent[1] and True not in isPresent[2:]:
             return _jsonPutSystemProperty(pathArray, isPresent, json)
-    return "403 Forbidden", "The format of the URI is invalid.", {}
+    return "403 Forbidden", "Job: [REST] PUT request. Cause: The format of the URI is invalid.", {}
 
 
 def _jsonPutProgram(pathArray, isPresent, json):
@@ -483,7 +388,7 @@ def _executeJsonDelete(pathArray, isPresent, ignoredJson):  ####################
                 return _jsonClearLogFolder(pathArray[1])
             elif isPresent[1] and isPresent[2]:
                 return _jsonDeleteLog(pathArray, isPresent)
-    return "403 Forbidden", "The format of the URI is invalid.", {}
+    return "403 Forbidden", "Job: [REST] DELETE request. Cause: The format of the URI is invalid.", {}
 
 
 def _jsonDeleteEveryProgram():
@@ -569,7 +474,7 @@ if config.get("turtle", "active"):
 ###########
 ## AP
 
-AP = network.WLAN(network.AP_IF)
+AP = config.getAp()
 
 AP.active(config.get("ap", "active"))
 AP.ifconfig(("192.168.11.1", "255.255.255.0", "192.168.11.1", "8.8.8.8"))

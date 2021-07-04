@@ -29,7 +29,7 @@
     SOFTWARE.
 """
 
-import gc, network, ujson, uos, uselect, usocket
+import ujson, uos, uselect, usocket
 
 from machine import Timer
 
@@ -38,8 +38,6 @@ import ubot_logger   as logger
 import ubot_motor    as motor
 import ubot_template as template
 
-
-_ap = network.WLAN(network.AP_IF)
 
 _jsonFunction = 0
 _jsonGetFunction = 0
@@ -207,7 +205,7 @@ def _processHtmlGetQuery(path):
                 for panelTitle in sorted(template.debugPanels.keys()):
                     _connection.write(
                         "            <a href='http://{0}{1}' target='_blank'>{2}</a><br>\n".format(
-                            _ap.ifconfig()[0], template.debugPanels.get(panelTitle), panelTitle))
+                            config.getAp().ifconfig()[0], template.debugPanels.get(panelTitle), panelTitle))
 
                 powerOnCount = config.get("system", "powerOnCount")
                 _connection.write("        <br><br><hr><hr>\n")
@@ -218,11 +216,11 @@ def _processHtmlGetQuery(path):
 
                     _connection.write(
                         "            <a href='http://{0}/raw/log/{1}/{2:010d}.txt' target='_blank'>{2:010d}&nbsp;&nbsp;"
-                        "&nbsp;// current</a><br>\n".format(_ap.ifconfig()[0], category, powerOnCount))
+                        "&nbsp;// current</a><br>\n".format(config.getAp().ifconfig()[0], category, powerOnCount))
 
                     _connection.write(
                         "            <a href='http://{0}/raw/log/{1}/0000000000.txt' target='_blank'>0000000000&nbsp;"
-                        "&nbsp;&nbsp;// fallback</a><br><br>\n".format(_ap.ifconfig()[0], category))
+                        "&nbsp;&nbsp;// fallback</a><br><br>\n".format(config.getAp().ifconfig()[0], category))
 
                 _connection.write("        </ul>\n")
 

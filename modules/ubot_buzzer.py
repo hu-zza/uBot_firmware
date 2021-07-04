@@ -29,11 +29,8 @@
     SOFTWARE.
 """
 
-import uos
-
 from machine import Pin, PWM
 from utime   import sleep_ms
-from ujson   import loads
 
 import ubot_config as config
 

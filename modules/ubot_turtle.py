@@ -154,7 +154,7 @@ def getProgramArray():
 def getProgramFolders():
     try:
         programFolders = uos.listdir("/program")
-        return tuple([folder for folder in programFolders if uos.stat("/program/{}".format(folder))[0] == 0x04000]) # dirs
+        return tuple([folder for folder in programFolders if uos.stat("/program/{}".format(folder))[0] == 0x4000]) # dirs
     except Exception as e:
         logger.append(e)
         return ()

@@ -29,7 +29,7 @@
     SOFTWARE.
 """
 
-import gc, network, uos
+import gc, uos
 
 from ubinascii import hexlify
 
@@ -229,8 +229,7 @@ def getServiceStatusPanel():
 
 
 def getApPanel():
-    ap = network.WLAN(network.AP_IF)
-    if0, if1, if2, if3 = ap.ifconfig()
+    if0, if1, if2, if3 = config.getAp().ifconfig()
 
     return ("        <h3>Access point</h3>\n"
             "            <table class='data'>\n"
@@ -242,9 +241,9 @@ def getApPanel():
             "                <tr><td> <strong>Gateway:</strong> </td><td>{gateway}</td><td> </td></tr>"
             "                <tr><td> <strong>DNS:</strong> </td><td>{dns}</td><td> </td></tr>"
             "            </table>\n").format(isApUp = config.get("ap", "active"),
-                                             ssid = ap.config("essid"),
+                                             ssid = config.getAp().config("essid"),
                                              uBot_pwd = config.get("ap", "password"),
-                                             macAddress = hexlify(ap.config("mac"), ":").decode().replace(":", " : "),
+                                             macAddress = hexlify(config.getAp().config("mac"), ":").decode().replace(":", " : "),
                                              ipAddress = if0,
                                              subnetMask = if1,
                                              gateway = if2,
