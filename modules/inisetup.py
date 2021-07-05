@@ -4,19 +4,24 @@ from flashbdev import bdev
 from ubinascii import hexlify
 
 
-AP = network.WLAN(network.AP_IF)
-
+AP  = network.WLAN(network.AP_IF)
+mac = hexlify(AP.config("mac"), ":").decode()
 
 ################################
 ## CONFIG SUBDICTIONARIES
 
+
 ap = {
     "name"          : "Access point",
     "active"        : True,
-    "essid"         : "uBot__" + hexlify(AP.config("mac"), ":").decode()[9:],
+    "ip"            : "192.168.11.1",
+    "netmask"       : "255.255.255.0",
+    "gateway"       : "192.168.11.1",
+    "dns"           : "8.8.8.8",
+    "mac"           : mac,
+    "ssid"          : "uBot__" + mac[9:],
     "password"      : "uBot_pwd"
 }
-
 
 buzzer = {
     "name"          : "Buzzer",
@@ -92,8 +97,8 @@ system = {
     "active"        : True,     # Just for unity
     "id"            : hexlify(uos.urandom(32)).decode(),
     "chk"           : hexlify(uos.urandom(32)).decode(),
-    "firmware"      : (0, 1, 133),
-    "initDateTime"  : (2021, 7, 5, 0, 2, 40, 0, 0),
+    "firmware"      : (0, 1, 134),
+    "initDateTime"  : (2021, 7, 5, 0, 10, 40, 0, 0),
     "powerOnCount"  : 0
 }
 
@@ -158,8 +163,8 @@ configModules = {
 ########################################################################################################################
 
 def wifi():
-    AP.ifconfig(("192.168.11.1", "255.255.255.0", "192.168.11.1", "8.8.8.8"))
-    AP.config(essid = ap.get("essid"), authmode = network.AUTH_WPA_WPA2_PSK, password = ap.get("password"))
+    AP.ifconfig((ap.get("ip"), ap.get("netmask"), ap.get("gateway"), ap.get("dns")))
+    AP.config(ssid = ap.get("ssid"), authmode = network.AUTH_WPA_WPA2_PSK, password = ap.get("password"))
 
 
 def check_bootsec():

@@ -229,8 +229,6 @@ def getServiceStatusPanel():
 
 
 def getApPanel():
-    if0, if1, if2, if3 = config.getAp().ifconfig()
-
     return ("        <h3>Access point</h3>\n"
             "            <table class='data'>\n"
             "                <tr><td> <strong>Active:</strong> </td><td>{isApUp}</td><td>  </td></tr>\n"
@@ -241,13 +239,13 @@ def getApPanel():
             "                <tr><td> <strong>Gateway:</strong> </td><td>{gateway}</td><td> </td></tr>"
             "                <tr><td> <strong>DNS:</strong> </td><td>{dns}</td><td> </td></tr>"
             "            </table>\n").format(isApUp = config.get("ap", "active"),
-                                             ssid = config.getAp().config("essid"),
+                                             ssid = config.get("ap", "ssid"),
                                              uBot_pwd = config.get("ap", "password"),
-                                             macAddress = hexlify(config.getAp().config("mac"), ":").decode().replace(":", " : "),
-                                             ipAddress = if0,
-                                             subnetMask = if1,
-                                             gateway = if2,
-                                             dns = if3)
+                                             macAddress = config.get("ap", "mac").replace(":", " : "),
+                                             ipAddress = config.get("ap", "ip"),
+                                             subnetMask = config.get("ap", "netmask"),
+                                             gateway = config.get("ap", "gateway"),
+                                             dns = config.get("ap", "dns"))
 
 
 def getDrivePanel():

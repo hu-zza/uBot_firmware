@@ -36,7 +36,7 @@ import ubot_logger as logger
 import ubot_turtle as turtle
 
 
-_hostLink = "http://{}/".format(config.getAp().ifconfig()[0])
+_hostLink = "http://{}/".format(config.get("ap", "ip"))
 _rawLink  = _hostLink + "raw/"
 
 

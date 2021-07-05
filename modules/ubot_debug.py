@@ -92,12 +92,12 @@ except Exception as e:
 
 
 try:
-    essid = "uBot__" + hexlify(ap.config("mac"), ":").decode()[9:]
-    ap.config(essid = essid)
+    ssid = "uBot__" + hexlify(ap.config("mac"), ":").decode()[9:]
+    ap.config(ssid = ssid)
 except Exception as e:
     logger.append(e)
     try:
-        ap.config(essid = "uBot_debug")
+        ap.config(ssid = "uBot_debug")
     except Exception as e:
         logger.append(e)
 

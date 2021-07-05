@@ -33,14 +33,9 @@ import network, ujson, uos
 
 from machine import RTC
 
-ap = network.WLAN(network.AP_IF)
-
 
 ################################
 ## PUBLIC METHODS
-
-def getAp():
-    return ap
 
 def getModules():
     """ Returns a tuple consists all available modules, or an empty tuple. """

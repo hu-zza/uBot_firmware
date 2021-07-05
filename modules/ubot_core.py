@@ -58,6 +58,10 @@ if config.get("web_server", "active"):
 ################################
 ## PUBLIC METHODS
 
+def getAp():
+    return _ap
+
+
 def executeCommand(command):
     if command[:6] == "PRESS_":
         pressedList = command[6:].strip().split(":")
@@ -199,7 +203,7 @@ def _jsonPostProgram(folder, title, json):
         turtle.saveProgram(program, folder, title)
 
     if turtle.doesProgramExist(folder, title):
-        return "201 Created", "", "http://{}/program/{}/{}".format(AP.ifconfig()[0], folder, title)
+        return "201 Created", "", "http://{}/program/{}/{}".format(_ap.ifconfig()[0], folder, title)
     else:
         return "422 Unprocessable Entity", "The processing of the request failed. Cause: Semantic error in JSON.", {}
 
@@ -368,39 +372,23 @@ if config.get("turtle", "active"):
 ###########
 ## AP
 
-AP = config.getAp()
+_ap = network.WLAN(network.AP_IF)
 
-AP.active(config.get("ap", "active"))
-AP.ifconfig(("192.168.11.1", "255.255.255.0", "192.168.11.1", "8.8.8.8"))
-AP.config(authmode = network.AUTH_WPA_WPA2_PSK)
+_ap.active(config.get("ap", "active"))
+_ap.ifconfig(("192.168.11.1", "255.255.255.0", "192.168.11.1", "8.8.8.8"))
+_ap.config(authmode = network.AUTH_WPA_WPA2_PSK)
 
 
 try:
-    AP.config(essid = config.get("ap", "essid"))
+    _ap.config(ssid = config.get("ap", "ssid"))
 except Exception as e:
     logger.append(e)
 
 
 try:
-    AP.config(password = config.get("ap", "password"))
+    _ap.config(password = config.get("ap", "password"))
 except Exception as e:
     logger.append(e)
-
-
-###########
-## JSON VAR
-
-_hostLink = "http://{}/".format(AP.ifconfig()[0])
-_rawLink  = _hostLink + "raw/"
-
-_programDirLink    = _hostLink + "program/"
-_programRawDirLink = _rawLink  + "program/"
-
-_etcDirLink    = _hostLink + "etc/"
-_etcRawDirLink = _rawLink  + "etc/"
-
-_logDirLink    = _hostLink + "log/"
-_logRawDirLink = _rawLink  + "log/"
 
 ###########
 ## GENERAL

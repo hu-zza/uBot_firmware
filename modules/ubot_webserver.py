@@ -205,7 +205,7 @@ def _processHtmlGetQuery(path):
                 for panelTitle in sorted(template.debugPanels.keys()):
                     _connection.write(
                         "            <a href='http://{0}{1}' target='_blank'>{2}</a><br>\n".format(
-                            config.getAp().ifconfig()[0], template.debugPanels.get(panelTitle), panelTitle))
+                            config.get("ap", "ip"), template.debugPanels.get(panelTitle), panelTitle))
 
                 powerOnCount = config.get("system", "powerOnCount")
                 _connection.write("        <br><br><hr><hr>\n")
@@ -220,7 +220,7 @@ def _processHtmlGetQuery(path):
 
                     _connection.write(
                         "            <a href='http://{0}/raw/log/{1}/0000000000.txt' target='_blank'>0000000000&nbsp;"
-                        "&nbsp;&nbsp;// fallback</a><br><br>\n".format(config.getAp().ifconfig()[0], category))
+                        "&nbsp;&nbsp;// fallback</a><br><br>\n".format(config.get("ap", "ip"), category))
 
                 _connection.write("        </ul>\n")
 
