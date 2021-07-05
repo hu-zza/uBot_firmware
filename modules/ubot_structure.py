@@ -29,8 +29,12 @@
     SOFTWARE.
 """
 
+import uos
+
 import ubot_config as config
 import ubot_logger as logger
+import ubot_turtle as turtle
+
 
 _hostLink = "http://{}/".format(config.getAp().ifconfig()[0])
 _rawLink  = _hostLink + "raw/"
@@ -81,9 +85,20 @@ def getFilenamesOf(folder = None, subFolder = None, suffix = None):
     return tuple([file[:file.rindex(".")] for file in getFilesOf(folder, subFolder, suffix)])
 
 
+def getFilenamesOfPath(path = None, suffix = None):
+    """ Returns files of the given path as a string tuple. The strings contains only file names
+    (without the dot and the suffix). Result can be filtered by suffix."""
+    return tuple([file[:file.rindex(".")] for file in getFilesOfPath(path, suffix)])
+
+
 def getFilesOf(folder = None, subFolder = None, suffix = None):
     """ Returns files of the given folder (or /folder/subfolder) as a string tuple. Result can be filtered by suffix."""
-    path = _getUnifiedFolderPath(folder, subFolder)
+    return getFilesOfPath(_getUnifiedFolderPath(folder, subFolder), suffix)
+
+
+def getFilesOfPath(path = None, suffix = None):
+    """ Returns files of the given path as a string tuple. Result can be filtered by suffix."""
+    path = _getUnifiedFolderName(path)
 
     if suffix is None:
         suffix = ""
@@ -115,22 +130,22 @@ def _getUnifiedFolderPath(folder, subFolder):
 def createJsonInstanceFrom(folder = None, subFolder = None, file = None):
     presentInt = (0 if _isBlank(folder) else 4) + (0 if _isBlank(subFolder) else 2) + (0 if _isBlank(file) else 1)
     if presentInt == 0:
-        return _createFolderInstance("", True)
+        return _createJsonFolderInstance("", True)
     elif presentInt == 4:
-        return _createFolderInstance(folder)
+        return _createJsonFolderInstance(folder)
     elif presentInt == 6:
-        return _createSubFolderInstance(folder, subFolder)
+        return _createJsonSubFolderInstance(folder, subFolder)
     elif presentInt == 7:
-        return _createFileInstance(folder, subFolder, file)
+        return _createJsonFileInstance(folder, subFolder, file)
 
 
 def _isBlank(text):
     return text is None or text == ""
 
 
-def _createFolderInstance(folder, isRoot = False):
-    job = "Request: Get the folder '{}'{}.".format(folder, "" if isRoot else " [ / ]")
+def _createJsonFolderInstance(folder, isRoot = False):
     realFolder = _getUnifiedFolderName(folder)
+    job = "Request: Get the folder '{}'.".format(realFolder)
 
     if isRoot or isDir(realFolder):
         subFolders    = getFoldersOf(realFolder)
@@ -143,17 +158,82 @@ def _createFolderInstance(folder, isRoot = False):
             "href": folderLink,
             "raw":  folderRawLink,
 
-            "parent": {} if isRoot else {"name": "root", "type": "folder", "href": _hostLink, "raw": _rawLink},
+            "parent": {} if isRoot else {"name": "root",
+                                         "type": "folder",
+                                         "href": _hostLink,
+                                         "raw": _rawLink},
 
-            "children": [{"name": subFolder, "type": "folder", "href": "{}{}/".format(folderLink, subFolder),
-                          "raw": "{}{}/".format(folderRawLink, subFolder)} for subFolder in subFolders]}
+            "children": [{"name": subFolder,
+                          "type": "folder",
+                          "href": "{}{}/".format(folderLink, subFolder),
+                          "raw":  "{}{}/".format(folderRawLink, subFolder)} for subFolder in subFolders]}
     else:
-        return "404 Not Found", job + " Cause: No such folder: '{}'".format(folder), {}
+        return "404 Not Found", job + " Cause: No such folder.", {}
 
 
-def _createSubFolderInstance(folder, subFolder):
-    return ""
+def _createJsonSubFolderInstance(folder, subFolder):
+    path = _getUnifiedFolderPath(folder, subFolder)
+    job = "Request: Get the folder '{}'.".format(path)
+
+    if isDir(path):
+        files         = getFilenamesOfPath(path)
+        parent        = _getUnifiedFolderName(folder)
+        folderLink    = "{}{}".format(_hostLink, path[1:])
+        folderRawLink = "{}{}".format(_rawLink, path[1:])
+
+        return "200 OK", job, {
+            "name": subFolder,
+            "type": "folder",
+            "href": folderLink,
+            "raw":  folderRawLink,
+
+            "parent": {"name": folder,
+                       "type": "folder",
+                       "href": "{}{}".format(_hostLink, parent[1:]),
+                       "raw":  "{}{}".format(_rawLink, parent[1:])},
+
+            "children": [{"name": file,
+                          "type": "file",
+                          "href": "{}{}".format(folderLink, file),
+                          "raw":  "{}{}.txt".format(folderRawLink, file)} for file in files]}
+    else:
+        return "404 Not Found", job + " Cause: No such folder.", {}
 
 
-def _createFileInstance(folder, subFolder, file):
-    return ""
+def _createJsonFileInstance(folder, subFolder, file):
+    path = "{}{}.txt".format(_getUnifiedFolderPath(folder, subFolder), file)
+    job = "Request: Get the file '{}'.".format(path)
+
+    validFolder = False
+    value = None
+
+    if folder == "etc":
+        validFolder = True
+        if config.doesAttributeExist(subFolder, file):
+            value = config.get(subFolder, file)
+    elif folder == "log":
+        validFolder = True
+        if logger.doesLogExist(subFolder, file):
+            value = logger.getLog(subFolder, file)
+    elif folder == "program":
+        validFolder = True
+        if turtle.doesProgramExist(subFolder, file):
+            value = turtle.getProgramCode(subFolder, file)
+
+    if validFolder:
+        if value is not None:
+            return "200 OK", job, {
+                "name": file,
+                "type": "file",
+                "href": "{}".format(_hostLink, path[1:path.rindex(".")]),
+                "raw":  "{}".format(_rawLink, path[1:]),
+                "parent": {
+                    "name": folder,
+                    "type": "folder",
+                    "href": "{}{}".format(_hostLink, path[1:path.rindex("/") + 1]),
+                    "raw":  "{}{}".format(_rawLink, path[1:path.rindex("/") + 1])
+                },
+                "children": [],
+                "value": value}
+        return "404 Not Found", job + " Cause: No such file.", {}
+    return "403 Forbidden", job + " Cause: Semantic error in URI.", {}

@@ -127,16 +127,16 @@ def _executeJsonGet(pathArray, isPresent, ignoredJson):     ####################
     elif pathArray[0] == "etc":                             ### GET
         if not any(isPresent[3:]):
             if all(isPresent[1:3]):
-                return _jsonGetEtcAttribute(pathArray[1], pathArray[2])
+                return structure.createJsonInstanceFrom("etc", pathArray[1], pathArray[2])
             elif isPresent[1]:
-                return _jsonGetEtcModule(pathArray[1])
+                return structure.createJsonInstanceFrom("etc", pathArray[1])
             elif not any(isPresent[1:]):
                 return structure.createJsonInstanceFrom("etc")
 
     elif pathArray[0] == "log":                             ### GET
         if not any(isPresent[3:]):
             if all(isPresent[1:3]):
-                return _jsonGetLog(pathArray[1], pathArray[2])
+                return structure.createJsonInstanceFrom("log", pathArray[1], pathArray[2])
             elif isPresent[1]:
                 return structure.createJsonInstanceFrom("log", pathArray[1])
             elif not any(isPresent[1:]):
@@ -145,13 +145,13 @@ def _executeJsonGet(pathArray, isPresent, ignoredJson):     ####################
     elif pathArray[0] == "program":                        ### GET or EXECUTION
         if not any(isPresent[4:]):
             if all(isPresent[1:4]):                         # program / <folder> / <title> / <action>
-                return _jsonGetStartProgramAction(pathArray[1], pathArray[2], pathArray[3])
+                return _jsonGetProgramActionStarting(pathArray[1], pathArray[2], pathArray[3])
             elif all(isPresent[1:3]):                       # program / <folder> / <title>
-                return _jsonGetProgram(pathArray[1], pathArray[2])
+                return structure.createJsonInstanceFrom("program", pathArray[1], pathArray[2])
             elif isPresent[1]:                              # program / <folder>
-                return _jsonGetFolder(pathArray[1])
+                return structure.createJsonInstanceFrom("program", pathArray[1])
             elif not any(isPresent[1:]):                    # program
-                structure.createJsonInstanceFrom("log")
+                return structure.createJsonInstanceFrom("program")
 
     elif pathArray[0] == "raw":                             ### GET
         if not any(isPresent[4:]):
@@ -160,7 +160,7 @@ def _executeJsonGet(pathArray, isPresent, ignoredJson):     ####################
     return "403 Forbidden", "Job: [REST] GET request. Cause: The format of the URI is invalid.", {}
 
 
-def _jsonGetStartProgramAction(folder, title, action):
+def _jsonGetProgramActionStarting(folder, title, action):
     result = doProgramAction(folder, title, action)
     job = "Request: Starting action '{}' of program '{}' ({}).".format(action, title, folder)
 
@@ -168,112 +168,6 @@ def _jsonGetStartProgramAction(folder, title, action):
         return "200 OK", job, result[1]
     else:
         return "403 Forbidden", job + " Cause: Semantic error in URI.", {}
-
-
-def _jsonGetProgram(folder, title):
-    job = "Request: Get the program '{}' ({}).".format(title, folder)
-
-    if turtle.doesProgramExist(folder, title):
-        programCode = turtle.getProgramCode(folder, title)
-
-        return "200 OK", job, {
-            "name": title,
-            "type": "program",
-            "href": "{}{}/{}".format(_programDirLink, folder, title),
-            "raw":  "{}{}/{}.txt".format(_programRawDirLink, folder, title),
-            "parent": {
-                "name": folder,
-                "type": "folder",
-                "href": "{}{}".format(_programDirLink, folder),
-                "raw":  "{}{}".format(_programRawDirLink, folder)
-            },
-            "children": [],
-            "code": programCode,
-            "action": {
-                "run": "{}{}/{}/run".format(_programDirLink, folder, title)
-            }}
-    else:
-        return "404 Not Found", job + " Cause: No such program.", {}
-
-
-def _jsonGetFolder(folder):
-    job = "Request: Get the folder '{}'.".format(folder)
-
-    if turtle.doesFolderExist(folder):
-        children = [{"name": program, "type": "program", "href": "{}{}/{}".format(_programDirLink, folder, program),
-                    "raw": "{}{}/{}.txt".format(_programRawDirLink, folder, program)}
-                    for program in turtle.getProgramList(folder)]
-
-        return "200 OK", job, {
-            "name": folder,
-            "type": "folder",
-            "href": "{}{}/".format(_programDirLink, folder),
-            "raw":  "{}{}/".format(_programRawDirLink, folder),
-            "parent": {
-                "name": "program",
-                "type": "folder",
-                "href": _programDirLink,
-                "raw":  _programRawDirLink
-            },
-            "children": children}
-    else:
-        return "404 Not Found", job + " Cause: No such program folder.", {}
-
-
-def _jsonGetEtcAttribute(module, attribute):
-    job = "Request: Get the system attribute '{}' ({}).".format(attribute, module)
-
-    if config.doesAttributeExist(module, attribute):
-        value = config.get(module, attribute)
-
-        return "200 OK", job, {
-            "name": attribute,
-            "type": "attribute",
-            "href": "{}{}/{}".format(_etcDirLink, module, attribute),
-            "raw":  "{}{}/{}.txt".format(_etcRawDirLink, module, attribute),
-            "parent": {
-                "name": module,
-                "type": "folder",
-                "href": "{}{}".format(_etcDirLink, module),
-                "raw":  "{}{}".format(_etcRawDirLink, module)
-            },
-            "children": [],
-            "value": value}
-    else:
-        return "404 Not Found", job + " Cause: No such system attribute.", {}
-
-
-def _jsonGetEtcModule(module):
-    job = "Request: Get the folder '{}'.".format(module)
-
-    if config.doesModuleExist(module):
-        children = [{"name": attribute, "type": "attribute", "href": "{}{}/{}".format(_etcDirLink, module, attribute),
-                     "raw": "{}{}/{}.txt".format(_etcRawDirLink, module, attribute)}
-                    for attribute in config.getModuleAttributes(module)]
-
-        return "200 OK", job, {
-            "name": module,
-            "type": "folder",
-            "href": "{}{}/".format(_etcDirLink, module),
-            "raw":  "{}{}/".format(_etcRawDirLink, module),
-            "parent": {
-                "name": "etc",
-                "type": "folder",
-                "href": _etcDirLink,
-                "raw":  _etcRawDirLink
-            },
-            "children": children}
-    else:
-        return "404 Not Found", job + " Cause: No such system folder.", {}
-
-
-def _jsonGetLog(category, title):
-    result = logger.getLog(category, title)
-
-    if result is not None and result != ():                           # There should be an initialisation entry at least
-        return "200 OK", "", result
-    else:
-        return "404 Not Found", "The processing of the request failed. Cause: No such log file.", {}
 
 
 def _jsonGetCommandExecution(command):

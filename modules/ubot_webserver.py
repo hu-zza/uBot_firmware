@@ -244,7 +244,7 @@ def _processHtmlGetQuery(path):
             for key in sorted(template.title.keys()):
                 if key == "/" or key[1] != "_":
                     helperLinks += "            <li><a href='{key}'>{title}</a><br><small>{host}{key}</small></li>\n".format(
-                        host = _ap.ifconfig()[0], key = key, title = template.title.get(key)
+                        host = config.getAp().ifconfig()[0], key = key, title = template.title.get(key)
                     )
 
             helperLinks += "        </ul>\n"
