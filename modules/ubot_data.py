@@ -160,7 +160,7 @@ def getFile(path):
             logger.append(e)
             return ()
     else:
-        logger.append(AttributeError("Path '{}' doesn't exist."))
+        logger.append(AttributeError("Path '{}' doesn't exist.".format(path)))
         return ()
 
 
@@ -267,11 +267,6 @@ def _createJsonFileInstance(folder, subFolder, file):
 
     if doesFolderExist(parent):
         if doesFileExist(path):
-            if folder in {"log"}:
-                value = logger.getLog(subFolder, file)
-            else:
-                value = getFile(path)
-
             return "200 OK", job, {
                 "name": file,
                 "type": "file",
@@ -284,7 +279,7 @@ def _createJsonFileInstance(folder, subFolder, file):
                     "raw":  "{}{}".format(_rawLink, parent[1:])
                 },
                 "children": [],
-                "value": value}
+                "value": getFile(path)}
         else:
             return "404 Not Found", job + " Cause: No such file.", {}
     else:
