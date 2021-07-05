@@ -105,6 +105,8 @@ system = {
 turtle = {
     "name"          : "Turtle",
     "active"        : True,
+    "json_folder"   : "json",
+    "turtle_folder" : "turtle",
     "moveLength"    : 890,
     "turnLength"    : 359,
     "breathLength"  : 500,

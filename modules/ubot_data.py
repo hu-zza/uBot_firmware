@@ -40,17 +40,84 @@ _hostLink = "http://{}/".format(config.get("ap", "ip"))
 _rawLink  = _hostLink + "raw/"
 
 
-def isDir(path):
+def doesExist(path):
     try:
-        return uos.stat(path)[0] == 0x4000
-    except Exception as e:
-        logger.append(e)
+        uos.stat(normalizePath(path))
+        return True
+    except:
         return False
 
 
+def normalizePath(path):
+    """ Prepare for error-free using. Make it lowercase, and add leading slash if necessary. """
+    if path is None or path == "":
+        return "/"
+    elif path[0] != "/":
+        return "/{}".format(path.lower())
+
+
+def isFolder(path):
+    return _typeIntEqualsExpectedInt(path, 0x4000)
+
+
 def isFile(path):
+    return _typeIntEqualsExpectedInt(path, 0x8000)
+
+
+def _typeIntEqualsExpectedInt(path, expectedInt):
+    path = normalizePath(path)
+
+    if doesExist(path):
+        try:
+            return uos.stat(path)[0] == expectedInt
+        except Exception as e:
+            logger.append(e)
+            return False
+    else:
+        logger.append(AttributeError("Path '{}' doesn't exist."))
+        return False
+
+
+def doesFolderExist(path):
+    if doesExist(path):
+        return isFolder(path)
+    else:
+        return False
+
+
+def doesFileExist(path):
+    if doesExist(path):
+        return isFile(path)
+    else:
+        return False
+
+
+def getFile(path):
+    path = normalizePath(path)
+
+    if doesFileExist(path):
+        try:
+            with open(path, "r") as file:
+                return tuple([ujson.loads(line[:-1]) for line in file])
+        except Exception as e:
+            logger.append(e)
+            return ()
+    else:
+        logger.append(AttributeError("Path '{}' doesn't exist."))
+        return ()
+
+
+def saveFile(path, lines):
+    path = normalizePath(path)
+    # TODO: checks...
     try:
-        return uos.stat(path)[0] == 0x8000
+        with open(path, "w") as file:
+            if isinstance(lines, tuple) or isinstance(lines, list):
+                for line in lines:
+                    file.write("{}\n".format(line))
+            else:
+                file.write("{}\n".format(lines))
+            return True
     except Exception as e:
         logger.append(e)
         return False
@@ -61,7 +128,7 @@ def getFoldersOf(folder = None):
     folder = _getUnifiedFolderName(folder)
     try:
         entities = uos.listdir(folder)
-        return tuple([fileName for fileName in entities if isDir("{}{}".format(folder, fileName))])
+        return tuple([fileName for fileName in entities if isFolder("{}{}".format(folder, fileName))])
     except Exception as e:
         logger.append(e)
         return ()
@@ -147,7 +214,7 @@ def _createJsonFolderInstance(folder, isRoot = False):
     realFolder = _getUnifiedFolderName(folder)
     job = "Request: Get the folder '{}'.".format(realFolder)
 
-    if isRoot or isDir(realFolder):
+    if isRoot or isFolder(realFolder):
         subFolders    = getFoldersOf(realFolder)
         folderLink    = "{}{}".format(_hostLink, realFolder[1:])
         folderRawLink = "{}{}".format(_rawLink, realFolder[1:])
@@ -175,8 +242,8 @@ def _createJsonSubFolderInstance(folder, subFolder):
     path = _getUnifiedFolderPath(folder, subFolder)
     job = "Request: Get the folder '{}'.".format(path)
 
-    if isDir(path):
-        files         = getFilenamesOfPath(path)
+    if isFolder(path):
+        files         = getFilenamesOfPath(path, ".txt")
         parent        = _getUnifiedFolderName(folder)
         folderLink    = "{}{}".format(_hostLink, path[1:])
         folderRawLink = "{}{}".format(_rawLink, path[1:])
@@ -201,22 +268,17 @@ def _createJsonSubFolderInstance(folder, subFolder):
 
 
 def _createJsonFileInstance(folder, subFolder, file):
-    path = "{}{}.txt".format(_getUnifiedFolderPath(folder, subFolder), file)
+    folderPath = _getUnifiedFolderPath(folder, subFolder)
+    path = "{}{}".format(folderPath, file)
     job = "Request: Get the file '{}'.".format(path)
 
-    validFolder = False
     value = None
 
-    if folder == "etc":
-        validFolder = True
+    if doesFolderExist(folderPath):
         if config.doesAttributeExist(subFolder, file):
             value = config.get(subFolder, file)
-    elif folder == "log":
-        validFolder = True
         if logger.doesLogExist(subFolder, file):
             value = logger.getLog(subFolder, file)
-    elif folder == "program":
-        validFolder = True
         if turtle.doesProgramExist(subFolder, file):
             value = turtle.getProgramCode(subFolder, file)
 
@@ -236,4 +298,4 @@ def _createJsonFileInstance(folder, subFolder, file):
                 "children": [],
                 "value": value}
         return "404 Not Found", job + " Cause: No such file.", {}
-    return "403 Forbidden", job + " Cause: Semantic error in URI.", {}
+    return "403 Forbidden", job + " Cause: Invalid path in URI.", {}

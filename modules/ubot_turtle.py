@@ -37,10 +37,11 @@ import ubot_config as config
 import ubot_buzzer as buzzer
 import ubot_logger as logger
 import ubot_motor  as motor
-
+import ubot_data   as data
 
 _powerOnCount = config.get("system", "powerOnCount")
-_defaultDir   = "json"
+_jsonFolder   = config.get("turtle", "json_folder")
+_turtleFolder = config.get("turtle", "turtle_folder")
 _savedCount   = 0
 
 _clockPin = Pin(13, Pin.OUT)                                # Advances the decade counter (U3).
@@ -104,6 +105,10 @@ _blockBoundaries   = ((40, 41), (123, 125), (126, 126))     # (("(", ")"), ("{",
 ## PUBLIC METHODS
 
 
+def checkButtons(timer = None):
+    _addCommand(_getValidatedPressedButton())
+
+
 def press(pressed):  # pressed = 1<<buttonOrdinal
     if isinstance(pressed, str):
         pressed = int(pressed)
@@ -143,60 +148,60 @@ def move(direction, silent = False):
         motor.move(3, _turnLength // 2) #                       Placeholder...
 
 
-def getCommandArray():
-    return _commandArray[:_commandPointer].decode()
-
-
-def getProgramArray():
-    return _programArray[:_programParts[-1]].decode()
+def getProgramsCount():
+    return sum([len(getProgramListOf(folder)) for folder in getProgramFolders()])
 
 
 def getProgramFolders():
-    try:
-        programFolders = uos.listdir("/program")
-        return tuple([folder for folder in programFolders if uos.stat("/program/{}".format(folder))[0] == 0x4000]) # dirs
-    except Exception as e:
-        logger.append(e)
-        return ()
+    return data.getFoldersOf("program")
 
 
-def getProgramList(folder):
+def doesFolderExist(folder):
+    return folder in getProgramFolders()
+
+
+def getProgramListOf(folder):
+    return data.getFilenamesOf("program", folder)
+
+
+def createFolder(folder):
     try:
-        programFiles = uos.listdir("/program/{}".format(folder.lower()))
-        return tuple([fileName[:-4] for fileName in programFiles if fileName[-4:] == ".txt"])
+        uos.mkdir("/program/{}".format(folder))
     except Exception as e:
         logger.append(e)
-        return ()
+
+
+def doesProgramExist(folder, title):
+    return title in getProgramListOf(folder)
+
+
+def getProgramPath(folder, title):
+    return "/program/{}/{}.txt".format(folder.lower(), title.lower())
 
 
 def getProgramCode(folder, title):
-    if _throwIfNotExistAndReturnBoolean(folder, title):
-        try:
-            with open("/program/{}/{}.txt".format(folder.lower(), title.lower()), "r") as file:
-                return tuple([line[:-1] for line in file])
-        except Exception as e:
-            logger.append(e)
-    return ()
+    result = data.getFile(getProgramPath(folder, title))
+    return result[0] if 0 < len(result) else ""
 
 
 def runProgram(folder, title):
-    if _throwIfNotExistAndReturnBoolean(folder, title):
+    if data.isFile(getProgramPath(folder, title)):
         retainInTemporary()
         loadProgram(folder, title)
         press(64)
         loadFromTemporary()
         return True
-    return False
+    else:
+        return False
 
 
 def loadProgram(folder, title):
     clearMemory()
-    if _throwIfNotExistAndReturnBoolean(folder, title):
-        try:
-            with open("/program/{}/{}.txt".format(folder.lower(), title.lower()), "r") as file:
-                loadProgramFromString(ujson.loads(file.readline()))
-        except Exception as e:
-            logger.append(e)
+    if data.isFile(getProgramPath(folder, title)):
+        loadProgramFromString(getProgramCode(folder, title))
+        return True
+    else:
+        return False
 
 
 def loadProgramFromString(program):
@@ -208,22 +213,20 @@ def loadProgramFromString(program):
         array = program.encode()
         _programArray = array
         _programParts = [len(array)]
+        return True
     except Exception as e:
         logger.append(e)
-
-
-def hasProgramLoaded():
-    return 0 < len(getProgramArray())
+        return False
 
 
 def saveLoadedProgram(folder = None, title = None):
-    saveProgram(getProgramArray(), _defaultDir if folder is None else folder, title)
+    saveProgram(getProgramArray(), _jsonFolder if folder is None else folder, title)
 
 
 def saveProgram(program, folder = None, title = None):
     global _savedCount
 
-    folder = _defaultDir if folder is None else folder
+    folder = _jsonFolder if folder is None else folder
     path = _generateFullPath() if title is None else "/program/{}/{}.txt".format(folder.lower(), title.lower())
 
     try:
@@ -242,31 +245,39 @@ def saveProgram(program, folder = None, title = None):
         logger.append(e)
 
 
-def doesProgramExist(folder, title):
-    return title in getProgramList(folder)
+def getCommandArray():
+    return _commandArray[:_commandPointer].decode()
 
 
-def getProgramsCount():
-    return sum([len(getProgramList(folder)) for folder in getProgramFolders()])
+def getProgramArray():
+    return _programArray[:_programParts[-1]].decode()
 
 
-def doesFolderExist(folder):
-    return folder in getProgramFolders()
+def isMemoryEmpty():
+    return isCommandMemoryEmpty() and isProgramMemoryEmpty()
 
 
-def createFolder(folder):
-    try:
-        uos.mkdir("/program/{}".format(folder))
-    except Exception as e:
-        logger.append(e)
+def isCommandMemoryEmpty():
+    return _commandPointer == 0
+
+
+def isProgramMemoryEmpty():
+    return _programParts == [0]
 
 
 def clearMemory():
-    global _commandPointer
-    global _programParts
+    clearCommandMemory()
+    clearProgramMemory()
 
-    _commandPointer = 0
+
+def clearProgramMemory():
+    global _programParts
     _programParts = [0]
+
+
+def clearCommandMemory():
+    global _commandPointer
+    _commandPointer = 0
 
 
 def retainInTemporary():
@@ -287,10 +298,6 @@ def loadFromTemporary():
     _commandPointer = _temporaryCommandPointer
     _programParts = _temporaryProgramParts
     _programArray = _temporaryProgramArray
-
-
-def checkButtons(timer = None):
-    _addCommand(_getValidatedPressedButton())
 
 
 
@@ -318,7 +325,7 @@ def _generateFullPath():
     global _savedCount
 
     _savedCount += 1
-    return "/program/turtle/{:010d}_{:03d}.txt".format(_powerOnCount, _savedCount)
+    return "/program/{}/{:010d}_{:03d}.txt".format(_turtleFolder, _powerOnCount, _savedCount)
 
 
 ################################

@@ -347,7 +347,7 @@ def _getMessageWithFlags(message, statusCode):
 def _sendRaw(path):
     """ If the path links to a dir, sends a linked list, otherwise tries to send the content of the target entity. """
     try:
-        if path[-1] == "/":        # Directory -> A practical, cosy, and a bit dirty constraint for simple URL handling.
+        if path[-1] == "/":           # Folder -> A practical, cosy, and a bit dirty constraint for simple URL handling.
             _connection.write(("        <table>\n"
                                "            <thead>\n"
                                "                <tr><th scope='col'>Filename</th><th scope='col'>File size</th></tr>\n"
@@ -362,7 +362,7 @@ def _sendRaw(path):
                     try:
                         stat = uos.stat("{}{}".format(path, fileName))
 
-                        if stat[0] == 0x04000:  # Directory
+                        if stat[0] == 0x04000:  # Folder
                             _connection.write(
                                 "<td><a href='{fileName}/'>{fileName}/</a></td><td>-</td>".format(fileName = fileName))
 

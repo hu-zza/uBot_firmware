@@ -37,7 +37,7 @@ from utime   import sleep_ms
 import ubot_config as config
 import ubot_logger as logger
 import ubot_buzzer as buzzer
-import ubot_structure as structure
+import ubot_data   as data
 
 buzzer.keyBeep("started")
 
@@ -122,7 +122,7 @@ def doProgramAction(folder, title, action):
 def _executeJsonGet(pathArray, isPresent, ignoredJson):     ########################################### JSON GET HANDLER
     secondImpliesFirst = not isPresent[2] or isPresent[1]
     if pathArray[0] == "":                                  ### GET
-        return structure.createJsonInstanceFrom()
+        return data.createJsonInstanceFrom()
 
     elif pathArray[0] == "command":                         ### EXECUTION
         if isPresent[1] and not any(isPresent[2:]):
@@ -131,35 +131,35 @@ def _executeJsonGet(pathArray, isPresent, ignoredJson):     ####################
     elif pathArray[0] == "etc":                             ### GET
         if not any(isPresent[3:]):
             if all(isPresent[1:3]):
-                return structure.createJsonInstanceFrom("etc", pathArray[1], pathArray[2])
+                return data.createJsonInstanceFrom("etc", pathArray[1], pathArray[2])
             elif isPresent[1]:
-                return structure.createJsonInstanceFrom("etc", pathArray[1])
+                return data.createJsonInstanceFrom("etc", pathArray[1])
             elif not any(isPresent[1:]):
-                return structure.createJsonInstanceFrom("etc")
+                return data.createJsonInstanceFrom("etc")
 
     elif pathArray[0] == "log":                             ### GET
         if not any(isPresent[3:]):
             if all(isPresent[1:3]):
-                return structure.createJsonInstanceFrom("log", pathArray[1], pathArray[2])
+                return data.createJsonInstanceFrom("log", pathArray[1], pathArray[2])
             elif isPresent[1]:
-                return structure.createJsonInstanceFrom("log", pathArray[1])
+                return data.createJsonInstanceFrom("log", pathArray[1])
             elif not any(isPresent[1:]):
-                return structure.createJsonInstanceFrom("log")
+                return data.createJsonInstanceFrom("log")
 
     elif pathArray[0] == "program":                        ### GET or EXECUTION
         if not any(isPresent[4:]):
             if all(isPresent[1:4]):                         # program / <folder> / <title> / <action>
                 return _jsonGetProgramActionStarting(pathArray[1], pathArray[2], pathArray[3])
             elif all(isPresent[1:3]):                       # program / <folder> / <title>
-                return structure.createJsonInstanceFrom("program", pathArray[1], pathArray[2])
+                return data.createJsonInstanceFrom("program", pathArray[1], pathArray[2])
             elif isPresent[1]:                              # program / <folder>
-                return structure.createJsonInstanceFrom("program", pathArray[1])
+                return data.createJsonInstanceFrom("program", pathArray[1])
             elif not any(isPresent[1:]):                    # program
-                return structure.createJsonInstanceFrom("program")
+                return data.createJsonInstanceFrom("program")
 
     elif pathArray[0] == "raw":                             ### GET
         if not any(isPresent[4:]):
-            return structure.createJsonInstanceFrom(pathArray[1], pathArray[2], pathArray[3])
+            return data.createJsonInstanceFrom(pathArray[1], pathArray[2], pathArray[3])
 
     return "403 Forbidden", "Job: [REST] GET request. Cause: The format of the URI is invalid.", {}
 
@@ -260,7 +260,7 @@ def _jsonPutSystemProperty(pathArray, isPresent, json):
     return "200 OK", "", _putSystemProp()
 
 
-def _putProgram(directory, fileName, program):
+def _putProgram(folder, fileName, program):
     return ""
 
 
@@ -293,7 +293,7 @@ def _jsonDeleteEveryProgram():
     return "200 OK", "", _deleteProgram()
 
 
-def _jsonClearProgramFolder(subDir):
+def _jsonClearProgramFolder(subFolder):
     return "200 OK", "", _deleteProgram()
 
 
@@ -317,7 +317,7 @@ def _clearFolder(path):
     return ""
 
 
-def _deleteProgram(directory, fileName):
+def _deleteProgram(folder, fileName):
     return ""
 
 
@@ -380,7 +380,7 @@ _ap.config(authmode = network.AUTH_WPA_WPA2_PSK)
 
 
 try:
-    _ap.config(ssid = config.get("ap", "ssid"))
+    _ap.config(essid = config.get("ap", "ssid"))
 except Exception as e:
     logger.append(e)
 
