@@ -51,7 +51,6 @@ buzzer = {
 constant = {
     "name"          : "Constant provider",
     "active"        : True,     # Just for unity
-    "host"          : "http://192.168.11.1",
     "apiDoc"        : "https://zza.hu/uBot_API"
 }
 
@@ -97,8 +96,8 @@ system = {
     "active"        : True,     # Just for unity
     "id"            : hexlify(uos.urandom(32)).decode(),
     "chk"           : hexlify(uos.urandom(32)).decode(),
-    "firmware"      : (0, 1, 134),
-    "initDateTime"  : (2021, 7, 5, 0, 10, 40, 0, 0),
+    "firmware"      : (0, 1, 135),
+    "initDateTime"  : (2021, 7, 5, 0, 11, 35, 0, 0),
     "powerOnCount"  : 0
 }
 
@@ -164,7 +163,7 @@ configModules = {
 
 def wifi():
     AP.ifconfig((ap.get("ip"), ap.get("netmask"), ap.get("gateway"), ap.get("dns")))
-    AP.config(ssid = ap.get("ssid"), authmode = network.AUTH_WPA_WPA2_PSK, password = ap.get("password"))
+    AP.config(essid = ap.get("ssid"), authmode = network.AUTH_WPA_WPA2_PSK, password = ap.get("password"))
 
 
 def check_bootsec():

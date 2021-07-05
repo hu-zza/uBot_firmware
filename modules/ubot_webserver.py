@@ -216,7 +216,7 @@ def _processHtmlGetQuery(path):
 
                     _connection.write(
                         "            <a href='http://{0}/raw/log/{1}/{2:010d}.txt' target='_blank'>{2:010d}&nbsp;&nbsp;"
-                        "&nbsp;// current</a><br>\n".format(config.getAp().ifconfig()[0], category, powerOnCount))
+                        "&nbsp;// current</a><br>\n".format(config.get("ap", "ip"), category, powerOnCount))
 
                     _connection.write(
                         "            <a href='http://{0}/raw/log/{1}/0000000000.txt' target='_blank'>0000000000&nbsp;"
@@ -244,7 +244,7 @@ def _processHtmlGetQuery(path):
             for key in sorted(template.title.keys()):
                 if key == "/" or key[1] != "_":
                     helperLinks += "            <li><a href='{key}'>{title}</a><br><small>{host}{key}</small></li>\n".format(
-                        host = config.getAp().ifconfig()[0], key = key, title = template.title.get(key)
+                        host = config.get("ap", "ip"), key = key, title = template.title.get(key)
                     )
 
             helperLinks += "        </ul>\n"

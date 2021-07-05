@@ -203,7 +203,7 @@ def _jsonPostProgram(folder, title, json):
         turtle.saveProgram(program, folder, title)
 
     if turtle.doesProgramExist(folder, title):
-        return "201 Created", "", "http://{}/program/{}/{}".format(_ap.ifconfig()[0], folder, title)
+        return "201 Created", "", "http://{}/program/{}/{}".format(config.get("ap", "ip"), folder, title)
     else:
         return "422 Unprocessable Entity", "The processing of the request failed. Cause: Semantic error in JSON.", {}
 
@@ -375,7 +375,7 @@ if config.get("turtle", "active"):
 _ap = network.WLAN(network.AP_IF)
 
 _ap.active(config.get("ap", "active"))
-_ap.ifconfig(("192.168.11.1", "255.255.255.0", "192.168.11.1", "8.8.8.8"))
+_ap.ifconfig((config.get("ap", "ip"), config.get("ap", "netmask"), config.get("ap", "gateway"), config.get("ap", "dns")))
 _ap.config(authmode = network.AUTH_WPA_WPA2_PSK)
 
 
