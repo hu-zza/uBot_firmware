@@ -34,12 +34,12 @@ buzzer = {
     "attention"     : ((60, 100, 25, 1), (64, 100, 25, 1), (71, 100, 25, 1), (None, 500)),
 
     "started"       : ((60, 300, 50, 1), (71, 100, 50, 1)),
-    "inputNeeded"   : ((71, 100, 50, 2), (64, 100, 50, 1)),
+    "input_needed"  : ((71, 100, 50, 2), (64, 100, 50, 1)),
     "completed"     : ((71, 300, 50, 1), (60, 100, 50, 1)),
     "undone"        : ((71, 100, 25, 2), (None, 200)),
     "deleted"       : ((71, 100, 25, 3), (60, 500, 100, 1), (None, 200)),
 
-    "inAndDecrease" : (71, 100, 0, 1),
+    "change_count"  : (71, 100, 0, 1),
     "boundary"      : (60, 500, 100, 2),
     "tooLong"       : (64, 1500, 100, 2),
 
@@ -51,7 +51,7 @@ buzzer = {
 constant = {
     "name"          : "Constant provider",
     "active"        : True,     # Just for unity
-    "apiDoc"        : "https://zza.hu/uBot_API"
+    "api_link"      : "https://zza.hu/uBot_API"
 }
 
 
@@ -73,21 +73,21 @@ i2c = {
 logger = {
     "name"          : "Logger",
     "active"        : True,
-    "activeLogs"    : ("Exception", "Event", "Object", "Run")    # All: ("Exception", "Event", "Object", "Run")
+    "active_logs"   : ("Exception", "Event", "Object", "Run")    # All: ("Exception", "Event", "Object", "Run")
 }
 
 
 motor = {
     "name"          : "Motor driver",
     "active"        : True,
-    "T0Period"      : 10,
-    "T0Duration"    : 6,
-    "T1Frequency"   : 1000,
-    "T1Duty"        : 750,
-    "T1DutyFactor"  : 1.0,
-    "T1MinDuty"     : 500,
-    "T1MaxDuty"     : 1023,
-    "breathLength"  : 0
+    "t0_period"     : 10,
+    "t0_duration"   : 6,
+    "t1_frequency"  : 1000,
+    "t1_duty"       : 750,
+    "t1_factor"     : 1.0,
+    "t1_min_duty"   : 500,
+    "t1_max_duty"   : 1023,
+    "breath_length" : 0
 }
 
 
@@ -97,8 +97,8 @@ system = {
     "id"            : hexlify(uos.urandom(32)).decode(),
     "chk"           : hexlify(uos.urandom(32)).decode(),
     "firmware"      : (0, 1, 138),
-    "initDateTime"  : (2021, 7, 5, 0, 23, 5, 0, 0),
-    "powerOnCount"  : 0
+    "init_datetime" : (2021, 7, 5, 0, 23, 5, 0, 0),
+    "power_ons"     : 0
 }
 
 
@@ -107,12 +107,12 @@ turtle = {
     "active"        : True,
     "json_folder"   : "json",
     "turtle_folder" : "turtle",
-    "moveLength"    : 890,
-    "turnLength"    : 359,
-    "breathLength"  : 500,
-    "loopChecking"  : 1,    #  0 - off  #  1 - simple (max. 20)  #  2 - simple (no limit)
-    "stepSignal"    : "step",
-    "endSignal"     : "ready",
+    "move_length"   : 890,
+    "turn_length"   : 359,
+    "breath_length" : 500,
+    "loop_checking"  : 1,    #  0 - off  #  1 - simple (max. 20)  #  2 - simple (no limit)
+    "step_signal"    : "step",
+    "end_signal"     : "ready",
 
     "checkPeriod"   : 20,   # ms
     "pressLength"   : 5,    # min. 100 ms           turtlePressLength * turtleCheckPeriod
@@ -256,22 +256,22 @@ def setup():
         file.write(footerComment)
 
     with open("/etc/datetime.py", "w") as file:
-        file.write("DT = {}".format(system.get("initDateTime")))
+        file.write("DT = {}".format(system.get("init_datetime")))
 
     with open("/log/datetime.txt", "w") as file:
-        file.write("{}\n0000000000.txt\n\n".format(system.get("initDateTime")))
+        file.write("{}\n0000000000.txt\n\n".format(system.get("init_datetime")))
 
     with open("/log/exception/0000000000.txt", "w") as file:
-        file.write("{}\nFallback exception log initialised successfully.\n\n".format(system.get("initDateTime")))
+        file.write("{}\nFallback exception log initialised successfully.\n\n".format(system.get("init_datetime")))
 
     with open("/log/event/0000000000.txt", "w") as file:
-        file.write("{}\nFallback event log initialised successfully.\n\n".format(system.get("initDateTime")))
+        file.write("{}\nFallback event log initialised successfully.\n\n".format(system.get("init_datetime")))
 
     with open("/log/object/0000000000.txt", "w") as file:
-        file.write("{}\nFallback object log initialised successfully.\n\n".format(system.get("initDateTime")))
+        file.write("{}\nFallback object log initialised successfully.\n\n".format(system.get("init_datetime")))
 
     with open("/log/run/0000000000.txt", "w") as file:
-        file.write("{}\nFallback run log initialised successfully.\n\n".format(system.get("initDateTime")))
+        file.write("{}\nFallback run log initialised successfully.\n\n".format(system.get("init_datetime")))
 
     for moduleName, module in configModules.items():
         uos.mkdir("/etc/{}".format(moduleName))

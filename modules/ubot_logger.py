@@ -40,10 +40,10 @@ _enabled = config.get("logger", "active")
 
                 # Name        | List  | Path  | Enabled
 _logFiles = (
-                ["Exception",   [],     "",     "Exception" in config.get("logger", "activeLogs")],
-                ["Event",       [],     "",     "Event" in config.get("logger", "activeLogs")],
-                ["Object",      [],     "",     "Object" in config.get("logger", "activeLogs")],
-                ["Run",         [],     "",     "Run" in config.get("logger", "activeLogs")])
+                ["Exception",   [],     "",     "Exception" in config.get("logger", "active_logs")],
+                ["Event",       [],     "",     "Event" in config.get("logger", "active_logs")],
+                ["Object",      [],     "",     "Object" in config.get("logger", "active_logs")],
+                ["Run",         [],     "",     "Run" in config.get("logger", "active_logs")])
 
 
 ################################
@@ -158,7 +158,7 @@ def _defineIndex(item):
 ################################
 ## INITIALISATION
 
-_fileName = "{:010d}.txt".format(int(config.get("system", "powerOnCount")))
+_fileName = "{:010d}.txt".format(int(config.get("system", "power_ons")))
 
 try:
     with open("/log/datetime.txt", "a") as file:

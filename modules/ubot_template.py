@@ -198,14 +198,14 @@ def getSystemPanel():
 
     return ("        <h3>System info</h3>\n"
             "            <table class='data'>\n"
-            "                <tr><td> <strong>Power on count:</strong> </td><td>{powerOnCount}</td><td>  </td></tr>\n"
+            "                <tr><td> <strong>Power on count:</strong> </td><td>{powerOns}</td><td>  </td></tr>\n"
             "                <tr><td> <strong>Saved programs:</strong> </td><td>{savedPrograms}</td><td>  </td></tr>\n"
             "                <tr><td> <strong>Firmware:</strong> </td><td>{major}.{minor}.{patch}</td><td><a href='license'>MIT License</a></td></tr>\n"
             "                <tr><td> <strong>Free memory:</strong> </td><td>{freeMemoryPercent}%</td><td>{freeMemory} / {allMemory}</td></tr>\n"
             "                <tr><td> <strong>Free space:</strong> </td><td>{freeSpacePercent}%</td><td>{freeSpace} / {allSpace}</td></tr>\n"
             "                <tr><td> <strong>System RTC:</strong> </td><td colspan='2'>{year}. {month:02d}. {day:02d}.&nbsp;&nbsp;&nbsp;{hour:02d} : {minute:02d} : {second:02d}</td></tr>\n"
             "                <tr><td> <strong>μBot ID:</strong> </td><td colspan='2'>{idA}<br>{idB}</td></tr>"
-            "            </table>\n").format(powerOnCount = config.get("system", "powerOnCount"),
+            "            </table>\n").format(powerOns = config.get("system", "power_ons"),
                                              savedPrograms = turtle.getProgramsCount(),
                                              major = major, minor = minor, patch = patch,
                                              freeMemoryPercent = freeMemoryPercent, freeMemory = gc.mem_free(), allMemory = allMemory,

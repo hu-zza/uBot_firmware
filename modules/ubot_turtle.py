@@ -39,7 +39,7 @@ import ubot_logger as logger
 import ubot_motor  as motor
 import ubot_data   as data
 
-_powerOnCount = config.get("system", "powerOnCount")
+_powerOns = config.get("system", "power_ons")
 _jsonFolder   = config.get("turtle", "json_folder")
 _turtleFolder = config.get("turtle", "turtle_folder")
 _savedCount   = 0
@@ -59,19 +59,19 @@ _maxError     = config.get("turtle", "maxError")
 _lastPressed  = [0, 0]                                      # Inside: [last pressed button, elapsed (button check) cycles]
 _firstRepeat  = config.get("turtle", "firstRepeat")
 
-_loopChecking = config.get("turtle", "loopChecking")
+_loopChecking = config.get("turtle", "loop_checking")
 
-_moveLength   = config.get("turtle", "moveLength")
-_turnLength   = config.get("turtle", "turnLength")
-_breathLength = config.get("turtle", "breathLength")
+_moveLength   = config.get("turtle", "move_length")
+_turnLength   = config.get("turtle", "turn_length")
+_breathLength = config.get("turtle", "breath_length")
 
 _endSignalEnabled  = True
 _skipOneEndSignal  = False
 _stepSignalEnabled = True
 _skipOneStepSignal = False
 
-_endSignal    = config.get("turtle", "endSignal")           # Sound indicates the end of a step during execution: buzzer.keyBeep(_stepSignal)
-_stepSignal   = config.get("turtle", "stepSignal")          # Sound indicates the end of program execution:       buzzer.keyBeep(_endSignal)
+_endSignal    = config.get("turtle", "end_signal")          # Sound indicates the end of a step during execution: buzzer.keyBeep(_endSignal)
+_stepSignal   = config.get("turtle", "step_signal")         # Sound indicates the end of program execution:       buzzer.keyBeep(_stepSignal)
 
 _pressedListIndex = 0
 _pressedList  = [0] * (_pressLength + _maxError)            # Low-level:  The last N (_pressLength + _maxError) button check results.
@@ -323,7 +323,7 @@ def _generateFullPath():
     global _savedCount
 
     _savedCount += 1
-    return "/program/{}/{:010d}_{:03d}.txt".format(_turtleFolder, _powerOnCount, _savedCount)
+    return "/program/{}/{:010d}_{:03d}.txt".format(_turtleFolder, _powerOns, _savedCount)
 
 
 ################################
@@ -671,7 +671,7 @@ def _createLoop(arguments):                 # (creationState,)                40
             return 0
         else:
             _currentMapping = _loopCounterMapping
-            buzzer.keyBeep("inputNeeded")
+            buzzer.keyBeep("input_needed")
             return 42
     elif arguments[0] == 41:
          # _blockCompleted deletes the loop if counter is zero, and returns with the result of the
@@ -694,7 +694,7 @@ def _modifyLoopCounter(arguments):          # (value,)     Increasing by this va
         buzzer.keyBeep("deleted")
     else:                                   # General modification.
         _loopCounter += arguments[0]
-        buzzer.keyBeep("inAndDecrease")
+        buzzer.keyBeep("change_count")
     return 0
 
 

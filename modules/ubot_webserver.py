@@ -207,7 +207,7 @@ def _processHtmlGetQuery(path):
                         "            <a href='http://{0}{1}' target='_blank'>{2}</a><br>\n".format(
                             config.get("ap", "ip"), template.debugPanels.get(panelTitle), panelTitle))
 
-                powerOnCount = config.get("system", "powerOnCount")
+                powerOns = config.get("system", "power_ons")
                 _connection.write("        <br><br><hr><hr>\n")
                 _connection.write("        <h3>Log files</h3>\n")
 
@@ -216,7 +216,7 @@ def _processHtmlGetQuery(path):
 
                     _connection.write(
                         "            <a href='http://{0}/raw/log/{1}/{2:010d}.txt' target='_blank'>{2:010d}&nbsp;&nbsp;"
-                        "&nbsp;// current</a><br>\n".format(config.get("ap", "ip"), category, powerOnCount))
+                        "&nbsp;// current</a><br>\n".format(config.get("ap", "ip"), category, powerOns))
 
                     _connection.write(
                         "            <a href='http://{0}/raw/log/{1}/0000000000.txt' target='_blank'>0000000000&nbsp;"
@@ -339,7 +339,7 @@ def _getMessageWithFlags(message, statusCode):
     elif 300 <= statusCode < 400:
         result = "[LINK] " + message
     elif 400 <= statusCode < 600:
-        result = "[FAIL] {}  // More info: {}".format(message, config.get("constant", "apiDoc"))
+        result = "[FAIL] {}  // More info: {}".format(message, config.get("constant", "api_link"))
 
     return result
 

@@ -358,15 +358,15 @@ if config.get("motor", "active"):
             (4, 5)                                              # Left motor  - T1
         ),
         (
-            (config.get("motor", "T0Period"),       config.get("motor", "T0Duration")),
-            (config.get("motor", "T1Frequency"),    config.get("motor", "T1Duty")),
-            (config.get("motor", "T1DutyFactor"),   config.get("motor", "T1MinDuty"), config.get("motor", "T1MaxDuty")),
-            config.get("motor", "breathLength")
+            (config.get("motor", "t0_period"),       config.get("motor", "t0_duration")),
+            (config.get("motor", "t1_frequency"),    config.get("motor", "t1_duty")),
+            (config.get("motor", "t1_factor"),       config.get("motor", "t1_min_duty"), config.get("motor", "t1_max_duty")),
+            config.get("motor", "breath_length")
         )
     )
 
 if config.get("turtle", "active"):
-    motor.setBreath(config.get("turtle", "breathLength"))
+    motor.setBreath(config.get("turtle", "breath_length"))
 
 ###########
 ## AP

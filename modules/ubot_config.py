@@ -142,27 +142,26 @@ except Exception as e:
     _exceptions.append(e)
 
     try:
-        initDateTime = _readOrThrow("system", "initDateTime")
-        dateTime.datetime(initDateTime)
+        dateTime.datetime(_readOrThrow("system", "init_datetime"))
         dateTimeSource = "firmware default"
     except Exception as e:
         _exceptions.append(e)
 
 
-powerOnCount       = 0
-powerOnCountSource = "firmware default"
+powerOns       = 0
+powerOnsSource = "firmware default"
 
 try:
-    powerOnCount       = _readOrThrow("system", "powerOnCount")
-    powerOnCountSource = "configuration file (/etc/system)"
+    powerOns       = _readOrThrow("system", "power_ons")
+    powerOnsSource = "configuration file (/etc/system)"
 except Exception as e:
     _exceptions.append(e)
 
-    powerOnCount = int(uos.listdir("/log/exception")[-1][:-4])   # [last file][cut extension]
-    powerOnCountSource = "guessing based on filenames"
+    powerOns = int(uos.listdir("/log/exception")[-1][:-4])   # [last file][cut extension]
+    powerOnsSource = "guessing based on filenames"
 
-powerOnCount += 1                                               # Increment the counter
-_manageAttribute("system", "powerOnCount", "w", powerOnCount)   # and save it
+powerOns += 1                                               # Increment the counter
+_manageAttribute("system", "power_ons", "w", powerOns)   # and save it
 
 
 # Preventing circular dependency
@@ -174,6 +173,6 @@ for exception in _exceptions:
 
 _exceptions = logger
 _exceptions.append("System RTC has been set. Source: {}".format(dateTimeSource))
-_exceptions.append("'Power on count' has been set. Source: {}".format(powerOnCountSource))
+_exceptions.append("'Power on count' has been set. Source: {}".format(powerOnsSource))
 
 import ubot_data as data
