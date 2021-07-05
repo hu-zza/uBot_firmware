@@ -120,9 +120,8 @@ def doProgramAction(folder, title, action):
 ## PRIVATE METHODS FOR REST/JSON
 
 def _executeJsonGet(pathArray, isPresent, ignoredJson):     ########################################### JSON GET HANDLER
-    secondImpliesFirst = not isPresent[2] or isPresent[1]
     if pathArray[0] == "":                                  ### GET
-        return data.createJsonInstanceFrom()
+        return data.createRestReplyFrom()
 
     elif pathArray[0] == "command":                         ### EXECUTION
         if isPresent[1] and not any(isPresent[2:]):
@@ -131,35 +130,35 @@ def _executeJsonGet(pathArray, isPresent, ignoredJson):     ####################
     elif pathArray[0] == "etc":                             ### GET
         if not any(isPresent[3:]):
             if all(isPresent[1:3]):
-                return data.createJsonInstanceFrom("etc", pathArray[1], pathArray[2])
+                return data.createRestReplyFrom("etc", pathArray[1], pathArray[2])
             elif isPresent[1]:
-                return data.createJsonInstanceFrom("etc", pathArray[1])
+                return data.createRestReplyFrom("etc", pathArray[1])
             elif not any(isPresent[1:]):
-                return data.createJsonInstanceFrom("etc")
+                return data.createRestReplyFrom("etc")
 
     elif pathArray[0] == "log":                             ### GET
         if not any(isPresent[3:]):
             if all(isPresent[1:3]):
-                return data.createJsonInstanceFrom("log", pathArray[1], pathArray[2])
+                return data.createRestReplyFrom("log", pathArray[1], pathArray[2])
             elif isPresent[1]:
-                return data.createJsonInstanceFrom("log", pathArray[1])
+                return data.createRestReplyFrom("log", pathArray[1])
             elif not any(isPresent[1:]):
-                return data.createJsonInstanceFrom("log")
+                return data.createRestReplyFrom("log")
 
     elif pathArray[0] == "program":                        ### GET or EXECUTION
         if not any(isPresent[4:]):
             if all(isPresent[1:4]):                         # program / <folder> / <title> / <action>
                 return _jsonGetProgramActionStarting(pathArray[1], pathArray[2], pathArray[3])
             elif all(isPresent[1:3]):                       # program / <folder> / <title>
-                return data.createJsonInstanceFrom("program", pathArray[1], pathArray[2])
+                return data.createRestReplyFrom("program", pathArray[1], pathArray[2])
             elif isPresent[1]:                              # program / <folder>
-                return data.createJsonInstanceFrom("program", pathArray[1])
+                return data.createRestReplyFrom("program", pathArray[1])
             elif not any(isPresent[1:]):                    # program
-                return data.createJsonInstanceFrom("program")
+                return data.createRestReplyFrom("program")
 
     elif pathArray[0] == "raw":                             ### GET
         if not any(isPresent[4:]):
-            return data.createJsonInstanceFrom(pathArray[1], pathArray[2], pathArray[3])
+            return data.createRestReplyFrom(pathArray[1], pathArray[2], pathArray[3])
 
     return "403 Forbidden", "Job: [REST] GET request. Cause: The format of the URI is invalid.", {}
 

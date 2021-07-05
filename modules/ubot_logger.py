@@ -29,10 +29,11 @@
     SOFTWARE.
 """
 
-import uos, usys
+import usys
 
 import ubot_config as config
 import ubot_turtle as turtle
+import ubot_data   as data
 
 _fileName = 0
 _enabled = config.get("logger", "active")
@@ -69,30 +70,15 @@ def logCommandsAndProgram():
 
 
 def getLogCategories():
-    try:
-        logFolders = uos.listdir("/log")
-        return tuple([category for category in logFolders if uos.stat("/log/{}".format(category))[0] == 0x04000]) # only dirs
-    except Exception as e:
-        append(e)
-        return ()
+    return data.getFoldersOf("log")
 
 
 def getCategoryLogs(category):
-    try:
-        logFiles = uos.listdir("/log/{}".format(category.lower()))
-        return tuple([fileName[:-4] for fileName in logFiles if fileName[-4:] == ".txt"])
-    except Exception as e:
-        append(e)
-        return ()
+    return data.getFilenamesOf("log", category)
 
 
 def getLog(category, title):
-    try:
-        with open("/log/{}/{}.txt".format(category.lower(), title.lower()), "r") as file:
-            return tuple([line[:-1] for line in file])
-    except Exception as e:
-        append(e)
-        return ()
+    return data.getFile(data.getNormalizedPathOf(("log", category), title))
 
 
 def doesLogExist(category, title):

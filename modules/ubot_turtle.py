@@ -128,6 +128,7 @@ def move(direction, silent = False):
         _skipOneStepSignal = True
         _skipOneEndSignal = True
 
+    # TODO: migrate to dictionary
     if direction == 70:                 # "F" - FORWARD
         motor.move(1, _moveLength)
     elif direction == 66:               # "B" - BACKWARD
@@ -160,10 +161,7 @@ def doesFolderExist(folder):
     return folder in getProgramFolders()
 
 
-def getProgramListOf(folder):
-    return data.getFilenamesOf("program", folder)
-
-
+#TODO: extract to ubot_data
 def createFolder(folder):
     try:
         uos.mkdir("/program/{}".format(folder))
@@ -171,21 +169,21 @@ def createFolder(folder):
         logger.append(e)
 
 
+def getProgramListOf(folder):
+    return data.getFilenamesOf("program", folder)
+
+
 def doesProgramExist(folder, title):
     return title in getProgramListOf(folder)
 
 
-def getProgramPath(folder, title):
-    return "/program/{}/{}.txt".format(folder.lower(), title.lower())
-
-
 def getProgramCode(folder, title):
-    result = data.getFile(getProgramPath(folder, title))
+    result = data.getFile(data.getNormalizedPathOf(("program", folder), title))
     return result[0] if 0 < len(result) else ""
 
 
 def runProgram(folder, title):
-    if data.isFile(getProgramPath(folder, title)):
+    if data.isFile(data.getNormalizedPathOf(("program", folder), title)):
         retainInTemporary()
         loadProgram(folder, title)
         press(64)
@@ -197,20 +195,20 @@ def runProgram(folder, title):
 
 def loadProgram(folder, title):
     clearMemory()
-    if data.isFile(getProgramPath(folder, title)):
+    if data.isFile(data.getNormalizedPathOf(("program", folder), title)):
         loadProgramFromString(getProgramCode(folder, title))
         return True
     else:
         return False
 
 
-def loadProgramFromString(program):
+def loadProgramFromString(turtleCode):
     global _programArray
     global _programParts
 
     clearMemory()
     try:
-        array = program.encode()
+        array = turtleCode.encode()
         _programArray = array
         _programParts = [len(array)]
         return True

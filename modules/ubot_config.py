@@ -29,7 +29,7 @@
     SOFTWARE.
 """
 
-import network, ujson, uos
+import ujson, uos
 
 from machine import RTC
 
@@ -39,22 +39,12 @@ from machine import RTC
 
 def getModules():
     """ Returns a tuple consists all available modules, or an empty tuple. """
-    try:
-        moduleFolders = uos.listdir("/etc")
-        return tuple([module for module in moduleFolders if uos.stat("/etc/{}".format(module))[0] == 0x4000]) # only dirs
-    except Exception as e:
-        logger.append(e)
-        return ()
+    return data.getFoldersOf("etc")
 
 
-def getModuleAttributes(module):
+def getAttributesOf(module):
     """ Returns a tuple consists all available attributes, or an empty tuple. """
-    try:
-        moduleFiles = uos.listdir("/etc/{}".format(module.lower()))
-        return tuple([fileName[:-4] for fileName in moduleFiles if fileName[-4:] == ".txt"])
-    except Exception as e:
-        logger.append(e)
-        return ()
+    return data.getFilenamesOf("etc", module)
 
 
 def get(module, attribute):
@@ -72,17 +62,15 @@ def doesModuleExist(module):
 
 
 def doesAttributeExist(module, attribute):
-    return attribute in getModuleAttributes(module)
+    return attribute in getAttributesOf(module)
 
 
 def restore(module, attribute):
     try:
-        value = _manageAttribute(module, attribute, "r", None, "def")   # Read the default config value if it exists
-        _manageAttribute(module, attribute, "w", value)                 # Replace the config file
-        logger.append(
-            ("Configuration: /etc/{dir}/{file}.txt could not be read. "
-             "It has been replaced with /etc/{dir}/{file}.def").format(dir = module, file = attribute)
-        )
+        logger.append("Resetting /etc/{}/{} to default.".format(module, attribute))
+        value = _manageAttribute(module, attribute, "r", None, "def")                    # Read the default config value
+        _manageAttribute(module, attribute, "w", value)                                  # Replace the config file
+        logger.append("Success:  /etc/{}/{} is now '{}'.".format(module, attribute, value))
     except Exception as e:
         logger.append(e)
 
@@ -177,6 +165,8 @@ powerOnCount += 1                                               # Increment the 
 _manageAttribute("system", "powerOnCount", "w", powerOnCount)   # and save it
 
 
+# Preventing circular dependency
+
 import ubot_logger as logger
 
 for exception in _exceptions:
@@ -185,3 +175,5 @@ for exception in _exceptions:
 _exceptions = logger
 _exceptions.append("System RTC has been set. Source: {}".format(dateTimeSource))
 _exceptions.append("'Power on count' has been set. Source: {}".format(powerOnCountSource))
+
+import ubot_data as data
