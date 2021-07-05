@@ -60,7 +60,7 @@ def getNormalizedPathOf(pathAsList = (), fileName = None):
     if 0 == len(pathAsList):
         path = "/"
     else:
-        path = normalizePath("/".join(pathAsList))
+        path = normalizeFolderPath("/".join(pathAsList))
 
     return path if fileName is None else "{}{}".format(path, fileName)
 
@@ -146,7 +146,7 @@ def _getSuffixAndChopIndexFrom(suffix):
     if suffix is None:
         return "", 2147483647
     else:
-        return "." + suffix, 0 - len(suffix)
+        return ".{}".format(suffix), -1 - len(suffix)
 
 
 def getFile(path):
@@ -235,7 +235,7 @@ def _createJsonSubFolderInstance(folder, subFolder):
     job = "Request: Get the folder '{}'.".format(path)
 
     if isFolder(path):
-        files         = getFilenamesOfPath(path, ".txt")                                          #! Burnt-in txt suffix
+        files         = getFilenamesOfPath(path, "txt")                                           #! Burnt-in txt suffix
         parent        = normalizeFolderPath(folder)
         folderLink    = "{}{}".format(_hostLink, path[1:])
         folderRawLink = "{}{}".format(_rawLink, path[1:])
