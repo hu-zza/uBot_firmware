@@ -29,7 +29,7 @@
     SOFTWARE.
 """
 
-import uos
+import ujson, uos
 
 import ubot_config as config
 import ubot_logger as logger
@@ -155,7 +155,7 @@ def getFile(path):
     if doesFileExist(path):
         try:
             with open(path, "r") as file:
-                return tuple([ujson.loads(line[:-1]) for line in file])
+                return tuple([ujson.loads(line) for line in file])
         except Exception as e:
             logger.append(e)
             return ()
@@ -275,8 +275,8 @@ def _createJsonFileInstance(folder, subFolder, file):
             return "200 OK", job, {
                 "name": file,
                 "type": "file",
-                "href": "{}".format(_hostLink, path[1:path.rindex(".")]),
-                "raw":  "{}".format(_rawLink, path[1:]),
+                "href": "{}{}".format(_hostLink, path[1:path.rindex(".")]),
+                "raw":  "{}{}".format(_rawLink, path[1:]),
                 "parent": {
                     "name": subFolder,
                     "type": "folder",

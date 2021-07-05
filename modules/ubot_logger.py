@@ -29,7 +29,7 @@
     SOFTWARE.
 """
 
-import usys
+import ujson, usys
 
 import ubot_config as config
 import ubot_turtle as turtle
@@ -129,16 +129,16 @@ def _saveFromList(logFile, fallback = False):
 
 
 def _writeOutItem(dateTime, file, item):
-    file.write("{}\n".format(dateTime))
+    file.write("{}\n".format(ujson.dumps(dateTime)))
 
     if _defineIndex(item) == 0:
         usys.print_exception(item, file)
     else:
         if isinstance(item, tuple) or isinstance(item, list):
             for i in item:
-                file.write("{}\n".format(i))
+                file.write("{}\n".format(ujson.dumps(i)))
         else:
-            file.write("{}\n".format(item))
+            file.write("{}\n".format(ujson.dumps(item)))
 
     file.write("\n")
 
@@ -162,7 +162,8 @@ _fileName = "{:010d}.txt".format(int(config.get("system", "powerOnCount")))
 
 try:
     with open("/log/datetime.txt", "a") as file:
-        file.write("{}\n{}\n\n".format(config.datetime(), _fileName))
+        file.write("{}\n".format(ujson.dumps(config.datetime())))
+        file.write("{}\n\n".format(ujson.dumps(_fileName)))
 except Exception as e:
     _appendToList(e)
 
@@ -170,7 +171,8 @@ for _logFile in _logFiles:
     _logFile[2] = "/log/{}/{}".format(_logFile[0].lower(), _fileName)
     try:
         with open(_logFile[2], "w") as file:
-            file.write("{}\n{} log initialised successfully.\n\n".format(config.datetime(), _logFile[0]))
+            file.write("{}\n".format(ujson.dumps(config.datetime())))
+            file.write("{}\n\n".format(ujson.dumps("{} log initialised successfully.".format(_logFile[0]))))
             _saveFromList(_logFile)
     except Exception as e:
         _appendToList(e)

@@ -73,7 +73,7 @@ i2c = {
 logger = {
     "name"          : "Logger",
     "active"        : True,
-    "activeLogs"    : ("Exception", "Object", "Run")    # All: ("Exception", "Event", "Object", "Run")
+    "activeLogs"    : ("Exception", "Event", "Object", "Run")    # All: ("Exception", "Event", "Object", "Run")
 }
 
 
@@ -96,8 +96,8 @@ system = {
     "active"        : True,     # Just for unity
     "id"            : hexlify(uos.urandom(32)).decode(),
     "chk"           : hexlify(uos.urandom(32)).decode(),
-    "firmware"      : (0, 1, 137),
-    "initDateTime"  : (2021, 7, 5, 0, 21, 25, 0, 0),
+    "firmware"      : (0, 1, 138),
+    "initDateTime"  : (2021, 7, 5, 0, 23, 5, 0, 0),
     "powerOnCount"  : 0
 }
 
@@ -137,7 +137,7 @@ web_server = {
 
 web_repl = {
     "name"          : "MicroPython WebREPL",
-    "active"        : False,
+    "active"        : True,
     "password"      : "uBot_REPL"
 }
 
