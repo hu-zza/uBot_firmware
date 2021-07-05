@@ -149,13 +149,16 @@ def _getSuffixAndChopIndexFrom(suffix):
         return ".{}".format(suffix), -1 - len(suffix)
 
 
-def getFile(path):
+def getFile(path, isJson = False):
     path = normalizePath(path)
 
     if doesFileExist(path):
         try:
             with open(path, "r") as file:
-                return tuple([ujson.loads(line) for line in file])
+                if isJson:
+                    return tuple([ujson.loads(line) for line in file])
+                else:
+                    return tuple([line for line in file])
         except Exception as e:
             logger.append(e)
             return ()
@@ -267,6 +270,7 @@ def _createJsonFileInstance(folder, subFolder, file):
 
     if doesFolderExist(parent):
         if doesFileExist(path):
+            isJson = folder in config.get("system", "json_folders")
             return "200 OK", job, {
                 "name": file,
                 "type": "file",
@@ -279,7 +283,7 @@ def _createJsonFileInstance(folder, subFolder, file):
                     "raw":  "{}{}".format(_rawLink, parent[1:])
                 },
                 "children": [],
-                "value": getFile(path)}
+                "value": getFile(path, isJson)}
         else:
             return "404 Not Found", job + " Cause: No such file.", {}
     else:

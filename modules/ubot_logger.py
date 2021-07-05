@@ -128,19 +128,19 @@ def _saveFromList(logFile, fallback = False):
                 _saveFromList(logFile, True)
 
 
-def _writeOutItem(dateTime, file, item):
-    file.write("{}\n".format(ujson.dumps(dateTime)))
+def _writeOutItem(dateTime, logFile, item):
+    logFile.write("{}\n".format(dateTime))
 
     if _defineIndex(item) == 0:
-        usys.print_exception(item, file)
+        usys.print_exception(item, logFile)
     else:
         if isinstance(item, tuple) or isinstance(item, list):
             for i in item:
-                file.write("{}\n".format(ujson.dumps(i)))
+                logFile.write("{}\n".format(i))
         else:
-            file.write("{}\n".format(ujson.dumps(item)))
+            logFile.write("{}\n".format(item))
 
-    file.write("\n")
+    logFile.write("\n")
 
 
 def _defineIndex(item):
@@ -162,8 +162,7 @@ _fileName = "{:010d}.txt".format(int(config.get("system", "power_ons")))
 
 try:
     with open("/log/datetime.txt", "a") as file:
-        file.write("{}\n".format(ujson.dumps(config.datetime())))
-        file.write("{}\n\n".format(ujson.dumps(_fileName)))
+        file.write("{}\n{}\n\n".format(config.datetime(), _fileName))
 except Exception as e:
     _appendToList(e)
 
@@ -171,8 +170,7 @@ for _logFile in _logFiles:
     _logFile[2] = "/log/{}/{}".format(_logFile[0].lower(), _fileName)
     try:
         with open(_logFile[2], "w") as file:
-            file.write("{}\n".format(ujson.dumps(config.datetime())))
-            file.write("{}\n\n".format(ujson.dumps("{} log initialised successfully.".format(_logFile[0]))))
+            file.write("{}\n{} log initialised successfully.\n\n".format(config.datetime(), _logFile[0]))
             _saveFromList(_logFile)
     except Exception as e:
         _appendToList(e)
