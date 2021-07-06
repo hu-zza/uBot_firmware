@@ -104,10 +104,13 @@ def executeCommand(command):
     elif command[:6] == "SLEEP_":
         sleep_ms(int(command[6:].strip()))
 
+    else:
+        return False
     return True
 
 
 def doProgramAction(folder, title, action):
+    action = action.lower()
     try:
         if action == "run":
             return turtle.runProgram(folder, title), {}
@@ -120,64 +123,40 @@ def doProgramAction(folder, title, action):
 ## PRIVATE METHODS FOR REST/JSON
 
 def _executeJsonGet(pathArray, isPresent, ignoredJson):     ########################################### JSON GET HANDLER
-    if pathArray[0] == "":                                  ### GET
-        return data.createRestReplyFrom()
-
-    elif pathArray[0] == "command":                         ### EXECUTION
-        if isPresent[1] and not any(isPresent[2:]):
-            return _jsonGetCommandExecution(pathArray[1])
-
-    elif pathArray[0] == "etc":                             ### GET
-        if not any(isPresent[3:]):
-            if all(isPresent[1:3]):
-                return data.createRestReplyFrom("etc", pathArray[1], pathArray[2])
-            elif isPresent[1]:
-                return data.createRestReplyFrom("etc", pathArray[1])
-            elif not any(isPresent[1:]):
-                return data.createRestReplyFrom("etc")
-
-    elif pathArray[0] == "log":                             ### GET
-        if not any(isPresent[3:]):
-            if all(isPresent[1:3]):
-                return data.createRestReplyFrom("log", pathArray[1], pathArray[2])
-            elif isPresent[1]:
-                return data.createRestReplyFrom("log", pathArray[1])
-            elif not any(isPresent[1:]):
-                return data.createRestReplyFrom("log")
-
-    elif pathArray[0] == "program":                        ### GET or EXECUTION
-        if not any(isPresent[4:]):
-            if all(isPresent[1:4]):                         # program / <folder> / <title> / <action>
-                return _jsonGetProgramActionStarting(pathArray[1], pathArray[2], pathArray[3])
-            elif all(isPresent[1:3]):                       # program / <folder> / <title>
-                return data.createRestReplyFrom("program", pathArray[1], pathArray[2])
-            elif isPresent[1]:                              # program / <folder>
-                return data.createRestReplyFrom("program", pathArray[1])
-            elif not any(isPresent[1:]):                    # program
-                return data.createRestReplyFrom("program")
-
-    elif pathArray[0] == "raw":                             ### GET
-        if not any(isPresent[4:]):
-            return data.createRestReplyFrom(pathArray[1], pathArray[2], pathArray[3])
-
-    return "403 Forbidden", "Job: [REST] GET request. Cause: The format of the URI is invalid.", {}
+    if pathArray[0] == "raw":
+        return data.createRestReplyFrom(pathArray[1], pathArray[2], pathArray[3])
+    elif pathArray[0] == "program" and all(isPresent[1:4]):
+        return _jsonGetProgramActionStarting(pathArray[1], pathArray[2], pathArray[3])
+    elif pathArray[0] == "command":
+        return _jsonGetCommandExecution(pathArray[1])
+    else:
+        return data.createRestReplyFrom(pathArray[0], pathArray[1], pathArray[2])
 
 
 def _jsonGetProgramActionStarting(folder, title, action):
-    result = doProgramAction(folder, title, action)
     job = "Request: Starting action '{}' of program '{}' ({}).".format(action, title, folder)
+    if turtle.doesProgramExist(folder, title):
+        result = doProgramAction(folder, title, action)
 
-    if result[0]:
-        return "200 OK", job, result[1]
+        if result[0]:
+            status, message, json = data.createRestReplyFrom("program", folder, title)
+            json["result"] = result[1]
+
+            return status, "{} <- {}".format(job, message), json
+        else:
+            return "403 Forbidden", job + " Cause: Semantic error in the URL.", {}
     else:
-        return "403 Forbidden", job + " Cause: Semantic error in URI.", {}
+        return "404 Not Found", job + " Cause: No such program.", {}
 
 
 def _jsonGetCommandExecution(command):
+    job = "Request: Starting command '{}' execution.".format(command)
+
     if executeCommand(command.upper()):
-        return "200 OK", "", "Processed commands: 1"
+        return "200 OK", job, {"name": command, "type": "command", "result": "started",
+                               "href": "http://{}/command/{}".format(config.get("ap", "ip"), command)},
     else:
-        return "403 Forbidden", "The processing of the request failed. Cause: Semantic error in URI.", {}
+        return "403 Forbidden", job + "Cause: Semantic error in the URL.", {}
 
 
 
@@ -191,7 +170,7 @@ def _executeJsonPost(pathArray, isPresent, json):           ####################
     elif pathArray[0] == "root":                            ### ONLY DURING DEVELOPMENT
         if not any(isPresent[1:]):
             return _jsonPostRoot(json)
-    return "403 Forbidden", "Job: [REST] POST request. Cause: The format of the URI is invalid.", {}
+    return "403 Forbidden", "Job: [REST] POST request. Cause: The format of the URL is invalid.", {}
 
 
 def _jsonPostProgram(folder, title, json):
@@ -248,7 +227,7 @@ def _executeJsonPut(pathArray, isPresent, json):            ####################
     elif pathArray[0] == "etc":                             ### persistent
         if isPresent[1] and True not in isPresent[2:]:
             return _jsonPutSystemProperty(pathArray, isPresent, json)
-    return "403 Forbidden", "Job: [REST] PUT request. Cause: The format of the URI is invalid.", {}
+    return "403 Forbidden", "Job: [REST] PUT request. Cause: The format of the URL is invalid.", {}
 
 
 def _jsonPutProgram(pathArray, isPresent, json):
@@ -285,7 +264,7 @@ def _executeJsonDelete(pathArray, isPresent, ignoredJson):  ####################
                 return _jsonClearLogFolder(pathArray[1])
             elif isPresent[1] and isPresent[2]:
                 return _jsonDeleteLog(pathArray, isPresent)
-    return "403 Forbidden", "Job: [REST] DELETE request. Cause: The format of the URI is invalid.", {}
+    return "403 Forbidden", "Job: [REST] DELETE request. Cause: The format of the URL is invalid.", {}
 
 
 def _jsonDeleteEveryProgram():

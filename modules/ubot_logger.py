@@ -78,7 +78,7 @@ def getCategoryLogs(category):
 
 
 def getLog(category, title):
-    return data.getFile(data.getNormalizedPathOf(("log", category), title))
+    return data.getFile(data.getNormalizedPathOf(("log", category), "{}.txt".format(title)))
 
 
 def doesLogExist(category, title):

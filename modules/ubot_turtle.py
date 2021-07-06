@@ -143,9 +143,9 @@ def move(direction, silent = False):
         motor.move(3, _turnLength // 2) #                       Placeholder...
     elif direction == 80:               # "P" - PAUSE
         motor.move(0, _moveLength)
-    elif direction == 75:               # "K" - LEFT (45°)      alias for URI usage ( L - 1 = K   ~ l )
+    elif direction == 75:               # "K" - LEFT (45°)      alias for URL usage ( L - 1 = K   ~ l )
         motor.move(2, _turnLength // 2) #                       Placeholder...
-    elif direction == 81:               # "Q" - RIGHT (45°)     alias for URI usage ( R - 1 = Q   ~ r )
+    elif direction == 81:               # "Q" - RIGHT (45°)     alias for URL usage ( R - 1 = Q   ~ r )
         motor.move(3, _turnLength // 2) #                       Placeholder...
 
 
@@ -178,12 +178,12 @@ def doesProgramExist(folder, title):
 
 
 def getProgramCode(folder, title):
-    result = data.getFile(data.getNormalizedPathOf(("program", folder), title))
+    result = data.getFile(data.getNormalizedPathOf(("program", folder), "{}.txt".format(title)))
     return result[0] if 0 < len(result) else ""
 
 
 def runProgram(folder, title):
-    if data.isFile(data.getNormalizedPathOf(("program", folder), title)):
+    if doesProgramExist(folder, title):
         retainInTemporary()
         loadProgram(folder, title)
         press(64)
@@ -195,7 +195,7 @@ def runProgram(folder, title):
 
 def loadProgram(folder, title):
     clearMemory()
-    if data.isFile(data.getNormalizedPathOf(("program", folder), title)):
+    if doesProgramExist(folder, title):
         loadProgramFromString(getProgramCode(folder, title))
         return True
     else:

@@ -83,7 +83,7 @@ def _typeIntEqualsExpectedInt(path, expectedInt):
             logger.append(e)
             return False
     else:
-        logger.append(AttributeError("Path '{}' doesn't exist."))
+        logger.append(AttributeError("Path '{}' doesn't exist.".format(path)))
         return False
 
 
@@ -191,14 +191,14 @@ _rawLink  = _hostLink + "raw/"
 
 def createRestReplyFrom(*path):
     pathLen = len(path)
-    if pathLen == 0:
-        return _createJsonFolderInstance("", True)
-    elif pathLen == 1:
-        return _createJsonFolderInstance(path[0])
+    if pathLen < 2:
+        return _createJsonFolderInstance(path[0], path[0] == "")
     elif pathLen == 2:
         return _createJsonSubFolderInstance(path[0], path[1])
     elif pathLen == 3:
         return _createJsonFileInstance(path[0], path[1], path[2])
+    else:
+        return "403 Forbidden", "Job: [REST] GET request. Cause: The format of the URL is invalid.", {}
 
 
 def _isBlank(text):
@@ -287,4 +287,4 @@ def _createJsonFileInstance(folder, subFolder, file):
         else:
             return "404 Not Found", job + " Cause: No such file.", {}
     else:
-        return "403 Forbidden", job + " Cause: Invalid path in URI.", {}
+        return "403 Forbidden", job + " Cause: Invalid path in the URL.", {}

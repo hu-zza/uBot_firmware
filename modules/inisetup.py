@@ -96,8 +96,8 @@ system = {
     "active"        : True,     # Just for unity
     "id"            : hexlify(uos.urandom(32)).decode(),
     "chk"           : hexlify(uos.urandom(32)).decode(),
-    "firmware"      : (0, 1, 140),
-    "init_datetime" : (2021, 7, 6, 0, 0, 15, 0, 0),
+    "firmware"      : (0, 1, 141),
+    "init_datetime" : (2021, 7, 6, 0, 3, 0, 0, 0),
     "power_ons"     : 0,
     "json_folders"  : ("etc", "program")
 }
