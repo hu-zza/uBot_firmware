@@ -211,18 +211,23 @@ def _processHtmlGetQuery(path):
                 _connection.write("        <br><br><hr><hr>\n")
                 _connection.write("        <h3>Log files</h3>\n")
 
+                _connection.write("            <table class='data'>\n")
                 for category in logger.getLogCategories():
-                    _connection.write("            <h4>{}</h4>\n".format(category))
+                    _connection.write("                <tr><td><strong>{}:</strong></td>".format(category))
 
-                    _connection.write(
-                        "            <a href='http://{0}/raw/log/{1}/{2:010d}.txt' target='_blank'>{2:010d}&nbsp;&nbsp;"
-                        "&nbsp;// current</a><br>\n".format(config.get("ap", "ip"), category, powerOns))
+                    _host = "http://{}/raw".format(config.get("ap", "ip"))
+                    _fileNameBase = "/log/{}/{{:010d}}.txt".format(category)
+                    _currentLog = _fileNameBase.format(powerOns)
+                    _fallbackLog = _fileNameBase.format(0)
 
-                    _connection.write(
-                        "            <a href='http://{0}/raw/log/{1}/0000000000.txt' target='_blank'>0000000000&nbsp;"
-                        "&nbsp;&nbsp;// fallback</a><br><br>\n".format(config.get("ap", "ip"), category))
 
-                _connection.write("        </ul>\n")
+                    _connection.write("<td><a href='{}{}' target='_blank'>current ({} B)</a></td>"
+                                      .format(_host, _currentLog, uos.stat(_currentLog)[6]))
+
+                    _connection.write("<td><a href='{}{}' target='_blank'>fallback ({} B)</a></td></tr>\n"
+                                      .format(_host, _fallbackLog, uos.stat(_fallbackLog)[6]))
+
+                _connection.write("            </table>\n")
 
             _connection.write(template.getPageFooter())
             logger.append("HTTP response: 200 OK")

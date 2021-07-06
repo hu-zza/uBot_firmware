@@ -31,8 +31,6 @@
 
 import gc, uos
 
-from ubinascii import hexlify
-
 import ubot_config as config
 import ubot_turtle as turtle
 
@@ -87,7 +85,8 @@ def getGeneralStyle():
 
 
 def getDebugStyle():
-    return ("            hr    { color: #EEE; }\n"
+    return ("            a     { text-decoration: underline grey dotted; }\n"
+            "            hr    { color: #EEE; }\n"
             "            table { margin: 30px; }\n"
             "            .data td { padding: 5px; border-bottom: dotted 1px #AAA; }\n")
 
