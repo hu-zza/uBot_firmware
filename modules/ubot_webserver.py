@@ -207,19 +207,20 @@ def _processHtmlGetQuery(path):
                         "            <a href='http://{0}{1}' target='_blank'>{2}</a><br>\n".format(
                             config.get("ap", "ip"), template.debugPanels.get(panelTitle), panelTitle))
 
-                powerOns = config.get("system", "power_ons")
                 _connection.write("        <br><br><hr><hr>\n")
                 _connection.write("        <h3>Log files</h3>\n")
+
+                _powerOns = config.get("system", "power_ons")
+                _host = "http://{}/raw".format(config.get("ap", "ip"))
+                _fileNameBase = "/log/{{}}/{:010d}.txt".format(config.get("system", "power_ons"))
+                _fallbackBase = "/log/{}/0000000000.txt"
 
                 _connection.write("            <table class='data'>\n")
                 for category in logger.getLogCategories():
                     _connection.write("                <tr><td><strong>{}:</strong></td>".format(category))
 
-                    _host = "http://{}/raw".format(config.get("ap", "ip"))
-                    _fileNameBase = "/log/{}/{{:010d}}.txt".format(category)
-                    _currentLog = _fileNameBase.format(powerOns)
-                    _fallbackLog = _fileNameBase.format(0)
-
+                    _currentLog = _fileNameBase.format(category)
+                    _fallbackLog = _fallbackBase.format(category)
 
                     _connection.write("<td><a href='{}{}' target='_blank'>current ({} B)</a></td>"
                                       .format(_host, _currentLog, uos.stat(_currentLog)[6]))
