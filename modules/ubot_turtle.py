@@ -107,6 +107,11 @@ _blockBoundaries   = ((40, 41), (123, 125), (126, 126))     # (("(", ")"), ("{",
 ################################
 ## PUBLIC METHODS
 
+
+def isBusy():
+    return _processingProgram or _runningProgram
+
+
 def getValidMoveChars():
     return _moveChars
 
@@ -922,25 +927,7 @@ _moveCharMapping = {
     114: (3, _halfTurn),    # "r" - RIGHT (45°)
     80:  (0, _moveLength),  # "P" - PAUSE
     75:  (2, _halfTurn),    # "K" - LEFT (45°)      alias for URL usage ( L - 1 = K   ~ l )
-    81:  (3, _halfTurn),    # "Q" - RIGHT (45°)     alias for URL usage ( R - 1 = Q   ~ r )
-    67:  (2, _halfTurn),
-    68:  (3, _halfTurn),
-    71:  (2, _halfTurn),
-    72:  (3, _halfTurn),
-    73:  (2, _halfTurn),
-    74:  (3, _halfTurn),
-    77:  (2, _halfTurn),
-    78:  (3, _halfTurn),
-    97:  (2, _halfTurn),
-    98:  (3, _halfTurn),
-    99:  (2, _halfTurn),
-    100: (3, _halfTurn),
-    101: (2, _halfTurn),
-    102: (3, _halfTurn),
-    103: (2, _halfTurn),
-    104: (3, _halfTurn),
-    105: (2, _halfTurn),
-    106: (3, _halfTurn)
+    81:  (3, _halfTurn)     # "Q" - RIGHT (45°)     alias for URL usage ( R - 1 = Q   ~ r )
 }
 
 

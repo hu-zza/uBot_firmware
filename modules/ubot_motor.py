@@ -272,7 +272,7 @@ def _processMove(move):       # ((direction, duration))
         _setController(0, 0)
 
 
-    _timer.init(                    # STOP AND NEXT
+    _timer.init(                   # STOP AND NEXT
         period = move[1],
         mode = Timer.ONE_SHOT,
         callback = _stopAndInitNext
@@ -291,7 +291,7 @@ def _stopAndInitNext(timer):
     if 0 == _breath:
         _processNext()
     else:
-        _timer.init(                    # STOP AND NEXT
+        _timer.init(                   # STOP AND NEXT
             period = _breath,
             mode = Timer.ONE_SHOT,
             callback = _processNext
