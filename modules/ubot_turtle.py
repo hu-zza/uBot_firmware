@@ -65,10 +65,10 @@ _moveLength   = config.get("turtle", "move_length")
 _turnLength   = config.get("turtle", "turn_length")
 _breathLength = config.get("turtle", "breath_length")
 
-_endSignalEnabled  = True
-_skipOneEndSignal  = False
-_stepSignalEnabled = True
-_skipOneStepSignal = False
+_endSignalEnabled    = True
+_endSignalSkipCount  = 0
+_stepSignalEnabled   = True
+_stepSignalSkipCount = 0
 
 _endSignal    = config.get("turtle", "end_signal")          # Sound indicates the end of a step during execution: buzzer.keyBeep(_endSignal)
 _stepSignal   = config.get("turtle", "step_signal")         # Sound indicates the end of program execution:       buzzer.keyBeep(_stepSignal)
@@ -104,6 +104,9 @@ _blockBoundaries   = ((40, 41), (123, 125), (126, 126))     # (("(", ")"), ("{",
 ################################
 ## PUBLIC METHODS
 
+def getValidDirectionChars():
+    return {"F", "B", "L", "l", "R", "r", "P", "K", "Q"}
+
 
 def checkButtons(timer = None):
     _addCommand(_getValidatedPressedButton())
@@ -117,16 +120,10 @@ def press(pressed):  # pressed = 1<<buttonOrdinal
     _addCommand(pressed)
 
 
-def move(direction, silent = False):
-    global _skipOneStepSignal
-    global _skipOneEndSignal
+def move(direction):
 
     if isinstance(direction, str):
         direction = ord(direction)
-
-    if silent:
-        _skipOneStepSignal = True
-        _skipOneEndSignal = True
 
     # TODO: migrate to dictionary
     if direction == 70:                 # "F" - FORWARD
@@ -148,6 +145,13 @@ def move(direction, silent = False):
     elif direction == 81:               # "Q" - RIGHT (45°)     alias for URL usage ( R - 1 = Q   ~ r )
         motor.move(3, _turnLength // 2) #                       Placeholder...
 
+
+def skipSignal(stepCount = 1, endCount = 0):
+    global _stepSignalSkipCount
+    global _endSignalSkipCount
+
+    _stepSignalSkipCount += stepCount
+    _endSignalSkipCount += endCount
 
 def getProgramsCount():
     return sum([len(getProgramListOf(folder)) for folder in getProgramFolders()])
@@ -831,23 +835,25 @@ def _customMapping():
 ## CALLBACK FUNCTIONS
 
 def _callbackStep():
-    global _skipOneStepSignal
+    global _stepSignalSkipCount
 
-    if _stepSignalEnabled and not _skipOneStepSignal and _stepSignal != "":
+    if _stepSignalEnabled and 0 == _stepSignalSkipCount and _stepSignal != "":
         buzzer.keyBeep(_stepSignal)
+    else:
+        _stepSignalSkipCount -= 1
 
-    _skipOneStepSignal = False
     checkButtons()
 
 
 def _callbackEnd():
-    global _skipOneEndSignal
+    global _endSignalSkipCount
     global _runningProgram
 
-    if _endSignalEnabled and not _skipOneEndSignal and _endSignal != "":
+    if _endSignalEnabled and 0 == _endSignalSkipCount and _endSignal != "":
         buzzer.keyBeep(_endSignal)
+    else:
+        _endSignalSkipCount -= 1
 
-    _skipOneEndSignal = False
     _runningProgram   = False
 
 

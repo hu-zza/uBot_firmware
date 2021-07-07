@@ -60,23 +60,26 @@ if config.get("web_server", "active"):
 
 
 def executeCommand(command):
-    if command[:6] == "PRESS":
+    if command[:5] == "PRESS":                                      # PRESS_1_1_16_64
         pressedList = command[6:].strip().split("_")
         for pressed in pressedList:
             turtle.press(pressed)
 
-    elif command[:5] == "STEP":
+    elif command[:4] == "STEP":                                     # STEP_FFR
         for char in command[5:].strip():
             turtle.move(char)
 
-    elif command[:6] == "DRIVE":
+    elif command[:5] == "DRIVE":                                    # DRIVE_FFR
         breath = motor.getBreath()
         motor.setBreath(0)
-        for char in command[6:].strip():
-            turtle.move(char, True)
+        validChars = turtle.getValidDirectionChars()
+        commands = [char for char in command[6:].strip() if char in validChars]
+        turtle.skipSignal(len(commands), 1)
+        for char in commands:
+            turtle.move(char)
         motor.setBreath(breath)
 
-    elif command[:5] == "BEEP":
+    elif command[:4] == "BEEP":                                     # BEEP_440_100_100_1
         beepArray = command[5:].strip().split("_")
         size = len(beepArray)
         buzzer.beep(float(beepArray[0]) if size > 0 else 440.0,
@@ -84,7 +87,7 @@ def executeCommand(command):
                     int(beepArray[2]) if size > 2 else 100,
                     int(beepArray[3]) if size > 3 else 1)
 
-    elif command[:5] == "MIDI":
+    elif command[:4] == "MIDI":                                     # MIDI_69_100_100_1
         beepArray = command[5:].strip().split("_")
         size = len(beepArray)
         buzzer.midiBeep(int(beepArray[0]) if size > 0 else 69,
@@ -92,13 +95,13 @@ def executeCommand(command):
                         int(beepArray[2]) if size > 2 else 100,
                         int(beepArray[3]) if size > 3 else 1)
 
-    elif command[:5] == "REST":
+    elif command[:4] == "REST":                                     # REST_1000
         buzzer.rest(int(command[5:].strip()))
 
-    elif command[:4] == "MOT":
+    elif command[:3] == "MOT":                                      # MOT_1_1000
         motor.move(int(command[4]), int(command[6:].strip()))
 
-    elif command[:6] == "SLEEP":
+    elif command[:5] == "SLEEP":                                    # SLEEP_1000
         inp = command[6:].strip()
         sleep_ms(int(inp) if inp != "" else 1000)
 
@@ -148,9 +151,10 @@ def _jsonGetProgramActionStarting(folder, title, action):
 
 
 def _jsonGetCommandExecution(command):
+    command = command.upper()
     job = "Request: Starting command '{}' execution.".format(command)
     try:
-        if executeCommand(command.upper()):
+        if executeCommand(command):
             return "200 OK", job, {"name": command, "type": "command", "result": "started",
                                    "href": "http://{}/command/{}".format(config.get("ap", "ip"), command)}
     except Exception:

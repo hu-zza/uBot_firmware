@@ -1,6 +1,8 @@
 import os
+import time
 import shutil
 
+start  = time.time()
 oldCwd = os.getcwd()
 
 homePath = os.getenv("HOME")
@@ -48,6 +50,11 @@ printResult(os.system("docker run --rm -ti -v $PWD:$PWD -w $PWD larsks/esp-open-
 printJob("BUILD ARTIFACT")
 printResult(os.system("docker run --rm -ti -v $PWD:$PWD -w $PWD larsks/esp-open-sdk make -C ports/esp8266 V=1"))
 
+printJob("DELETE OLD ARTIFACT")
+artifacts = [name for name in os.listdir(sandboxPath) if name[-4:] == ".bin"]
+for artifact in artifacts:
+    os.remove("{}/{}".format(sandboxPath, artifact))
+
 fileName = fileNameFormat.format(major, minor, patch)
 printJob("COPY ARTIFACT")
 shutil.copyfile(artifactPath, "{}/{}".format(sandboxPath, fileName))
@@ -61,3 +68,5 @@ printResult(os.system("esptool.py --port /dev/ttyUSB0 --baud 460800 write_flash 
 
 printJob("CHANGE DIR: {}".format(oldCwd))
 os.chdir(oldCwd)
+
+print("FINISHED IN {} SECONDS.\n\n".format(round(time.time() - start)))

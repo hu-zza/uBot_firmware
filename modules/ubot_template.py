@@ -521,7 +521,7 @@ parts = {
     "/_datetime"    : (getDateTimePanel, getDateTimeSender),
     "/_webrepl"     : (getWebReplPanel, getServiceRequestSender),
     "/_calibration" : (getCalibrationPanel, getServiceRequestSender),
-    "/debug"        : (getTurtlePanel,),
+    "/debug"        : (),
     "/_system"      : (getSystemPanel,),
     "/_services"    : (getServiceStatusPanel,),
     "/_ap"          : (getApPanel,),

@@ -199,7 +199,6 @@ def _processHtmlGetQuery(path):
                 _connection.write(part())
 
             if path == "/debug":
-                _connection.write("        <br><br><hr><hr>\n")
                 _connection.write("        <h3>Information panels</h3>\n")
 
                 for panelTitle in sorted(template.debugPanels.keys()):

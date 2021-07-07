@@ -268,7 +268,8 @@ def _createJsonSubFolderInstance(folder, subFolder):
 
 
 def _createJsonFileInstance(folder, subFolder, file):
-    _file  = file if file == "" or file[-4:] == ".txt" else "{}.txt".format(file)                 #! Burnt-in txt suffix
+    _file  = "{:010d}".format(int(file)) if folder == "log" else file
+    _file  = _file if _file == "" or _file[-4:] == ".txt" else "{}.txt".format(_file)             #! Burnt-in txt suffix
     path   = getNormalizedPathOf((folder, subFolder), _file)                                      #! if file != ""
     parent = getNormalizedPathOf((folder, subFolder))
     job = "Request: Get the file '{}'.".format(path)
