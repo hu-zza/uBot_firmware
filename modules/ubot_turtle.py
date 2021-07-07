@@ -65,6 +65,7 @@ _loopChecking = config.get("turtle", "loop_checking")
 
 _moveLength   = config.get("turtle", "move_length")
 _turnLength   = config.get("turtle", "turn_length")
+_halfTurn     = _turnLength // 2
 _breathLength = config.get("turtle", "breath_length")
 
 _endSignalEnabled    = True
@@ -127,29 +128,10 @@ def press(pressed):  # pressed = 1<<buttonOrdinal
 
 
 def move(direction):
-
     if isinstance(direction, str):
         direction = ord(direction)
 
-    # TODO: migrate to dictionary
-    if direction == 70:                 # "F" - FORWARD
-        motor.move(1, _moveLength)
-    elif direction == 66:               # "B" - BACKWARD
-        motor.move(4, _moveLength)
-    elif direction == 76:               # "L" - LEFT (90°)
-        motor.move(2, _turnLength)
-    elif direction == 108:              # "l" - LEFT (45°)
-        motor.move(2, _turnLength // 2) #                       Placeholder...
-    elif direction == 82:               # "R" - RIGHT (90°)
-        motor.move(3, _turnLength)
-    elif direction == 114:              # "r" - RIGHT (45°)
-        motor.move(3, _turnLength // 2) #                       Placeholder...
-    elif direction == 80:               # "P" - PAUSE
-        motor.move(0, _moveLength)
-    elif direction == 75:               # "K" - LEFT (45°)      alias for URL usage ( L - 1 = K   ~ l )
-        motor.move(2, _turnLength // 2) #                       Placeholder...
-    elif direction == 81:               # "Q" - RIGHT (45°)     alias for URL usage ( R - 1 = Q   ~ r )
-        motor.move(3, _turnLength // 2) #                       Placeholder...
+    motor.add(_moveCharMapping.get(direction))
 
 
 def skipSignal(stepCount = 1, endCount = 0):
@@ -867,6 +849,8 @@ def _callbackEnd():
 ################################
 ## MAPPINGS
 
+# For turtle hat
+
 _defaultMapping = {
     1:    (_beepAndReturn,     ("processed", 70)),                  # FORWARD
     2:    (_beepAndReturn,     ("processed", 80)),                  # PAUSE
@@ -927,6 +911,37 @@ _functionMapping = {
     512:  (_delete,            (True,))                             # DELETE
 }
 
+# For other purpose
+
+_moveCharMapping = {
+    70:  (1, _moveLength),  # "F" - FORWARD
+    66:  (4, _moveLength),  # "B" - BACKWARD
+    76:  (2, _turnLength),  # "L" - LEFT (90°)
+    108: (2, _halfTurn),    # "l" - LEFT (45°)
+    82:  (3, _turnLength),  # "R" - RIGHT (90°)
+    114: (3, _halfTurn),    # "r" - RIGHT (45°)
+    80:  (0, _moveLength),  # "P" - PAUSE
+    75:  (2, _halfTurn),    # "K" - LEFT (45°)      alias for URL usage ( L - 1 = K   ~ l )
+    81:  (3, _halfTurn),    # "Q" - RIGHT (45°)     alias for URL usage ( R - 1 = Q   ~ r )
+    67:  (2, _halfTurn),
+    68:  (3, _halfTurn),
+    71:  (2, _halfTurn),
+    72:  (3, _halfTurn),
+    73:  (2, _halfTurn),
+    74:  (3, _halfTurn),
+    77:  (2, _halfTurn),
+    78:  (3, _halfTurn),
+    97:  (2, _halfTurn),
+    98:  (3, _halfTurn),
+    99:  (2, _halfTurn),
+    100: (3, _halfTurn),
+    101: (2, _halfTurn),
+    102: (3, _halfTurn),
+    103: (2, _halfTurn),
+    104: (3, _halfTurn),
+    105: (2, _halfTurn),
+    106: (3, _halfTurn)
+}
 
 
 ################################

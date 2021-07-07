@@ -130,7 +130,24 @@ def move(direction = 0, duration = 0):
 
     duration    : integer parameter (length of movement in millisecond)
     """
-    _moveList.append((direction, duration))
+    add((direction, duration))
+
+
+def add(movementTuple):
+    """
+    Public function which books a move tuple (direction, duration)
+    on _moveList for the indirect, future processing.
+
+    direction   : integer parameter
+    0           : STOP
+    1           : FORWARD
+    2           : LEFT
+    3           : RIGHT
+    4           : BACKWARD
+
+    duration    : integer parameter (length of movement in millisecond)
+    """
+    _moveList.append(movementTuple)
     _startProcessing()
 
 

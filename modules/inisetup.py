@@ -3,8 +3,8 @@ import network, ujson, uos
 from flashbdev import bdev
 from ubinascii import hexlify
 
-firmware = (0, 1, 148)
-initDatetime = (2021, 7, 7, 0, 21, 40, 0, 0)
+firmware = (0, 1, 149)
+initDatetime = (2021, 7, 7, 0, 23, 50, 0, 0)
 
 AP  = network.WLAN(network.AP_IF)
 mac = hexlify(AP.config("mac"), ":").decode()
@@ -122,7 +122,7 @@ turtle = {
     "first_repeat"  : 75,   # min. 1500 ms          first_repeat * check_period
     "max_error"     : 1,    # max. 0.166' (16,6'%)  max_error / (press_length + max_error)
 
-    "move_chars"    : ["F", "B", "L", "l", "R", "r", "P", "K", "Q"],
+    "move_chars"    : ["F", "B", "L", "l", "R", "r", "P", "K", "Q",   "C", "D", "G", "H", "I", "J", "M", "N", "a", "b", "c", "d", "e", "f", "g", "h", "i", "j"],
     "turtle_chars"  : ["F", "B", "L", "l", "R", "r", "P", "K", "Q", "(", "*", ")", "{", "|", "}", "~"]
 
 }
