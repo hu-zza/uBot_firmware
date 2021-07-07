@@ -39,10 +39,12 @@ import ubot_logger as logger
 import ubot_motor  as motor
 import ubot_data   as data
 
-_powerOns = config.get("system", "power_ons")
-_jsonFolder   = config.get("turtle", "json_folder")
-_turtleFolder = config.get("turtle", "turtle_folder")
-_savedCount   = 0
+_powerOns      = config.get("system", "power_ons")
+_jsonFolder    = config.get("turtle", "json_folder")
+_turtleFolder  = config.get("turtle", "turtle_folder")
+_moveChars     = config.get("turtle", "move_chars")
+_turtleChars   = config.get("turtle", "turtle_chars")
+_savedCount    = 0
 
 _clockPin = Pin(13, Pin.OUT)                                # Advances the decade counter (U3).
 _clockPin.off()
@@ -51,13 +53,13 @@ _inputPin = Pin(16, Pin.OUT)                                # FUTURE: _inputPin 
 _inputPin.off()                                             # DEPRECATED: New PCB design (2.1) will resolve this.
 _inputPin.init(Pin.IN)                                      # DEPRECATED: New PCB design (2.1) will resolve this.
 
-_checkPeriod  = config.get("turtle", "checkPeriod")
+_checkPeriod  = config.get("turtle", "check_period")
 _counterPosition = 0                                        # The position of the decade counter (U3).
 
-_pressLength  = config.get("turtle", "pressLength")
-_maxError     = config.get("turtle", "maxError")
+_pressLength  = config.get("turtle", "press_length")
+_maxError     = config.get("turtle", "max_error")
 _lastPressed  = [0, 0]                                      # Inside: [last pressed button, elapsed (button check) cycles]
-_firstRepeat  = config.get("turtle", "firstRepeat")
+_firstRepeat  = config.get("turtle", "first_repeat")
 
 _loopChecking = config.get("turtle", "loop_checking")
 
@@ -104,8 +106,12 @@ _blockBoundaries   = ((40, 41), (123, 125), (126, 126))     # (("(", ")"), ("{",
 ################################
 ## PUBLIC METHODS
 
-def getValidDirectionChars():
-    return {"F", "B", "L", "l", "R", "r", "P", "K", "Q"}
+def getValidMoveChars():
+    return _moveChars
+
+
+def getValidTurtleChars():
+    return _turtleChars
 
 
 def checkButtons(timer = None):
