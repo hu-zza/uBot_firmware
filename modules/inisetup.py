@@ -3,6 +3,8 @@ import network, ujson, uos
 from flashbdev import bdev
 from ubinascii import hexlify
 
+firmware = (0, 1, 146)
+initDatetime = (2021, 7, 7, 0, 17, 0, 0, 0)
 
 AP  = network.WLAN(network.AP_IF)
 mac = hexlify(AP.config("mac"), ":").decode()
@@ -96,8 +98,8 @@ system = {
     "active"        : True,     # Just for unity
     "id"            : hexlify(uos.urandom(32)).decode(),
     "chk"           : hexlify(uos.urandom(32)).decode(),
-    "firmware"      : (0, 1, 145),
-    "init_datetime" : (2021, 7, 7, 0, 14, 25, 0, 0),
+    "firmware"      : firmware,
+    "init_datetime" : initDatetime,
     "power_ons"     : 0,
     "json_folders"  : ("etc", "program")
 }
