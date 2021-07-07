@@ -58,51 +58,49 @@ if config.get("web_server", "active"):
 ################################
 ## PUBLIC METHODS
 
-def getAp():
-    return _ap
-
 
 def executeCommand(command):
-    if command[:6] == "PRESS_":
-        pressedList = command[6:].strip().split(":")
+    if command[:6] == "PRESS":
+        pressedList = command[6:].strip().split("_")
         for pressed in pressedList:
             turtle.press(pressed)
 
-    elif command[:5] == "STEP_":
+    elif command[:5] == "STEP":
         for char in command[5:].strip():
             turtle.move(char)
 
-    elif command[:6] == "DRIVE_":
+    elif command[:6] == "DRIVE":
         breath = motor.getBreath()
         motor.setBreath(0)
         for char in command[6:].strip():
             turtle.move(char, True)
         motor.setBreath(breath)
 
-    elif command[:5] == "BEEP_":
-        beepArray = command[5:].strip().split(":")
+    elif command[:5] == "BEEP":
+        beepArray = command[5:].strip().split("_")
         size = len(beepArray)
         buzzer.beep(float(beepArray[0]) if size > 0 else 440.0,
                     int(beepArray[1]) if size > 1 else 100,
                     int(beepArray[2]) if size > 2 else 100,
                     int(beepArray[3]) if size > 3 else 1)
 
-    elif command[:5] == "MIDI_":
-        beepArray = command[5:].strip().split(":")
+    elif command[:5] == "MIDI":
+        beepArray = command[5:].strip().split("_")
         size = len(beepArray)
         buzzer.midiBeep(int(beepArray[0]) if size > 0 else 69,
                         int(beepArray[1]) if size > 1 else 100,
                         int(beepArray[2]) if size > 2 else 100,
                         int(beepArray[3]) if size > 3 else 1)
 
-    elif command[:5] == "REST_":
+    elif command[:5] == "REST":
         buzzer.rest(int(command[5:].strip()))
 
-    elif command[:4] == "MOT_":
+    elif command[:4] == "MOT":
         motor.move(int(command[4]), int(command[6:].strip()))
 
-    elif command[:6] == "SLEEP_":
-        sleep_ms(int(command[6:].strip()))
+    elif command[:6] == "SLEEP":
+        inp = command[6:].strip()
+        sleep_ms(int(inp) if inp != "" else 1000)
 
     else:
         return False
@@ -151,12 +149,13 @@ def _jsonGetProgramActionStarting(folder, title, action):
 
 def _jsonGetCommandExecution(command):
     job = "Request: Starting command '{}' execution.".format(command)
-
-    if executeCommand(command.upper()):
-        return "200 OK", job, {"name": command, "type": "command", "result": "started",
-                               "href": "http://{}/command/{}".format(config.get("ap", "ip"), command)},
-    else:
-        return "403 Forbidden", job + "Cause: Semantic error in the URL.", {}
+    try:
+        if executeCommand(command.upper()):
+            return "200 OK", job, {"name": command, "type": "command", "result": "started",
+                                   "href": "http://{}/command/{}".format(config.get("ap", "ip"), command)}
+    except Exception:
+        pass
+    return "403 Forbidden", job + " Cause: Semantic error in the URL.", {}
 
 
 
