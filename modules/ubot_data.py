@@ -190,14 +190,15 @@ _hostLink = "http://{}/".format(config.get("ap", "ip"))
 _rawLink  = _hostLink + "raw/"
 
 def createRestReplyFrom(*path):
-    path = _deleteSpaceholders(path)
-    pathLen = len(path)
-    if pathLen < 2:
-        return _createJsonFolderInstance(path[0], path[0] == "")
-    elif pathLen == 2:
-        return _createJsonSubFolderInstance(path[0], path[1])
-    elif pathLen == 3:
-        return _createJsonFileInstance(path[0], path[1], path[2])
+    clearPath = _deleteSpaceholders(path)
+    clearPathLen = len(clearPath)
+
+    if clearPathLen < 2:
+        return _createJsonFolderInstance(path[0], path[0] == "")    # Using path with placeholders, maybe it's [""] * 11
+    elif clearPathLen == 2:
+        return _createJsonSubFolderInstance(clearPath[0], clearPath[1])
+    elif clearPathLen == 3:
+        return _createJsonFileInstance(clearPath[0], clearPath[1], clearPath[2])
     else:
         return "403 Forbidden", "Job: [REST] GET request. Cause: The format of the URL is invalid.", {}
 

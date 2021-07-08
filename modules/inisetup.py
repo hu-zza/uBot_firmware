@@ -3,8 +3,8 @@ import network, ujson, uos
 from flashbdev import bdev
 from ubinascii import hexlify
 
-firmware = (0, 1, 150)
-initDatetime = (2021, 7, 8, 0, 2, 10, 0, 0)
+firmware = (0, 1, 151)
+initDatetime = (2021, 7, 8, 0, 13, 52, 0, 0)
 
 AP  = network.WLAN(network.AP_IF)
 mac = hexlify(AP.config("mac"), ":").decode()
@@ -138,7 +138,9 @@ web_server = {
     "name"          : "Web server",
     "active"        : True,
     "period"        : 1000,
-    "timeout"       : 750
+    "timeout"       : 750,
+    "html_enabled"  : True,
+    "json_enabled"  : True
 }
 
 

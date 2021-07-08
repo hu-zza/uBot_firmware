@@ -39,11 +39,6 @@ import ubot_motor    as motor
 import ubot_template as template
 
 
-_jsonFunction = 0
-_jsonGetFunction = 0
-_jsonPostFunction = 0
-_jsonPutFunction = 0
-_jsonDeleteFunction = 0
 _connection = 0
 _address = 0
 
@@ -58,25 +53,22 @@ _socket.bind(("", 80))
 _socket.listen(5)
 _poller.register(_socket, uselect.POLLIN)
 
+_denyHtml = not config.get("web_server", "html_enabled")
+_denyJson = not config.get("web_server", "json_enabled")
+
+allowedMethods     = {"GET", "POST", "PUT", "DELETE"}
+allowedHtmlMethods = {"GET", "POST"}
+allowedJsonMethods = {"GET", "POST", "PUT", "DELETE"}
 
 
 ################################
 ## CONFIG
 
 def setJsonCallback(method, jsonFunction):
-    global _jsonGetFunction
-    global _jsonPostFunction
-    global _jsonPutFunction
-    global _jsonDeleteFunction
+    global _jsonFunctionMap
+    if isAllowed(method, allowedJsonMethods):
+        _jsonFunctionMap[method] = jsonFunction
 
-    if method == "GET":
-        _jsonGetFunction = jsonFunction
-    elif method == "POST":
-        _jsonPostFunction = jsonFunction
-    elif method == "PUT":
-        _jsonPutFunction = jsonFunction
-    elif method == "DELETE":
-        _jsonDeleteFunction = jsonFunction
 
 
 ################################
@@ -96,6 +88,13 @@ def stop():
     if _started:
         _timer.deinit()
         _started = False
+
+
+def isAllowed(methodName, methodSet = None):
+    if methodSet is None:
+        methodSet = allowedMethods
+
+    return methodName in methodSet
 
 
 ################################
@@ -157,7 +156,7 @@ def _processIncoming(incoming):
 
         logger.append("HTTP request:  {}  {}".format(method, path))
 
-        if method in {"GET", "POST", "PUT", "DELETE"}:
+        if isAllowed(method):
                 if "text/html" in contentType or "text/html" in accept:
                     _processHtmlQuery(method, path, body)
                 elif "application/json" in contentType or "application/json" in accept or "*/*" in accept:
@@ -167,22 +166,27 @@ def _processIncoming(incoming):
                            "'Content-Type' / 'Accept' should be 'text/html' or 'application/json'.")
         else:
             _reply("HTML", "405 Method Not Allowed",
-                   "The following HTTP request methods are allowed: GET, POST, PUT and DELETE.")
+                   "The following HTTP request methods are allowed: {}.".format(", ".join(allowedMethods)))
     finally:
         _connection.close()
 
 
 def _processHtmlQuery(method, path, body):
-    if method == "GET":
-        _processHtmlGetQuery(path)
-    elif method == "POST":
-        _processHtmlPostQuery(path, body)
+    if _denyHtml:
+        result = _unavailableSupplierFunction()
+        _reply("HTML", result[0], result[1])
+    elif isAllowed(method, allowedHtmlMethods):
+        _htmlFunctionMap[method](path, body)
     else:
-        _reply("HTML", "405 Method Not Allowed",
-               "Only GET and POST HTTP request methods are allowed with text/html content type.", "GET, POST")
+        _reply("HTML", "405 Method Not Allowed", "The following HTTP request methods are allowed with text/html "
+                                                 "content type: {}.".format(", ".join(allowedHtmlMethods)))
 
 
-def _processHtmlGetQuery(path):
+def _unavailableSupplierFunction(a = None, b = None, c = None):
+    return "503 Service Unavailable", "This service is unavailable yet.", {}
+
+
+def _processHtmlGetQuery(path, ignoredBody):
     try:
         if path in template.title:
             _connection.write("HTTP/1.1 200 OK\r\n")
@@ -243,7 +247,7 @@ def _processHtmlGetQuery(path):
             _connection.write(template.getPageFooter())
             logger.append("HTTP response: 200 OK")
         else:
-            helperLinks = "        <ul class='links'>\n"
+            helperLinks  = "        <ul class='links'>\n"
             helperLinks += "            <li>Sitemap</li>\n"
 
             for key in sorted(template.title.keys()):
@@ -265,39 +269,43 @@ def _processHtmlPostQuery(path, body):
 
 
 def _processJsonQuery(method, path, body):
-    global _jsonFunction
-
-    if method in {"GET", "POST", "PUT", "DELETE"}:
-        if method == "GET":
-            _jsonFunction = _jsonGetFunction
-        elif method == "POST":
-            _jsonFunction = _jsonPostFunction
-        elif method == "PUT":
-            _jsonFunction = _jsonPutFunction
+    if _denyJson:
+        result = _unavailableSupplierFunction()
+        _reply("JSON", result[0], result[1], result[2])
+    elif isAllowed(method, allowedJsonMethods):
+        if _isSpecialJsonRequest(method, path, body):
+            _handleSpecialJsonRequest(method, path, body)
         else:
-            _jsonFunction = _jsonDeleteFunction
-
-        _startJsonProcessing(path, body if method in {"POST", "PUT"} else "{}")
+            _startJsonProcessing(method, path, body if method in {"POST", "PUT"} else "{}")
     else:
-        _reply("HTML", "405 Method Not Allowed", "The following HTTP request methods are allowed with "
-                                                 "application/json content type: GET, POST, PUT and DELETE.")
+        methods = ", ".join(allowedJsonMethods)
+        _reply("JSON", "405 Method Not Allowed", "The following HTTP request methods are allowed with application/json "
+                                                 "content type: {}.".format(methods))
 
 
-def _startJsonProcessing(path, body):
+def _isSpecialJsonRequest(method, path, body):
+    return False
+
+
+def _handleSpecialJsonRequest(method, path, body):
+    pass
+
+
+def _startJsonProcessing(method, path, body):
     try:
         arr = path.split("/")
         arr += [""] * (11 - len(arr))                    # add placeholders to prevent IndexError
         arr = tuple(arr[1:])                             # arr[0] is always empty string because of leading slash
         isPresent = tuple([item != "" for item in arr])
 
-        result = _jsonFunction(arr, isPresent, ujson.loads(body))
+        result = _jsonFunctionMap[method](arr, isPresent, ujson.loads(body))
         _reply("JSON", result[0], result[1], result[2])
     except Exception as e:
         logger.append(e)
         _reply("JSON", "400 Bad Request", "The request body could not be parsed and processed.")
 
 
-def _reply(returnFormat, responseStatus, message, result = None, allow ="GET, POST, PUT, DELETE"):
+def _reply(returnFormat, responseStatus, message, result = None, allow = None):
     """ Try to reply with a text/html or application/json
         if the connection is alive, then closes it. """
 
@@ -307,13 +315,19 @@ def _reply(returnFormat, responseStatus, message, result = None, allow ="GET, PO
     try:
         _connection.write("HTTP/1.1 " + responseStatus + "\r\n")
         statusCode = int(responseStatus[:3])
-        message = _getMessageWithFlags(message, statusCode)
 
         reply = "text/plain"
+        allowSet = ", ".join(allowedMethods)
+
         if returnFormat == "HTML":
             reply = "text/html"
+            allowSet = ", ".join(allowedHtmlMethods)
         elif returnFormat == "JSON":
             reply = "application/json"
+            allowSet = ", ".join(allowedJsonMethods)
+
+        if allow is None:
+            allow = allowSet
 
         _connection.write("Content-Type: {}\r\n".format(reply))
         _connection.write("Allow: {}\r\n".format(allow))
@@ -324,7 +338,13 @@ def _reply(returnFormat, responseStatus, message, result = None, allow ="GET, PO
             reply = template.getSimplePage().format(title = responseStatus, style = style, body = message)
         elif returnFormat == "JSON":
             reply = ujson.dumps(
-                {"meta": {"code": statusCode, "status": responseStatus, "message": message}, "result": result})
+                {
+                    "meta": {
+                        "code": statusCode,
+                        "status": responseStatus,
+                        "message": _getMessageWithFlags(message, statusCode)},
+                    "result": result
+                })
 
         _connection.write(reply)                                                        # TODO: written bytes check, etc
         logger.append("HTTP response: {}".format(responseStatus))
@@ -403,3 +423,20 @@ def _sendRaw(path):
             _connection.write("        </pre>\n")
     except Exception:
         _connection.write("[Errno 2] ENOENT : No such file or directory.\n")
+
+
+
+################################
+## MAPPINGS
+
+_htmlFunctionMap = {
+    "GET":  _processHtmlGetQuery,
+    "POST": _processHtmlPostQuery
+}
+
+_jsonFunctionMap = {
+    "GET":    _unavailableSupplierFunction,
+    "POST":   _unavailableSupplierFunction,
+    "PUT":    _unavailableSupplierFunction,
+    "DELETE": _unavailableSupplierFunction
+}

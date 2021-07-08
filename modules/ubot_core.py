@@ -420,10 +420,11 @@ if config.get("web_repl", "active"):
 
 if config.get("web_server", "active"):
     try:
-        webserver.setJsonCallback("GET", _executeJsonGet)
-        webserver.setJsonCallback("POST", _executeJsonPost)
-        webserver.setJsonCallback("PUT", _executeJsonPut)
-        webserver.setJsonCallback("DELETE", _executeJsonDelete)
+        if config.get("web_server", "json_enabled"):
+            webserver.setJsonCallback("GET", _executeJsonGet)
+            webserver.setJsonCallback("POST", _executeJsonPost)
+            #webserver.setJsonCallback("PUT", _executeJsonPut)
+            #webserver.setJsonCallback("DELETE", _executeJsonDelete)
         webserver.start()
     except Exception as e:
         logger.append(e)
