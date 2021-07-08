@@ -384,3 +384,9 @@ def _driveMotor(motor = 0, mode = 0, duration = 0):
         else:
             _pin[motor][0].off()
             _pin[motor][1].off()
+
+
+def _r():           # Only for testing
+    add((0, 0))
+    stop()
+    resume()

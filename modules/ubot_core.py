@@ -28,10 +28,9 @@
     OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
     SOFTWARE.
 """
-
 import esp, network, uos, webrepl
 
-from machine import Pin, Timer
+from machine import Pin
 from utime   import sleep_ms
 
 import ubot_config as config
@@ -53,9 +52,6 @@ if config.get("turtle", "active"):
 if config.get("web_server", "active"):
     import ubot_webserver as webserver
 
-_timer = Timer(-1)
-_workIndicatorFunction = None
-_resultSupplierFunction = None
 
 ################################
 ## PUBLIC METHODS
@@ -115,8 +111,7 @@ def executeCommand(command):
 
     else:
         return False
-    waitForExecution(turtle.isBusy)
-
+    return True
 
 def doProgramAction(folder, title, action):
     action = action.lower()
@@ -151,26 +146,6 @@ def extractIntTupleFromString(tupleString):
 
 def extractCharTupleFromString(tupleString, enabledCharsSet):
     return tuple([char for char in tupleString if char in enabledCharsSet])
-
-
-def waitForExecution(workIndicatorFunction, resultSupplierFunction = None):
-    global _workIndicatorFunction
-    global _resultSupplierFunction
-
-    _workIndicatorFunction = workIndicatorFunction
-    _resultSupplierFunction = resultSupplierFunction
-    _waitForFalse()
-
-
-def _waitForFalse(timer = None):
-    if _workIndicatorFunction():
-        _timer.init(
-            period = 1000,
-            mode = Timer.ONE_SHOT,
-            callback = _waitForFalse
-        )
-    else:
-        return True if _resultSupplierFunction is None else _resultSupplierFunction()
 
 
 

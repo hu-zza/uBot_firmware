@@ -4,7 +4,7 @@ from flashbdev import bdev
 from ubinascii import hexlify
 
 firmware = (0, 1, 150)
-initDatetime = (2021, 7, 8, 0, 0, 50, 0, 0)
+initDatetime = (2021, 7, 8, 0, 2, 10, 0, 0)
 
 AP  = network.WLAN(network.AP_IF)
 mac = hexlify(AP.config("mac"), ":").decode()
