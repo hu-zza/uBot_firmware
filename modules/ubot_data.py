@@ -129,24 +129,16 @@ def getFilesOf(folder = None, subFolder = None, suffix = None):
     return getFilesOfPath(getNormalizedPathOf((folder, subFolder)), suffix)
 
 
-def getFilesOfPath(path = None, suffix = None):
+def getFilesOfPath(path = None, suffix = ""):
     """ Returns files of the given path as a string tuple. Result can be filtered by suffix."""
     path = normalizeFolderPath(path)
-    suffix, chopIndex = _getSuffixAndChopIndexFrom(suffix)
 
     try:
         entities = uos.listdir(path)
-        return tuple([name for name in entities if name[chopIndex:] == suffix and isFile("{}{}".format(path, name))])
+        return tuple([name for name in entities if name.endswith(suffix) and isFile("{}{}".format(path, name))])
     except Exception as e:
         logger.append(e)
         return ()
-
-
-def _getSuffixAndChopIndexFrom(suffix):
-    if suffix is None:
-        return "", 2147483647
-    else:
-        return ".{}".format(suffix), -1 - len(suffix)
 
 
 def getFile(path, isJson = False):
@@ -171,7 +163,24 @@ def canCreate(path):
     return normalizePath(path).split("/")[1] in config.get("data", "write_rights")
 
 
-def saveFile(path, lines, isJson = False):
+def createFolderOf(folder = None, subFolder = None):
+    return createFolderOfPath(getNormalizedPathOf((folder, subFolder)))
+
+
+def createFolderOfPath(path):
+    if canCreate(path) and not doesExist(path):
+        uos.mkdir(normalizeFolderPath(path))
+        return doesExist(path)
+
+
+def saveFileOf(pathAsList, fileName, lines, isJson = False):
+    return saveFileOfPath(
+        getNormalizedPathOf(pathAsList, fileName if not fileName.endswith(".txt") else "{}.txt".format(fileName)),
+        lines,
+        isJson)
+
+
+def saveFileOfPath(path, lines, isJson = False):
     if canCreate(path):
         return _saveFile(path, lines, isJson)
     else:
@@ -289,7 +298,7 @@ def _createJsonSubFolderInstance(folder, subFolder):
 
 def _createJsonFileInstance(folder, subFolder, file):
     _file  = "{:010d}".format(int(file)) if folder == "log" else file
-    _file  = _file if _file == "" or _file[-4:] == ".txt" else "{}.txt".format(_file)             #! Burnt-in txt suffix
+    _file  = _file if _file == "" or _file.endswith(".txt") else "{}.txt".format(_file)           #! Burnt-in txt suffix
     path   = getNormalizedPathOf((folder, subFolder), _file)                                      #! if file != ""
     parent = getNormalizedPathOf((folder, subFolder))
     job = "Request: Get the file '{}'.".format(path)

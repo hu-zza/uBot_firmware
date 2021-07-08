@@ -215,29 +215,32 @@ def loadProgramFromString(turtleCode):
 
 
 def saveLoadedProgram(folder = None, title = None):
-    saveProgram(getProgramArray(), _jsonFolder if folder is None else folder, title)
+    saveProgram(_jsonFolder if folder is None else folder, title, getProgramArray())
 
 
-def saveProgram(program, folder = None, title = None):
+def saveProgram(folder = None, title = None, program = ""):
     global _savedCount
 
     folder = _jsonFolder if folder is None else folder
-    path = _generateFullPath() if title is None else "/program/{}/{}.txt".format(folder.lower(), title.lower())
+    path    = _generateFullPath() if title is None else "/program/{}/{}.txt".format(folder.lower(), title.lower())
+    dirPath = path[:path.rindex("/")]
 
-    try:
-        if not doesFolderExist(folder):
-            createFolder(folder)
+    if not doesFolderExist(folder):
+        data.createFolderOfPath(dirPath)
 
-        try:
-            with open(path, "w") as file:
-                writtenBytes = file.write("{}\r\n".format(ujson.dumps(program)))
-                return writtenBytes
-        except Exception as e:
-            logger.append(e)
-            if title is None:
-                _savedCount -= 1
-    except Exception as e:
-        logger.append(e)
+    result = data.saveFileOfPath(path, program, True)
+
+    if not result and title is None:
+        _savedCount -= 1
+
+    return result
+
+
+def _generateFullPath():
+    global _savedCount
+
+    _savedCount += 1
+    return "/program/{}/{:010d}_{:03d}.txt".format(_turtleFolder, _powerOns, _savedCount)
 
 
 def getCommandArray():
@@ -301,26 +304,6 @@ def loadFromTemporary():
 ##########
 ##########  PRIVATE, CLASS-LEVEL METHODS
 ##########
-
-def _throwIfNotExistAndReturnBoolean(folder, title = None):
-    if title is None:
-        if doesFolderExist(folder):
-            return True
-        else:
-            logger.append(AttributeError("The folder '{}' doesn't exist.".format(folder)))
-    else:
-        if doesProgramExist(folder, title):
-            return True
-        else:
-            logger.append(AttributeError("The program '{}' ({}) doesn't exist.".format(title, folder)))
-    return False
-
-
-def _generateFullPath():
-    global _savedCount
-
-    _savedCount += 1
-    return "/program/{}/{:010d}_{:03d}.txt".format(_turtleFolder, _powerOns, _savedCount)
 
 
 ################################

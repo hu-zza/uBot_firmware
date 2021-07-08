@@ -206,16 +206,22 @@ def _executeJsonPost(pathArray, isPresent, json):           ####################
 
 
 def _jsonPostProgram(folder, title, json):
-    program = json.get("data")
-    if program is None or program == "":
-        turtle.saveLoadedProgram(folder, title)
-    else:
-        turtle.saveProgram(program, folder, title)
+    job = "Request: Save program '{}' ({}).".format(title, folder)
+    if not turtle.doesProgramExist(folder, title):
+        program = json.get("data")
 
-    if turtle.doesProgramExist(folder, title):
-        return "201 Created", "", "http://{}/program/{}/{}".format(config.get("ap", "ip"), folder, title)
+        if program is None or program == "":
+            result = turtle.saveLoadedProgram(folder, title)
+        else:
+            result = turtle.saveProgram(folder, title, program)
+
+        if result:
+            program = data.createRestReplyFrom("program", folder, title)
+            if program[0] == "200 OK":
+                return "201 Created", job, program[2]
+            return "500 Internal Server Error", job + " Cause: The file system is not available.", {}
     else:
-        return "422 Unprocessable Entity", "The processing of the request failed. Cause: Semantic error in JSON.", {}
+        return "403 Forbidden", job + " Cause: The file already exists.", {}
 
 
 def _jsonPostCommand(json):

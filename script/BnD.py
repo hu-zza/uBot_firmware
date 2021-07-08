@@ -34,7 +34,7 @@ with open("{}/inisetup.py".format(modulesPath)) as file:
 print("\r\n\r\nBUILD AND DEPLOY VERSION: {}.{}.{}\r\n\r\n".format(major, minor, patch))
 
 printJob("COPY MODULES")
-moduleList = [name for name in os.listdir(modulesPath) if name[-3:] == ".py"]
+moduleList = [name for name in os.listdir(modulesPath) if name.endswith(".py")]
 for module in moduleList:
     shutil.copyfile("{}/{}".format(modulesPath, module), "{}/{}".format(espModulesPath, module))
 
@@ -51,7 +51,7 @@ printJob("BUILD ARTIFACT")
 printResult(os.system("docker run --rm -ti -v $PWD:$PWD -w $PWD larsks/esp-open-sdk make -C ports/esp8266 V=1"))
 
 printJob("DELETE OLD ARTIFACT")
-artifacts = [name for name in os.listdir(sandboxPath) if name[-4:] == ".bin"]
+artifacts = [name for name in os.listdir(sandboxPath) if name.endswith(".bin")]
 for artifact in artifacts:
     os.remove("{}/{}".format(sandboxPath, artifact))
 
