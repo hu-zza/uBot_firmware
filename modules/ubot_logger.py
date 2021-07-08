@@ -144,8 +144,8 @@ def _chooseWriteOutMethod(logFile, item, indentation = 0):
     elif isinstance(item, tuple) or isinstance(item, list):
         _writeOutIterable(logFile, item, indentation)
     else:
-        if item == "":
-            _writeOutDict(logFile, item, indentation)
+        if item != "":
+            logFile.write("{}{}\r\n".format(" " * indentation, item))
         else:
             logFile.write("{}[empty string]\r\n".format(" " * indentation))
 
