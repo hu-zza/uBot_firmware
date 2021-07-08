@@ -3,8 +3,8 @@ import network, ujson, uos
 from flashbdev import bdev
 from ubinascii import hexlify
 
-firmware = (0, 1, 154)
-initDatetime = (2021, 7, 8, 0, 22, 25, 0, 0)
+firmware = (0, 1, 155)
+initDatetime = (2021, 7, 8, 0, 23, 40, 0, 0)
 
 AP  = network.WLAN(network.AP_IF)
 mac = hexlify(AP.config("mac"), ":").decode()
@@ -56,12 +56,17 @@ constant = {
     "api_link"      : "https://zza.hu/uBot_API"
 }
 
+data = {
+    "name"          : "IO",
+    "active"        : True,     # Just for unity
+    "json_folders"  : ("etc", "program"),
+    "write_rights"  : ("home", "program")
+}
 
 feedback = {
     "name"          : "Motion feedback",
     "active"        : False
 }
-
 
 i2c = {
     "name"          : "I2C Bus",
@@ -71,13 +76,11 @@ i2c = {
     "freq"          : 400000
 }
 
-
 logger = {
     "name"          : "Logger",
     "active"        : True,
     "active_logs"   : ("Exception", "Event", "Object", "Run")    # All: ("Exception", "Event", "Object", "Run")
 }
-
 
 motor = {
     "name"          : "Motor driver",
@@ -92,7 +95,6 @@ motor = {
     "breath_length" : 0
 }
 
-
 system = {
     "name"          : "System",
     "active"        : True,     # Just for unity
@@ -101,9 +103,7 @@ system = {
     "firmware"      : firmware,
     "init_datetime" : initDatetime,
     "power_ons"     : 0,
-    "json_folders"  : ("etc", "program")
 }
-
 
 turtle = {
     "name"          : "Turtle",
@@ -127,12 +127,10 @@ turtle = {
 
 }
 
-
 uart = {
     "name"          : "UART",
     "active"        : True
 }
-
 
 web_server = {
     "name"          : "Web server",
@@ -142,7 +140,6 @@ web_server = {
     "html_enabled"  : True,
     "json_enabled"  : True
 }
-
 
 web_repl = {
     "name"          : "MicroPython WebREPL",
@@ -158,6 +155,7 @@ configModules = {
     "ap"            : ap,
     "buzzer"        : buzzer,
     "constant"      : constant,
+    "data"          : data,
     "feedback"      : feedback,
     "i2c"           : i2c,
     "logger"        : logger,
@@ -215,6 +213,7 @@ def setup():
     uos.mount(vfs, "/")
 
     uos.mkdir("/etc")
+    uos.mkdir("/home")
 
     uos.mkdir("/log")
     uos.mkdir("/log/event")

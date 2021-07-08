@@ -167,20 +167,39 @@ def getFile(path, isJson = False):
         return ()
 
 
-def saveFile(path, lines):
+def canCreate(path):
+    return normalizePath(path).split("/")[1] in config.get("data", "write_rights")
+
+
+def saveFile(path, lines, isJson = False):
+    if canCreate(path):
+        return _saveFile(path, lines, isJson)
+    else:
+        return False
+
+
+def _saveFile(path, lines, isJson = False):
     path = normalizePath(path)
-    # TODO: checks... and some odds and ends
+    written = 0
     try:
         with open(path, "w") as file:
             if isinstance(lines, tuple) or isinstance(lines, list):
                 for line in lines:
-                    file.write("{}\r\n".format(line))
+                    written += _writeOut(file, line, isJson)
+            elif isinstance(lines, str):
+                written += _writeOut(file, lines, isJson)
             else:
-                file.write("{}\r\n".format(lines))
-            return True
+                return False
+
+            return written == 0
     except Exception as e:
         logger.append(e)
         return False
+
+
+def _writeOut(file, line, isJson = False):
+    toWrite = "{}\r\n".format(ujson.dumps(line) if isJson else line)
+    return file.write(toWrite) - len(toWrite)
 
 
 ################################
@@ -277,7 +296,7 @@ def _createJsonFileInstance(folder, subFolder, file):
 
     if doesFolderExist(parent):
         if doesFileExist(path):
-            isJson = folder in config.get("system", "json_folders")
+            isJson = folder in config.get("data", "json_folders")
             return "200 OK", job, {
                 "name": _file,
                 "type": "file",

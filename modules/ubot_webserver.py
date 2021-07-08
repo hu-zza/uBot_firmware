@@ -222,7 +222,7 @@ def _processHtmlGetQuery():
     try:
         if _inPath in template.title:
             _replyWithHtmlTemplate()
-        elif _inPath[:5] == "/raw/":
+        elif _inPath.startswith("/raw/"):
             _replyWithHtmlRaw()
         else:
             _reply("HTML", "404 Not Found", "Request: Get the page / file '{}'.".format(_inPath))
@@ -242,7 +242,7 @@ def _replyWithHtmlTemplate():
     for part in template.parts.get(_inPath):
         _connection.write(part())
 
-    if _inPath == "/debug":                                                                           # TODO: Extracting
+    if _inPath.startswith("/debug"):                                                                  # TODO: Extracting
         _connection.write("        <h3>Information panels</h3>\r\n")
 
         for panelTitle in sorted(template.debugPanels.keys()):
@@ -372,7 +372,7 @@ def _reply(returnFormat, responseStatus, message, result = None):
         _connection.write(reply)                                                        # TODO: written bytes check, etc
         _logResponse(replyMap)
     except Exception as e:
-        logger.append(e)
+        logger.append("E104\tECONNRESET @ webserver#_reply")
 
 
 def _getBasicReplyMap(responseStatus, message, result = None):
