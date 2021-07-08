@@ -109,13 +109,13 @@ def isAllowed(methodName, methodSet = None):
 ## PRIVATE, HELPER METHODS
 
 def _logRequest(request):
-    logger.append("HTTP request:  {}\r\n{}".format(request.get("method"), request.get("path")))
+    logger.append("{}\t{}".format(request.get("method"), request.get("path")))
     logger.append(request)
 
 
 def _logResponse(response):
     meta = response.get("meta")
-    logger.append("HTTP response: {}\r\n{}".format(meta.get("status"), meta.get("message")))
+    logger.append("{}\t{}".format(meta.get("status").replace(" ", "\t", 1), meta.get("message")))
     logger.append(response)
 
 

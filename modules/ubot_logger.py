@@ -129,7 +129,10 @@ def _saveFromList(logFile, fallback = False):
 
 
 def _writeOutItem(dateTime, logFile, item):
-    logFile.write("{}\r\n".format(dateTime))
+    if isinstance(item, str):
+        logFile.write("{}     \t".format(dateTime))
+    else:
+        logFile.write("{}\r\n".format(dateTime))
 
     if _defineIndex(item) == 0:
         usys.print_exception(item, logFile)
@@ -138,34 +141,33 @@ def _writeOutItem(dateTime, logFile, item):
     logFile.write("\r\n\r\n")
 
 
-def _chooseWriteOutMethod(logFile, item, indentation = 0):      
+def _chooseWriteOutMethod(logFile, item, indentation = ""):
     if isinstance(item, dict):
         _writeOutDict(logFile, item, indentation)
     elif isinstance(item, tuple) or isinstance(item, list):
         _writeOutIterable(logFile, item, indentation)
     else:
         if item != "":
-            logFile.write("{}{}\r\n".format(" " * indentation, item))
+            logFile.write("{}{}\r\n".format(indentation, item))
         else:
-            logFile.write("{}[empty string]\r\n".format(" " * indentation))
+            logFile.write("{}[empty string]\r\n".format(indentation))
 
 
-def _writeOutIterable(logFile, iterable, indentation = 0):
+def _writeOutIterable(logFile, iterable, indentation = ""):
     if 0 < len(iterable):
         for item in iterable:
             _chooseWriteOutMethod(logFile, item, indentation)
     else:
-        logFile.write("{}[empty iterable]\r\n".format(" " * indentation))
+        logFile.write("{}[empty iterable]\r\n".format(indentation))
 
 
-def _writeOutDict(logFile, dictionary, indentation = 0):
-    prefix = " " * indentation
+def _writeOutDict(logFile, dictionary, indentation = ""):
     if 0 < len(dictionary):
         for key in dictionary.keys():
-            logFile.write("{}{}:\r\n".format(prefix, key))
-            _chooseWriteOutMethod(logFile, dictionary.get(key), indentation + 8)
+            logFile.write("{}{}:\r\n".format(indentation, key))
+            _chooseWriteOutMethod(logFile, dictionary.get(key), indentation + "\t")
     else:
-        logFile.write("{}[empty map]\r\n".format(prefix))
+        logFile.write("{}[empty map]\r\n".format(indentation))
 
 
 def _defineIndex(item):
@@ -195,7 +197,7 @@ for _logFile in _logFiles:
     _logFile[2] = "/log/{}/{}".format(_logFile[0].lower(), _fileName)
     try:
         with open(_logFile[2], "w") as file:
-            file.write("{}\r\n{} log initialised successfully.\r\n\r\n".format(config.datetime(), _logFile[0]))
+            file.write("{}     \t{} log initialised successfully.\r\n\r\n\r\n".format(config.datetime(), _logFile[0]))
             _saveFromList(_logFile)
     except Exception as e:
         _appendToList(e)
