@@ -130,10 +130,10 @@ def listExceptions():
 def printExceptions(nr = None):
     stopSignal()
     if nr is None:
-        print(("\nThis function needs one parameter,\n"
-               "the ordinal of a specific exception log.\n"
-               "You can list ordinals and file names with\n"
-               "listExceptions() command.\n"))
+        print(("\r\nThis function needs one parameter,\r\n"
+               "the ordinal of a specific exception log.\r\n"
+               "You can list ordinals and file names with\r\n"
+               "listExceptions() command.\r\n"))
     else:
         exceptionFiles = uos.listdir("/log/exception")
         fileName = "{:010d}.txt".format(nr)
@@ -148,16 +148,16 @@ def printExceptions(nr = None):
             except Exception as e:
                 logger.append(e)
         else:
-            print("\nThere is no exception file with the given ordinal: {}\n".format(nr))
+            print("\r\nThere is no exception file with the given ordinal: {}\r\n".format(nr))
 
 
 def startUart():
     global _uartState
 
     if _uartState == 0:
-        print(("\nPlease check that you deactivated the feedback\n"
-               "sensors by the physical switch on main PCB.\n"
-               "After that, call this method again.\n"))
+        print(("\r\nPlease check that you deactivated the feedback\r\n"
+               "sensors by the physical switch on main PCB.\r\n"
+               "After that, call this method again.\r\n"))
         _uartState += 1
     elif _uartState == 1:
         try:
@@ -165,25 +165,25 @@ def startUart():
             uos.dupterm(UART(0, 115200), 1)
             stopSignal()
             _uartState += 1
-            print("\nThe UART has been started.\n")
+            print("\r\nThe UART has been started.\r\n")
         except Exception as e:
             logger.append(e)
     else:
-        print("\nThe UART is already active.\n")
+        print("\r\nThe UART is already active.\r\n")
 
 
 def stopUart():
     global _uartState
 
     if _uartState == 0:
-        print("\nThe UART is already stopped.\n")
+        print("\r\nThe UART is already stopped.\r\n")
     else:
         try:
             uos.dupterm(None, 1)
             P1.off()
             P3.off()
             _uartState = 0
-            print("\nThe UART has been stopped.\n")
+            print("\r\nThe UART has been stopped.\r\n")
         except Exception as e:
             logger.append(e)
 

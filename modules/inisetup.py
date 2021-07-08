@@ -3,8 +3,8 @@ import network, ujson, uos
 from flashbdev import bdev
 from ubinascii import hexlify
 
-firmware = (0, 1, 151)
-initDatetime = (2021, 7, 8, 0, 13, 52, 0, 0)
+firmware = (0, 1, 152)
+initDatetime = (2021, 7, 8, 0, 20, 10, 0, 0)
 
 AP  = network.WLAN(network.AP_IF)
 mac = hexlify(AP.config("mac"), ":").decode()
@@ -227,23 +227,23 @@ def setup():
     uos.mkdir("/program/json")
 
     firmware = system.get("firmware")
-    firmwareComment = "# uBot firmware {}.{}.{}\n\n".format(
+    firmwareComment = "# uBot firmware {}.{}.{}\r\n\r\n".format(
         firmware[0], firmware[1], firmware[2]
     )
 
-    gc = ("import gc\n"
-          "gc.enable()\n\n")
+    gc = ("import gc\r\n"
+          "gc.enable()\r\n\r\n")
 
-    footerComment = ("#\n"
-                     "# For more information:\n"
-                     "#\n"
-                     "# https://ubot.hu\n"
-                     "# https://zza.hu/uBot\n"
-                     "#\n")
+    footerComment = ("#\r\n"
+                     "# For more information:\r\n"
+                     "#\r\n"
+                     "# https://ubot.hu\r\n"
+                     "# https://zza.hu/uBot\r\n"
+                     "#\r\n")
 
     with open("/.webrepl_cfg.py", "w") as file:
         file.write(firmwareComment)
-        file.write("PASS = '{}'\n\n".format(web_repl.get("password")))
+        file.write("PASS = '{}'\r\n\r\n".format(web_repl.get("password")))
         file.write(footerComment)
 
     if web_repl.get("active"):
@@ -252,42 +252,42 @@ def setup():
     with open("/boot.py", "w") as file:
         file.write(firmwareComment)
         file.write(gc)
-        file.write("import micropython\n"
-                   "micropython.alloc_emergency_exception_buf(100)\n\n"
-                   "import ubot_core as core\n\n")
+        file.write("import micropython\r\n"
+                   "micropython.alloc_emergency_exception_buf(100)\r\n\r\n"
+                   "import ubot_core as core\r\n\r\n")
         file.write(footerComment)
 
     with open("/main.py", "w") as file:
         file.write(firmwareComment)
         file.write(gc)
-        file.write(("import usys\n"
-                    "core = usys.modules.get('ubot_core')\n\n"))
+        file.write(("import usys\r\n"
+                    "core = usys.modules.get('ubot_core')\r\n\r\n"))
         file.write(footerComment)
 
     with open("/etc/datetime.py", "w") as file:
         file.write("DT = {}".format(system.get("init_datetime")))
 
     with open("/log/datetime.txt", "w") as file:
-        file.write("{}\n0000000000.txt\n\n".format(system.get("init_datetime")))
+        file.write("{}\r\n0000000000.txt\r\n\r\n".format(system.get("init_datetime")))
 
     with open("/log/exception/0000000000.txt", "w") as file:
-        file.write("{}\nFallback exception log initialised successfully.\n\n".format(system.get("init_datetime")))
+        file.write("{}\r\nFallback exception log initialised successfully.\r\n\r\n".format(system.get("init_datetime")))
 
     with open("/log/event/0000000000.txt", "w") as file:
-        file.write("{}\nFallback event log initialised successfully.\n\n".format(system.get("init_datetime")))
+        file.write("{}\r\nFallback event log initialised successfully.\r\n\r\n".format(system.get("init_datetime")))
 
     with open("/log/object/0000000000.txt", "w") as file:
-        file.write("{}\nFallback object log initialised successfully.\n\n".format(system.get("init_datetime")))
+        file.write("{}\r\nFallback object log initialised successfully.\r\n\r\n".format(system.get("init_datetime")))
 
     with open("/log/run/0000000000.txt", "w") as file:
-        file.write("{}\nFallback run log initialised successfully.\n\n".format(system.get("init_datetime")))
+        file.write("{}\r\nFallback run log initialised successfully.\r\n\r\n".format(system.get("init_datetime")))
 
     for moduleName, module in configModules.items():
         uos.mkdir("/etc/{}".format(moduleName))
         for attrName, attrValue in module.items():
             with open("/etc/{}/{}.txt".format(moduleName, attrName), "w") as file:
-                file.write("{}\n".format(ujson.dumps(attrValue)))
+                file.write("{}\r\n".format(ujson.dumps(attrValue)))
             with open("/etc/{}/{}.def".format(moduleName, attrName), "w") as file:
-                file.write("{}\n".format(ujson.dumps(attrValue)))
+                file.write("{}\r\n".format(ujson.dumps(attrValue)))
 
     return vfs

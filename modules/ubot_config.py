@@ -106,7 +106,7 @@ def _manageAttribute(module, attribute, mode, value = None, extension = "txt"):
             if mode == "r":
                 return ujson.loads(file.readline())
             elif mode == "w":
-                return file.write("{}\n".format(ujson.dumps(value)))
+                return file.write("{}\r\n".format(ujson.dumps(value)))
     except Exception as e:
         logger.append(e)
 

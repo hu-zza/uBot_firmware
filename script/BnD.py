@@ -17,10 +17,10 @@ sandboxPath  = "{}/sandbox".format(firmwarePath)
 fileNameFormat = "uBot_firmware_{}.{}.{}.bin"
 
 def printJob(job):
-    print("\nJOB: {}\n\n".format(job))
+    print("\r\nJOB: {}\r\n\r\n".format(job))
 
 def printResult(result):
-    print("\nRESULT: {}\n\n".format(result))
+    print("\r\nRESULT: {}\r\n\r\n".format(result))
 
 major = 0
 minor = 0
@@ -31,7 +31,7 @@ with open("{}/inisetup.py".format(modulesPath)) as file:
         if line.startswith("firmware"):
             major, minor, patch = eval(line.split("=")[1])
 
-print("\n\nBUILD AND DEPLOY VERSION: {}.{}.{}\n\n".format(major, minor, patch))
+print("\r\n\r\nBUILD AND DEPLOY VERSION: {}.{}.{}\r\n\r\n".format(major, minor, patch))
 
 printJob("COPY MODULES")
 moduleList = [name for name in os.listdir(modulesPath) if name[-3:] == ".py"]
@@ -69,4 +69,4 @@ printResult(os.system("esptool.py --port /dev/ttyUSB0 --baud 460800 write_flash 
 printJob("CHANGE DIR: {}".format(oldCwd))
 os.chdir(oldCwd)
 
-print("FINISHED IN {} SECONDS.\n\n".format(round(time.time() - start)))
+print("FINISHED IN {} SECONDS.\r\n\r\n".format(round(time.time() - start)))

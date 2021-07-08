@@ -174,9 +174,9 @@ def saveFile(path, lines):
         with open(path, "w") as file:
             if isinstance(lines, tuple) or isinstance(lines, list):
                 for line in lines:
-                    file.write("{}\n".format(line))
+                    file.write("{}\r\n".format(line))
             else:
-                file.write("{}\n".format(lines))
+                file.write("{}\r\n".format(lines))
             return True
     except Exception as e:
         logger.append(e)
@@ -279,7 +279,7 @@ def _createJsonFileInstance(folder, subFolder, file):
         if doesFileExist(path):
             isJson = folder in config.get("system", "json_folders")
             return "200 OK", job, {
-                "name": file,
+                "name": _file,
                 "type": "file",
                 "href": "{}{}".format(_hostLink, path[1:path.rindex(".")]),
                 "raw":  "{}{}".format(_rawLink, path[1:]),

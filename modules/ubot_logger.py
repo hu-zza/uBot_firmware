@@ -129,18 +129,43 @@ def _saveFromList(logFile, fallback = False):
 
 
 def _writeOutItem(dateTime, logFile, item):
-    logFile.write("{}\n".format(dateTime))
+    logFile.write("{}\r\n".format(dateTime))
 
     if _defineIndex(item) == 0:
         usys.print_exception(item, logFile)
     else:
-        if isinstance(item, tuple) or isinstance(item, list):
-            for i in item:
-                logFile.write("{}\n".format(i))
-        else:
-            logFile.write("{}\n".format(item))
+        _chooseWriteOutMethod(logFile, item)
+    logFile.write("\r\n\r\n")
 
-    logFile.write("\n")
+
+def _chooseWriteOutMethod(logFile, item, indentation = 0):      
+    if isinstance(item, dict):
+        _writeOutDict(logFile, item, indentation)
+    elif isinstance(item, tuple) or isinstance(item, list):
+        _writeOutIterable(logFile, item, indentation)
+    else:
+        if item == "":
+            _writeOutDict(logFile, item, indentation)
+        else:
+            logFile.write("{}[empty string]\r\n".format(" " * indentation))
+
+
+def _writeOutIterable(logFile, iterable, indentation = 0):
+    if 0 < len(iterable):
+        for item in iterable:
+            _chooseWriteOutMethod(logFile, item, indentation)
+    else:
+        logFile.write("{}[empty iterable]\r\n".format(" " * indentation))
+
+
+def _writeOutDict(logFile, dictionary, indentation = 0):
+    prefix = " " * indentation
+    if 0 < len(dictionary):
+        for key in dictionary.keys():
+            logFile.write("{}{}:\r\n".format(prefix, key))
+            _chooseWriteOutMethod(logFile, dictionary.get(key), indentation + 8)
+    else:
+        logFile.write("{}[empty map]\r\n".format(prefix))
 
 
 def _defineIndex(item):
@@ -162,7 +187,7 @@ _fileName = "{:010d}.txt".format(int(config.get("system", "power_ons")))
 
 try:
     with open("/log/datetime.txt", "a") as file:
-        file.write("{}\n{}\n\n".format(config.datetime(), _fileName))
+        file.write("{}\r\n{}\r\n\r\n".format(config.datetime(), _fileName))
 except Exception as e:
     _appendToList(e)
 
@@ -170,7 +195,7 @@ for _logFile in _logFiles:
     _logFile[2] = "/log/{}/{}".format(_logFile[0].lower(), _fileName)
     try:
         with open(_logFile[2], "w") as file:
-            file.write("{}\n{} log initialised successfully.\n\n".format(config.datetime(), _logFile[0]))
+            file.write("{}\r\n{} log initialised successfully.\r\n\r\n".format(config.datetime(), _logFile[0]))
             _saveFromList(_logFile)
     except Exception as e:
         _appendToList(e)

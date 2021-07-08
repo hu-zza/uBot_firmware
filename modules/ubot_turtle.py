@@ -230,7 +230,7 @@ def saveProgram(program, folder = None, title = None):
 
         try:
             with open(path, "w") as file:
-                writtenBytes = file.write("{}\n".format(ujson.dumps(program)))
+                writtenBytes = file.write("{}\r\n".format(ujson.dumps(program)))
                 return writtenBytes
         except Exception as e:
             logger.append(e)
