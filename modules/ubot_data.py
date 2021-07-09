@@ -172,6 +172,8 @@ def createFolderOfPath(path):
     if canCreate(path) and not doesExist(path):
         uos.mkdir(normalizeFolderPath(path)[:-1])
         return doesExist(path)
+    else:
+        return False
 
 
 def saveFileOf(pathAsList, fileName, lines, isJson = False):

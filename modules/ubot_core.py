@@ -53,6 +53,12 @@ if config.get("web_server", "active"):
     import ubot_webserver as webserver
 
 
+_jsonRequest = {
+    "path": [],
+    "present": [],
+    "body": ""
+}
+
 ################################
 ## PUBLIC METHODS
 
@@ -113,6 +119,7 @@ def executeCommand(command):
         return False
     return True
 
+
 def doProgramAction(folder, title, action):
     action = action.lower()
     try:
@@ -152,26 +159,36 @@ def extractCharTupleFromString(tupleString, enabledCharsSet):
 ################################
 ## PRIVATE METHODS FOR REST/JSON
 
-def _preProcessJsonString(rawJson):
+def _updateJsonRequest(pathArray = (), isPresent = (), body = ""):
+    global _jsonRequest
+
+    _jsonRequest["path"] = pathArray
+    _jsonRequest["present"] = isPresent
+    _jsonRequest["body"] = body
+
+
+def _parseJsonRequestBody():
     try:
-        return "200 OK", "The request body parsed as JSON.", ujson.loads(rawJson)
+        _jsonRequest["body"] = ujson.loads(_jsonRequest.get("body"))
+        return True
     except Exception as e:
-        return "400 Bad Request", "The request body could not be parsed.", data.dumpException(e)
+        _jsonRequest["body"] = data.dumpException(e)
+        return False
 
 
-def _executeJsonGet(pathArray, isPresent, ignoredBody):     ########################################### JSON GET HANDLER
-    if pathArray[0] == "raw":
-        return data.createRestReplyFrom(pathArray[1], pathArray[2], pathArray[3])
-    elif pathArray[0] == "program" and all(isPresent[1:4]):
-        return _jsonGetProgramActionStarting(pathArray[1], pathArray[2], pathArray[3])
-    elif pathArray[0] == "command":
-        return _jsonGetCommandExecution(pathArray[1])
+def _executeJsonGet():                                                                       ########## JSON GET HANDLER
+    category = _jsonRequest.get("path")[0]
+    if category == "program" and all(_jsonRequest.get("present")[1:4]):
+        return _jsonGetProgramActionStarting()
     else:
-        return data.createRestReplyFrom(pathArray[0], pathArray[1], pathArray[2])
+        return _jsonGetFunctions.setdefault(category, _jsonGetFileByJsonLink)()
 
 
-def _jsonGetProgramActionStarting(folder, title, action):
+def _jsonGetProgramActionStarting():
+    category, folder, title, action = _jsonRequest.get("path")
+    
     job = "Request: Starting action '{}' of program '{}' ({}).".format(action, title, folder)
+
     if turtle.doesProgramExist(folder, title):
         result = doProgramAction(folder, title, action)
 
@@ -186,8 +203,18 @@ def _jsonGetProgramActionStarting(folder, title, action):
         return "404 Not Found", job + " Cause: No such program.", {}
 
 
-def _jsonGetCommandExecution(command):
-    command = command.upper()
+def _jsonGetFileByRawLink():
+    category, folder, subFolder, file = _jsonRequest.get("path")
+    return data.createRestReplyFrom(folder, subFolder, file)
+
+
+def _jsonGetFileByJsonLink():
+    folder, subFolder, file = _jsonRequest.get("path")
+    return data.createRestReplyFrom(folder, subFolder, file)
+
+
+def _jsonGetCommandExecution():
+    command = _jsonRequest.get("path")[1].upper()
     job = "Request: Starting command '{}' execution.".format(command)
     try:
         if executeCommand(command):
@@ -198,26 +225,34 @@ def _jsonGetCommandExecution(command):
     return "403 Forbidden", job + " Cause: Semantic error in the URL.", {}
 
 
+_jsonGetFunctions = {
+    "command": _jsonGetCommandExecution,
+    "program": _jsonGetProgramActionStarting,
+    "raw":     _jsonGetFileByRawLink,
+}
 
-def _executeJsonPost(pathArray, isPresent, body):           ########################################## JSON POST HANDLER
-    json = _preProcessJsonString(body)
 
-    if json[0] != "200 OK":
-        return
+def _executeJsonPost():                                                                     ########## JSON POST HANDLER
+    if not any(_jsonRequest.get("present")[3:]):
+        if not _parseJsonRequestBody():
+            return "400 Bad Request", "The request body could not be parsed.", _jsonRequest.get("body")
 
-    if pathArray[0] in config.get("data", "write_rights"):
-        if all(isPresent[1:3]) and not any(isPresent[3:]):
-            return _jsonPostProgram(pathArray[1], pathArray[2], json)
-    elif pathArray[0] == "command":
-        if not any(isPresent[1:]):
-            return _jsonPostCommand(json)
-    elif pathArray[0] == "root":
-        if not any(isPresent[1:]):
-            return _jsonPostRoot(json)
+        category = _jsonRequest.get("path")[0]
+
+        if category in config.get("data", "write_rights"):
+            if category == "program":
+                return _jsonPostProgram()
+            else:
+                return _jsonPostFile()
+
+        if not any(_jsonRequest.get("present")[1:]):
+            if category in _jsonPostFunctions.keys():
+                _jsonPostFunctions.get(category)()
+
     return "403 Forbidden", "Job: [REST] POST request. Cause: The format of the URL is invalid.", {}
 
 
-def _jsonPostProgram(folder, title, json):
+def _jsonPostProgram():
     job = "Request: Save program '{}' ({}).".format(title, folder)
     if not turtle.doesProgramExist(folder, title):
         program = json.get("data")
@@ -236,21 +271,27 @@ def _jsonPostProgram(folder, title, json):
         return "403 Forbidden", job + " Cause: The file already exists.", {}
 
 
-def _jsonPostCommand(json):
+def _jsonPostFile():
+    pass
+
+
+def _jsonPostCommand():
+    commandArray = _jsonRequest.get("body").get("data")
     counter = 0
     try:
-        for command in json.get("data"):
-            if executeCommand(command):
-                counter += 1
+        for command in commandArray:
+            counter += 1 if executeCommand(command) else 0
     except Exception as e:
         logger.append(e)
 
-    if counter == len(json.get("data")):
+    if counter == len(commandArray):
         return "200 OK", "", "Processed commands: {}".format(counter)
     else:
         return "422 Unprocessable Entity", "The processing of the request failed. Cause: Semantic error in JSON.",\
                "Processed commands: {}".format(counter)
 
+def _jsonPostLog():
+    pass
 
 def _jsonPostRoot(json):
     results = []
@@ -269,8 +310,17 @@ def _jsonPostRoot(json):
         return "422 Unprocessable Entity", "The processing of the request failed. Cause: Semantic error in JSON.", results
 
 
+_jsonPostFunctions = {
+    "command": _jsonPostCommand,
+    "log":     _jsonPostLog,
+    "root":    _jsonPostRoot
+}
 
-def _executeJsonPut(pathArray, isPresent, body):            ########################################### JSON PUT HANDLER
+
+def _executeJsonPut():                                                                       ########## JSON PUT HANDLER
+    if not _parseJsonRequestBody():
+        return "400 Bad Request", "The request body could not be parsed.", _jsonRequest.get("body")
+
     if pathArray[0] == "program":                           ### persistent
         if isPresent[1] and isPresent[2] and True not in isPresent[3:]:
             return _jsonPutProgram(pathArray, isPresent, json)
@@ -297,7 +347,7 @@ def _putSystemProp(property, value):
 
 
 
-def _executeJsonDelete(pathArray, isPresent, ignoredBody):  ######################################## JSON DELETE HANDLER
+def _executeJsonDelete():                                                                 ########## JSON DELETE HANDLER
     if pathArray[0] == "program":                           ### final
         if True not in isPresent[3:]:
             if isPresent[1:3] == (False, False):
@@ -439,6 +489,7 @@ if config.get("web_repl", "active"):
 if config.get("web_server", "active"):
     try:
         if config.get("web_server", "json_enabled"):
+            webserver.setJsonSender(_updateJsonRequest)
             webserver.setJsonCallback("GET", _executeJsonGet)
             webserver.setJsonCallback("POST", _executeJsonPost)
             #webserver.setJsonCallback("PUT", _executeJsonPut)

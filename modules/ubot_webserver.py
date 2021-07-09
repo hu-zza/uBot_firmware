@@ -62,6 +62,8 @@ _inContentType = ""
 _inAccept = ""
 _inBody = ""
 
+_jsonSender = None
+
 _denyHtml = not config.get("web_server", "html_enabled")
 _denyJson = not config.get("web_server", "json_enabled")
 
@@ -73,6 +75,11 @@ _hasJsonBody       = {"POST", "PUT"}
 
 ################################
 ## CONFIG
+
+
+def setJsonSender(method):
+    global _jsonSender
+    _jsonSender = method
 
 def setJsonCallback(method, jsonFunction):
     global _jsonFunctionMap
@@ -359,7 +366,8 @@ def _startJsonProcessing():
         arr = tuple(arr[1:])                             # arr[0] is always empty string because of leading slash
         isPresent = tuple([item != "" for item in arr])
 
-        result = _jsonFunctionMap[_inMethod](arr, isPresent, _inBody)
+        _jsonSender(arr, isPresent, _inBody)
+        result = _jsonFunctionMap[_inMethod]()
         _reply("JSON", result[0], result[1], result[2])
     except Exception as e:
         _reply("JSON", "500 Internal Server Error", "A fatal error occurred during processing the JSON GET request.",

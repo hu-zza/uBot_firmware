@@ -154,15 +154,11 @@ def getProgramFolders():
 
 
 def doesFolderExist(folder):
-    return folder in getProgramFolders()
+    return data.doesFolderExist(getNormalizedPathOf(folder))
 
 
-#TODO: extract to ubot_data
 def createFolder(folder):
-    try:
-        uos.mkdir("/program/{}".format(folder))
-    except Exception as e:
-        logger.append(e)
+    return data.createFolderOf("program", folder)
 
 
 def getProgramListOf(folder):
@@ -170,12 +166,16 @@ def getProgramListOf(folder):
 
 
 def doesProgramExist(folder, title):
-    return title in getProgramListOf(folder)
+    return data.doesExist(getNormalizedPathOf(folder, title))
 
 
 def getProgramCode(folder, title):
-    result = data.getFile(data.getNormalizedPathOf(("program", folder), "{}.txt".format(title)))
+    result = data.getFile(getNormalizedPathOf(folder, title))
     return result[0] if 0 < len(result) else ""
+
+
+def getNormalizedPathOf(folder, title = None):
+    return data.getNormalizedPathOf(("program", folder), None if title is None else "{}.txt".format(title))
 
 
 def runProgram(folder, title):
