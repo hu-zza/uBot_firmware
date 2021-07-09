@@ -3,8 +3,8 @@ import network, ujson, uos
 from flashbdev import bdev
 from ubinascii import hexlify
 
-firmware = (0, 1, 158)
-initDatetime = (2021, 7, 9, 0, 12, 20, 0, 0)
+firmware = (0, 1, 159)
+initDatetime = (2021, 7, 9, 0, 20, 33, 0, 0)
 
 AP  = network.WLAN(network.AP_IF)
 mac = hexlify(AP.config("mac"), ":").decode()
@@ -61,6 +61,7 @@ data = {
     "active"        : True,     # Just for unity
     "json_folders"  : ("etc", "program"),
     "write_rights"  : ("home", "program"),
+    "clean_rights"  : ("home", "log", "program"),
     "has_action"    : ("etc", "program")
 }
 
@@ -105,6 +106,7 @@ system = {
     "firmware"      : firmware,
     "init_datetime" : initDatetime,
     "power_ons"     : 0,
+    "root"          : True
 }
 
 turtle = {

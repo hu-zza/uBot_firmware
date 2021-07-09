@@ -53,12 +53,6 @@ if config.get("web_server", "active"):
     import ubot_webserver as webserver
 
 
-_jsonRequest = {
-    "path": [],
-    "present": [],
-    "body": ""
-}
-
 ################################
 ## PUBLIC METHODS
 
@@ -159,33 +153,53 @@ def extractCharTupleFromString(tupleString, enabledCharsSet):
 ################################
 ## PRIVATE METHODS FOR REST/JSON
 
-def _updateJsonRequest(pathArray = (), isPresent = (), body = ""):
+_jsonRequest = {
+    "path": tuple(),
+    "present": 0,
+    "body": "",
+    "parsed": False,
+    "exception": ""
+}
+
+
+def _updateJsonRequest(path = "", body = ""):
     global _jsonRequest
 
-    _jsonRequest["path"] = pathArray
-    _jsonRequest["present"] = isPresent
+    array = [item for item in path.split("/") if item != ""]
+
+    _jsonRequest["present"] = len(array)
+
+    array += [""] * (10 - len(array))           # add placeholders to prevent IndexError
+
+    _jsonRequest["path"] = tuple(array)
     _jsonRequest["body"] = body
+    _jsonRequest["parsed"] = False
 
 
 def _parseJsonRequestBody():
     try:
         _jsonRequest["body"] = ujson.loads(_jsonRequest.get("body"))
-        return True
+        _jsonRequest["parsed"] = True
     except Exception as e:
-        _jsonRequest["body"] = data.dumpException(e)
-        return False
+        _jsonRequest["exception"] = data.dumpException(e)
+        _jsonRequest["parsed"] = False
 
 
 def _executeJsonGet():                                                                       ########## JSON GET HANDLER
-    category = _jsonRequest.get("path")[0]
-    if category == "program" and all(_jsonRequest.get("present")[1:4]):
-        return _jsonGetProgramActionStarting()
-    else:
-        return _jsonGetFunctions.setdefault(category, _jsonGetFileByJsonLink)()
+    if _jsonRequest.get("present") < 5:
+        category = _jsonRequest.get("path")[0]
+        if category == "program" and _jsonRequest.get("present") == 4:
+            return _jsonGetProgramActionStarting()
+        else:
+            result = _jsonGetFunctions.setdefault(category, _jsonGetFileByJsonLink)()
+            if result is not None and result != ():
+                return result
+
+    return "403 Forbidden", "Job: [REST] GET request. Cause: The format of the URL is invalid.", {}
 
 
 def _jsonGetProgramActionStarting():
-    category, folder, title, action = _jsonRequest.get("path")
+    folder, title, action = _jsonRequest.get("path")[1:4]
     
     job = "Request: Starting action '{}' of program '{}' ({}).".format(action, title, folder)
 
@@ -204,13 +218,15 @@ def _jsonGetProgramActionStarting():
 
 
 def _jsonGetFileByRawLink():
-    category, folder, subFolder, file = _jsonRequest.get("path")
-    return data.createRestReplyFrom(folder, subFolder, file)
+    return data.createRestReplyFrom(_jsonRequest.get("path")[1:4])
 
 
 def _jsonGetFileByJsonLink():
-    folder, subFolder, file = _jsonRequest.get("path")
-    return data.createRestReplyFrom(folder, subFolder, file)
+    return _jsonGetFileOf(_jsonRequest.get("path")[0:3])
+
+
+def _jsonGetFileOf(path):
+    return data.createRestReplyFrom(path[0], path[1], path[2])
 
 
 def _jsonGetCommandExecution():
@@ -227,25 +243,22 @@ def _jsonGetCommandExecution():
 
 _jsonGetFunctions = {
     "command": _jsonGetCommandExecution,
-    "program": _jsonGetProgramActionStarting,
     "raw":     _jsonGetFileByRawLink,
 }
 
 
 def _executeJsonPost():                                                                     ########## JSON POST HANDLER
-    if not any(_jsonRequest.get("present")[3:]):
-        if not _parseJsonRequestBody():
-            return "400 Bad Request", "The request body could not be parsed.", _jsonRequest.get("body")
-
+    if 0 < _jsonRequest.get("present") < 4:
+        _parseJsonRequestBody()
         category = _jsonRequest.get("path")[0]
 
         if category in config.get("data", "write_rights"):
             if category == "program":
                 return _jsonPostProgram()
-            else:
+            elif _jsonRequest.get("parsed"):
                 return _jsonPostFile()
 
-        if not any(_jsonRequest.get("present")[1:]):
+        if _jsonRequest.get("parsed") and _jsonRequest.get("present") == 1:
             if category in _jsonPostFunctions.keys():
                 _jsonPostFunctions.get(category)()
 
@@ -253,19 +266,24 @@ def _executeJsonPost():                                                         
 
 
 def _jsonPostProgram():
+    folder, title = _jsonRequest.get("path")[1:3]
+
     job = "Request: Save program '{}' ({}).".format(title, folder)
     if not turtle.doesProgramExist(folder, title):
-        program = json.get("data")
 
-        if program is None or program == "":
+        body = _jsonRequest.get("body")
+
+        if body == "":
             result = turtle.saveLoadedProgram(folder, title)
+        elif _jsonRequest.get("parsed"):
+            result = turtle.saveProgram(folder, title, body.get("value"))
         else:
-            result = turtle.saveProgram(folder, title, program)
+            return "400 Bad Request", job + " Cause: The request body could not be parsed.", _jsonRequest
 
         if result:
-            program = data.createRestReplyFrom("program", folder, title)
-            if program[0] == "200 OK":
-                return "201 Created", job, program[2]
+            savedProgram = data.createRestReplyFrom("program", folder, title)
+            if savedProgram[0] == "200 OK":
+                return "201 Created", job, savedProgram[2]
             return "500 Internal Server Error", job + " Cause: The file system is not available.", {}
     else:
         return "403 Forbidden", job + " Cause: The file already exists.", {}
@@ -276,7 +294,8 @@ def _jsonPostFile():
 
 
 def _jsonPostCommand():
-    commandArray = _jsonRequest.get("body").get("data")
+    job = "Request: Starting commands execution."
+    commandArray = _jsonRequest.get("body").get("value")
     counter = 0
     try:
         for command in commandArray:
@@ -285,29 +304,33 @@ def _jsonPostCommand():
         logger.append(e)
 
     if counter == len(commandArray):
-        return "200 OK", "", "Processed commands: {}".format(counter)
+        return "200 OK", job, counter
     else:
-        return "422 Unprocessable Entity", "The processing of the request failed. Cause: Semantic error in JSON.",\
-               "Processed commands: {}".format(counter)
+        return "422 Unprocessable Entity", job + " Cause: Semantic error in JSON.", counter
+
 
 def _jsonPostLog():
     pass
 
-def _jsonPostRoot(json):
-    results = []
-    try:
-        for command in json.get("data"):
-            if command[0] == "EXEC":
-                results.append("[EXEC] '{}' : void".format(exec(command[1])))
-            elif command[0] == "EVAL":
-                results.append("[EVAL] '{}' : '{}'".format(command[1], eval(command[1])))
-    except Exception as e:
-        logger.append(e)
 
-    if len(results) == len(json.get("data")):
-        return "200 OK", "", results
-    else:
-        return "422 Unprocessable Entity", "The processing of the request failed. Cause: Semantic error in JSON.", results
+def _jsonPostRoot():
+    if config.get("system", "root"):
+        job = "Request: Starting MicroPython commands execution."
+        commands = _jsonRequest.get("body").get("value")
+        results = []
+        try:
+            for command in commands:
+                if command[0] == "EXEC":
+                    results.append("[EXEC] '{}' : void".format(exec(command[1])))
+                elif command[0] == "EVAL":
+                    results.append("[EVAL] '{}' : '{}'".format(command[1], eval(command[1])))
+        except Exception as e:
+            logger.append(e)
+
+        if len(results) == len(commands):
+            return "200 OK", job, results
+        else:
+            return "422 Unprocessable Entity", job + " Cause: Semantic error in JSON.", results
 
 
 _jsonPostFunctions = {
@@ -318,89 +341,40 @@ _jsonPostFunctions = {
 
 
 def _executeJsonPut():                                                                       ########## JSON PUT HANDLER
-    if not _parseJsonRequestBody():
-        return "400 Bad Request", "The request body could not be parsed.", _jsonRequest.get("body")
+    if _jsonRequest.get("present") == 3:
+        _parseJsonRequestBody()
 
-    if pathArray[0] == "program":                           ### persistent
-        if isPresent[1] and isPresent[2] and True not in isPresent[3:]:
-            return _jsonPutProgram(pathArray, isPresent, json)
-    elif pathArray[0] == "etc":                             ### persistent
-        if isPresent[1] and True not in isPresent[2:]:
-            return _jsonPutSystemProperty(pathArray, isPresent, json)
+        if _jsonRequest.get("parsed"):
+            category = _jsonRequest.get("path")[0]
+
+            if category == "etc":
+                return _jsonChangeSystemProperty()
+            elif category in config.get("data", "write_rights"):
+                return _jsonPutFile()
+
     return "403 Forbidden", "Job: [REST] PUT request. Cause: The format of the URL is invalid.", {}
 
 
-def _jsonPutProgram(pathArray, isPresent, json):
-    return "200 OK", "", _putProgram()
+def _jsonPutFile():
+    pass
 
 
-def _jsonPutSystemProperty(pathArray, isPresent, json):
-    return "200 OK", "", _putSystemProp()
-
-
-def _putProgram(folder, fileName, program):
-    return ""
-
-
-def _putSystemProp(property, value):
-    return ""
-
+def _jsonChangeSystemProperty():
+    pass
 
 
 def _executeJsonDelete():                                                                 ########## JSON DELETE HANDLER
-    if pathArray[0] == "program":                           ### final
-        if True not in isPresent[3:]:
-            if isPresent[1:3] == (False, False):
-                return _jsonDeleteEveryProgram()
-            elif isPresent[1]:
-                return _jsonClearProgramFolder(pathArray[1])
-            elif isPresent[1] and isPresent[2]:
-                return _jsonDeleteProgram(pathArray, isPresent)
-    elif pathArray[0] == "log":                             ### final
-        if True not in isPresent[3:]:
-            if isPresent[1:3] == (False, False):
-                return _jsonDeleteEveryLog()
-            elif isPresent[1]:
-                return _jsonClearLogFolder(pathArray[1])
-            elif isPresent[1] and isPresent[2]:
-                return _jsonDeleteLog(pathArray, isPresent)
+    if 0 < _jsonRequest.get("present") < 4:
+        category = _jsonRequest.get("path")[0]
+
+        if category in config.get("data", "clean_rights"):
+            return _jsonDelete()
+
     return "403 Forbidden", "Job: [REST] DELETE request. Cause: The format of the URL is invalid.", {}
 
 
-def _jsonDeleteEveryProgram():
-    return "200 OK", "", _deleteProgram()
-
-
-def _jsonClearProgramFolder(subFolder):
-    return "200 OK", "", _deleteProgram()
-
-
-def _jsonDeleteProgram(pathArray, isPresent):
-    return "200 OK", "", _deleteProgram()
-
-
-def _jsonDeleteEveryLog():
-    return "200 OK", "", _deleteLog()
-
-
-def _jsonClearLogFolder(pathArray, isPresent):
-    return "200 OK", "", _deleteLog()
-
-
-def _jsonDeleteLog(pathArray, isPresent):
-    return "200 OK", "", _deleteLog()
-
-
-def _clearFolder(path):
-    return ""
-
-
-def _deleteProgram(folder, fileName):
-    return ""
-
-
-def _deleteLog(directory, fileName):
-    return ""
+def _jsonDelete():
+    pass
 
 
 

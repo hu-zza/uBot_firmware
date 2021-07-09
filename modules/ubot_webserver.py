@@ -358,15 +358,8 @@ def _handleSpecialJsonRequest():
 
 
 def _startJsonProcessing():
-    global _inBody
-
     try:
-        arr = _inPath.split("/")
-        arr += [""] * (11 - len(arr))                    # add placeholders to prevent IndexError
-        arr = tuple(arr[1:])                             # arr[0] is always empty string because of leading slash
-        isPresent = tuple([item != "" for item in arr])
-
-        _jsonSender(arr, isPresent, _inBody)
+        _jsonSender(_inPath, _inBody)
         result = _jsonFunctionMap[_inMethod]()
         _reply("JSON", result[0], result[1], result[2])
     except Exception as e:

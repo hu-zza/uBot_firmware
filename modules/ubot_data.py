@@ -238,11 +238,11 @@ def createRestReplyFrom(*path):
     elif clearPathLen == 3:
         return _createJsonFileInstance(clearPath[0], clearPath[1], clearPath[2])
     else:
-        return "403 Forbidden", "Job: [REST] GET request. Cause: The format of the URL is invalid.", {}
+        return ()
 
 
 def _deleteSpaceholders(path):
-    return [attribute for attribute in path if attribute is not None and attribute != ""]
+    return [attribute for attribute in path if _isBlank(attribute)]
 
 
 def _isBlank(text):
