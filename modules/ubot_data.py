@@ -138,7 +138,7 @@ def getFilesOfPath(path = None, suffix = None):
         entities = uos.listdir(path)
         return tuple([name for name in entities if name.endswith(suffix) and isFile("{}{}".format(path, name))])
     except Exception as e:
-        logger.append(e)
+        logger.append(AttributeError("Path '{}' doesn't exist.".format(path)))
         return ()
 
 
@@ -210,6 +210,13 @@ def _saveFile(path, lines, isJson = False):
 def _writeOut(file, line, isJson = False):
     toWrite = "{}\r\n".format(ujson.dumps(line) if isJson else line)
     return file.write(toWrite) - len(toWrite)
+
+
+################################
+## Other data related helpers
+
+def dumpException(exception):
+    return "{} {}".format(exception.__class__, exception.args)
 
 
 ################################

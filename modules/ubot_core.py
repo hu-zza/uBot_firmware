@@ -152,7 +152,14 @@ def extractCharTupleFromString(tupleString, enabledCharsSet):
 ################################
 ## PRIVATE METHODS FOR REST/JSON
 
-def _executeJsonGet(pathArray, isPresent, ignoredJson):     ########################################### JSON GET HANDLER
+def _preProcessJsonString(rawJson):
+    try:
+        return "200 OK", "The request body parsed as JSON.", ujson.loads(rawJson)
+    except Exception as e:
+        return "400 Bad Request", "The request body could not be parsed.", data.dumpException(e)
+
+
+def _executeJsonGet(pathArray, isPresent, ignoredBody):     ########################################### JSON GET HANDLER
     if pathArray[0] == "raw":
         return data.createRestReplyFrom(pathArray[1], pathArray[2], pathArray[3])
     elif pathArray[0] == "program" and all(isPresent[1:4]):
@@ -192,14 +199,19 @@ def _jsonGetCommandExecution(command):
 
 
 
-def _executeJsonPost(pathArray, isPresent, json):           ########################################## JSON POST HANDLER
-    if pathArray[0] == "program":                           ### persistent
+def _executeJsonPost(pathArray, isPresent, body):           ########################################## JSON POST HANDLER
+    json = _preProcessJsonString(body)
+
+    if json[0] != "200 OK":
+        return
+
+    if pathArray[0] in config.get("data", "write_rights"):
         if all(isPresent[1:3]) and not any(isPresent[3:]):
             return _jsonPostProgram(pathArray[1], pathArray[2], json)
-    elif pathArray[0] == "command":                         ### temporary, only execution
+    elif pathArray[0] == "command":
         if not any(isPresent[1:]):
             return _jsonPostCommand(json)
-    elif pathArray[0] == "root":                            ### ONLY DURING DEVELOPMENT
+    elif pathArray[0] == "root":
         if not any(isPresent[1:]):
             return _jsonPostRoot(json)
     return "403 Forbidden", "Job: [REST] POST request. Cause: The format of the URL is invalid.", {}
@@ -258,7 +270,7 @@ def _jsonPostRoot(json):
 
 
 
-def _executeJsonPut(pathArray, isPresent, json):            ########################################### JSON PUT HANDLER
+def _executeJsonPut(pathArray, isPresent, body):            ########################################### JSON PUT HANDLER
     if pathArray[0] == "program":                           ### persistent
         if isPresent[1] and isPresent[2] and True not in isPresent[3:]:
             return _jsonPutProgram(pathArray, isPresent, json)
@@ -285,7 +297,7 @@ def _putSystemProp(property, value):
 
 
 
-def _executeJsonDelete(pathArray, isPresent, ignoredJson):  ######################################## JSON DELETE HANDLER
+def _executeJsonDelete(pathArray, isPresent, ignoredBody):  ######################################## JSON DELETE HANDLER
     if pathArray[0] == "program":                           ### final
         if True not in isPresent[3:]:
             if isPresent[1:3] == (False, False):

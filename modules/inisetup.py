@@ -60,7 +60,8 @@ data = {
     "name"          : "IO",
     "active"        : True,     # Just for unity
     "json_folders"  : ("etc", "program"),
-    "write_rights"  : ("home", "program")
+    "write_rights"  : ("home", "program"),
+    "has_action"    : ("etc", "program")
 }
 
 feedback = {

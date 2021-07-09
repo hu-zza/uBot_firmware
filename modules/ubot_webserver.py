@@ -34,6 +34,7 @@ import ujson, uos, uselect, usocket
 from machine import Timer
 
 import ubot_config   as config
+import ubot_data     as data
 import ubot_logger   as logger
 import ubot_motor    as motor
 import ubot_template as template
@@ -240,7 +241,8 @@ def _processHtmlGetQuery():
         else:
             _reply("HTML", "404 Not Found", "Request: Get the page / file '{}'.".format(_inPath))
     except Exception as e:
-        _reply("HTML", "500 Internal Server Error", "A fatal error occurred during processing the HTML GET request.", e)
+        _reply("HTML", "500 Internal Server Error", "A fatal error occurred during processing the HTML GET request.",
+               data.dumpException(e))
     finally:
         _connection.close()
 
@@ -357,12 +359,11 @@ def _startJsonProcessing():
         arr = tuple(arr[1:])                             # arr[0] is always empty string because of leading slash
         isPresent = tuple([item != "" for item in arr])
 
-        _inBody = ujson.loads(_inBody) if _inMethod in _hasJsonBody else {}
-
         result = _jsonFunctionMap[_inMethod](arr, isPresent, _inBody)
         _reply("JSON", result[0], result[1], result[2])
     except Exception as e:
-        _reply("JSON", "400 Bad Request", "The request body could not be parsed and processed.", e)
+        _reply("JSON", "500 Internal Server Error", "A fatal error occurred during processing the JSON GET request.",
+               data.dumpException(e))
     finally:
         _connection.close()
 
@@ -397,12 +398,15 @@ def _reply(returnFormat, responseStatus, message, result = None):
 def _getBasicReplyMap(responseStatus, message, result = None):
     statusCode = int(responseStatus[:3])
 
+    if not isinstance(result, dict):
+        result = {} if result is None else {"value": result}
+
     replyMap = {
         "meta": {
             "code": statusCode,
             "status": responseStatus,
             "message": _getMessageWithFlags(message, statusCode)},
-        "result": {} if result is None else result
+        "result": result
     }
     return replyMap
 
