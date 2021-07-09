@@ -228,6 +228,8 @@ def _processHtmlGetQuery():
             _reply("HTML", "404 Not Found", "Request: Get the page / file '{}'.".format(_inPath))
     except Exception as e:
         _reply("HTML", "500 Internal Server Error", "A fatal error occurred during processing the HTML GET request.", e)
+    finally:
+        _connection.close()
 
 
 def _replyWithHtmlTemplate():
@@ -348,6 +350,8 @@ def _startJsonProcessing():
         _reply("JSON", result[0], result[1], result[2])
     except Exception as e:
         _reply("JSON", "400 Bad Request", "The request body could not be parsed and processed.", e)
+    finally:
+        _connection.close()
 
 
 def _reply(returnFormat, responseStatus, message, result = None):
@@ -373,6 +377,8 @@ def _reply(returnFormat, responseStatus, message, result = None):
         _logResponse(replyMap)
     except Exception as e:
         logger.append("E104\tECONNRESET @ webserver#_reply")
+    finally:
+        _connection.close()
 
 
 def _getBasicReplyMap(responseStatus, message, result = None):

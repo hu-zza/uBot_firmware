@@ -129,9 +129,10 @@ def getFilesOf(folder = None, subFolder = None, suffix = None):
     return getFilesOfPath(getNormalizedPathOf((folder, subFolder)), suffix)
 
 
-def getFilesOfPath(path = None, suffix = ""):
+def getFilesOfPath(path = None, suffix = None):
     """ Returns files of the given path as a string tuple. Result can be filtered by suffix."""
     path = normalizeFolderPath(path)
+    suffix = "" if suffix is None else suffix
 
     try:
         entities = uos.listdir(path)
@@ -169,7 +170,7 @@ def createFolderOf(folder = None, subFolder = None):
 
 def createFolderOfPath(path):
     if canCreate(path) and not doesExist(path):
-        uos.mkdir(normalizeFolderPath(path))
+        uos.mkdir(normalizeFolderPath(path)[:-1])
         return doesExist(path)
 
 
