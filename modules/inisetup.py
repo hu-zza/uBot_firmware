@@ -4,14 +4,14 @@ from flashbdev import bdev
 from ubinascii import hexlify
 
 firmware = (0, 1, 159)
-initDatetime = (2021, 7, 9, 0, 20, 33, 0, 0)
+initDatetime = (2021, 7, 9, 0, 23, 42, 0, 0)
 
 AP  = network.WLAN(network.AP_IF)
 mac = hexlify(AP.config("mac"), ":").decode()
 
+
 ################################
 ## CONFIG SUBDICTIONARIES
-
 
 ap = {
     "name"          : "Access point",

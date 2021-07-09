@@ -242,7 +242,7 @@ def createRestReplyFrom(*path):
 
 
 def _deleteSpaceholders(path):
-    return [attribute for attribute in path if _isBlank(attribute)]
+    return [attribute for attribute in path if not _isBlank(attribute)]
 
 
 def _isBlank(text):

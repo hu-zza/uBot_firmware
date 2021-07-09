@@ -28,7 +28,7 @@
     OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
     SOFTWARE.
 """
-import esp, network, uos, webrepl
+import esp, network, ujson, uos, webrepl
 
 from machine import Pin
 from utime   import sleep_ms
@@ -158,7 +158,7 @@ _jsonRequest = {
     "present": 0,
     "body": "",
     "parsed": False,
-    "exception": ""
+    "exception": []
 }
 
 
@@ -181,7 +181,7 @@ def _parseJsonRequestBody():
         _jsonRequest["body"] = ujson.loads(_jsonRequest.get("body"))
         _jsonRequest["parsed"] = True
     except Exception as e:
-        _jsonRequest["exception"] = data.dumpException(e)
+        _jsonRequest["exception"].append(data.dumpException(e))
         _jsonRequest["parsed"] = False
 
 
@@ -260,7 +260,7 @@ def _executeJsonPost():                                                         
 
         if _jsonRequest.get("parsed") and _jsonRequest.get("present") == 1:
             if category in _jsonPostFunctions.keys():
-                _jsonPostFunctions.get(category)()
+                return _jsonPostFunctions.get(category)()
 
     return "403 Forbidden", "Job: [REST] POST request. Cause: The format of the URL is invalid.", {}
 
