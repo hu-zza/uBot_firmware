@@ -75,6 +75,7 @@ _hasJsonBody       = {"POST", "PUT"}
 
 def setJsonCallback(method, jsonFunction):
     global _jsonFunctionMap
+
     if isAllowed(method, allowedJsonMethods):
         _jsonFunctionMap[method] = jsonFunction
 
@@ -125,9 +126,22 @@ def _poll(timer):
             result = _poller.poll(_timeout)
 
             if result:
+                _clearOldRequestData()
                 _processIncoming(result[0][0])
     except Exception as e:
         logger.append(e)
+
+
+def _clearOldRequestData():
+    global _incoming, _inMethod, _inPath, _inContentLength, _inContentType, _inAccept, _inBody
+
+    _incoming = ""
+    _inMethod = ""
+    _inPath = ""
+    _inContentLength = 0
+    _inContentType = ""
+    _inAccept = ""
+    _inBody = ""
 
 
 def _processIncoming(incoming):
@@ -142,11 +156,10 @@ def _processIncoming(incoming):
 
 
 def _readIncoming():
-    global _connection, _address, _inMethod, _inBody
+    global _connection, _address, _inBody
 
     _connection, _address = _incoming.accept()
     requestFile = _connection.makefile("rwb", 0)
-    _inMethod = ""
 
     while True:
         line = requestFile.readline()

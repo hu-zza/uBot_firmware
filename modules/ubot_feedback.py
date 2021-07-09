@@ -79,7 +79,6 @@ def get():
 
 def clear():
     global _count
-
     _count = [0, 0]
 
 
@@ -97,5 +96,4 @@ def _increaseT1(pin):
 
 def _increase(index):
     global _count
-
     _count[index] += 1

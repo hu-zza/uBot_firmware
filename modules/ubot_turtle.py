@@ -140,8 +140,7 @@ def move(direction):
 
 
 def skipSignal(stepCount = 1, endCount = 0):
-    global _stepSignalSkipCount
-    global _endSignalSkipCount
+    global _stepSignalSkipCount, _endSignalSkipCount
 
     _stepSignalSkipCount += stepCount
     _endSignalSkipCount += endCount
@@ -200,8 +199,7 @@ def loadProgram(folder, title):
 
 
 def loadProgramFromString(turtleCode):
-    global _programArray
-    global _programParts
+    global _programArray, _programParts
 
     clearMemory()
     try:
@@ -238,7 +236,6 @@ def saveProgram(folder = None, title = None, program = ""):
 
 def _generateFullPath():
     global _savedCount
-
     _savedCount += 1
     return "/program/{}/{:010d}_{:03d}.txt".format(_turtleFolder, _powerOns, _savedCount)
 
@@ -279,9 +276,7 @@ def clearCommandMemory():
 
 
 def retainInTemporary():
-    global _temporaryCommandPointer
-    global _temporaryProgramParts
-    global _temporaryProgramArray
+    global _temporaryCommandPointer, _temporaryProgramParts, _temporaryProgramArray
 
     _temporaryCommandPointer = _commandPointer
     _temporaryProgramParts = _programParts
@@ -289,9 +284,7 @@ def retainInTemporary():
 
 
 def loadFromTemporary():
-    global _commandPointer
-    global _programParts
-    global _programArray
+    global _commandPointer, _programParts, _programArray
 
     _commandPointer = _temporaryCommandPointer
     _programParts = _temporaryProgramParts
@@ -337,6 +330,7 @@ def _getValidatedPressedButton():
 
 def _logLastPressed(pressed):
     global _lastPressed
+
     if pressed == _lastPressed[0]:
         _lastPressed[1] += 1
     else:
@@ -344,8 +338,7 @@ def _logLastPressed(pressed):
 
 
 def _getPressedButton():
-    global _pressedList
-    global _pressedListIndex
+    global _pressedList, _pressedListIndex
 
     pressed = 0
 
@@ -402,8 +395,7 @@ def _advanceCounter():
 ## BUTTON PRESS INTERPRETATION
 
 def _addCommand(pressed):
-    global _processingProgram
-    global _runningProgram
+    global _processingProgram, _runningProgram
 
     try:
         if pressed == 0:                # result = 0 means, there is nothing to save to _commandArray.
@@ -437,8 +429,7 @@ def _addCommand(pressed):
 
 
 def _addToCommandArray(command):
-    global _commandArray
-    global _commandPointer
+    global _commandArray, _commandPointer
 
     if _commandPointer < len(_commandArray):
         _commandArray[_commandPointer] = command
@@ -453,8 +444,7 @@ def _addToCommandArray(command):
 ## HELPER METHODS FOR BLOCKS
 
 def _blockStarted(newMapping):
-    global _blockStartIndex
-    global _currentMapping
+    global _blockStartIndex, _currentMapping
 
     _blockStartStack.append(_blockStartIndex)
     _blockStartIndex = _commandPointer
@@ -465,9 +455,7 @@ def _blockStarted(newMapping):
 
 
 def _blockCompleted(deleteFlag):
-    global _commandPointer
-    global _blockStartIndex
-    global _currentMapping
+    global _commandPointer, _blockStartIndex, _currentMapping
 
     if len(_mappingsStack) != 0:
         if deleteFlag:
@@ -507,8 +495,7 @@ def _isTagBoundary(commandPointer):
 ## STANDARDIZED FUNCTIONS
 
 def _start(arguments):                # (blockLevel,)
-    global _processingProgram
-    global _runningProgram
+    global _processingProgram, _runningProgram
 
     buzzer.keyBeep("processed")
     _processingProgram = True
@@ -615,8 +602,7 @@ def _start(arguments):                # (blockLevel,)
 # COMMAND AND PROGRAM ARRAY
 
 def _addToProgOrSave():
-    global _commandPointer
-    global _programArray
+    global _commandPointer, _programArray
 
     if _commandPointer != 0:
         for i in range(_commandPointer):
@@ -638,8 +624,7 @@ def _addToProgOrSave():
 # LOOP
 
 def _createLoop(arguments):                 # (creationState,)                40 [statements...] 42 [iteration count] 41
-    global _currentMapping
-    global _loopCounter
+    global _currentMapping, _loopCounter
 
     if arguments[0] == 40:
         _blockStarted(_loopBeginMapping)
@@ -694,6 +679,7 @@ def _checkLoopCounter():
 
 def _manageFunction(arguments):             # (functionId, onlyCall)                    123 [statements...] 124 [id] 125
     global _functionPosition                #                           function call:  126 [id] 126
+
     index = arguments[0] - 1                # functionId - 1 == Index in _functionPosition
 
     if index < 0 or len(_functionPosition) < index: # The given index is out of array.
@@ -734,9 +720,7 @@ def _beepAndReturn(arguments):              # (keyOfBeep, returningValue)
 
 
 def _undo(arguments):                       # (blockLevel,)
-    global _commandPointer
-    global _commandArray
-    global _functionPosition
+    global _commandPointer, _commandArray, _functionPosition
 
     # Sets the maximum range of undo in according to blockLevel flag.
     undoLowerBoundary = _blockStartIndex + 1 if arguments[0] else 0
@@ -773,9 +757,7 @@ def _undo(arguments):                       # (blockLevel,)
 
 
 def _delete(arguments):                     # (blockLevel,)
-    global _commandPointer
-    global _programParts
-    global _functionPosition
+    global _commandPointer, _programParts, _functionPosition
 
     if arguments[0]:                        # Block-level: delete only the unfinished block.
         _blockCompleted(True)               # buzzer.keyBeep("deleted") is called inside _blockCompleted(True)
@@ -822,8 +804,7 @@ def _callbackStep():
 
 
 def _callbackEnd():
-    global _endSignalSkipCount
-    global _runningProgram
+    global _endSignalSkipCount, _runningProgram
 
     if _endSignalEnabled and 0 == _endSignalSkipCount and _endSignal != "":
         buzzer.keyBeep(_endSignal)

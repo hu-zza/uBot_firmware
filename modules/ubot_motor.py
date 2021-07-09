@@ -53,9 +53,7 @@ _callbacks  = [(), ()]
 ## CONFIG
 
 def config(motorPins, motorConfig):
-    global _active
-    global _pin
-    global _pwm
+    global _active, _pin, _pwm
 
     _active = (0 not in motorPins[0], 0 not in motorPins[1])
 
@@ -74,8 +72,7 @@ def config(motorPins, motorConfig):
 
 
 def configMotor(motorConfig):
-    global _config
-    global _breath
+    global _config, _breath
     """
     Parameter motorConfig consists of three tuples: T0 timer setting, T1 PWM setting, T1 duty factor and borders.
     The third of the three tuple is modified:
@@ -152,8 +149,7 @@ def add(movementTuple):
 
 
 def stop():
-    global _moveList
-    global _resumeList
+    global _moveList, _resumeList
     """
     "Copy" pending move tuples to _resumeList and
     "clears" the _moveList, so pending move tuples
@@ -165,8 +161,7 @@ def stop():
 
 
 def resume():
-    global _moveList
-    global _resumeList
+    global _moveList, _resumeList
     """
     "Copy" back move tuples to _moveList from _resumeList,
     "clears" the _resumeList, and start the processing.
@@ -249,7 +244,6 @@ def _startProcessing():
 
 def _stopProcessing():
     global _processing
-
     _processing = False
 
 

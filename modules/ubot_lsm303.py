@@ -55,10 +55,7 @@ _rawRangeZ = 0
 ## CONFIG
 
 def config(freq, SDA, SCL):
-    global _I2C
-    global _MAP
-    global _LSM303
-
+    global _I2C, _MAP, _LSM303
 
     _SDA = Pin(SDA)
     _SCL = Pin(SCL)
@@ -97,11 +94,7 @@ def calibrate(duration):
 
 
 def setMinMaxTuples(minimumTuple, maximumTuple):
-    global _rawMinimumTuple
-    global _rawMaximumTuple
-    global _rawRangeX
-    global _rawRangeY
-    global _rawRangeZ
+    global _rawMinimumTuple, _rawMaximumTuple, _rawRangeX, _rawRangeY, _rawRangeZ
 
     _rawMinimumTuple = minimumTuple
     _rawMaximumTuple = maximumTuple

@@ -3,8 +3,8 @@ import network, ujson, uos
 from flashbdev import bdev
 from ubinascii import hexlify
 
-firmware = (0, 1, 157)
-initDatetime = (2021, 7, 9, 0, 2, 20, 0, 0)
+firmware = (0, 1, 158)
+initDatetime = (2021, 7, 9, 0, 12, 20, 0, 0)
 
 AP  = network.WLAN(network.AP_IF)
 mac = hexlify(AP.config("mac"), ":").decode()
@@ -79,6 +79,7 @@ i2c = {
 logger = {
     "name"          : "Logger",
     "active"        : True,
+    "folders"       : ("exception", "event", "object", "run"),
     "active_logs"   : ("Exception", "Event", "Object", "Run")    # All: ("Exception", "Event", "Object", "Run")
 }
 
@@ -124,7 +125,6 @@ turtle = {
 
     "move_chars"    : ["F", "B", "L", "l", "R", "r", "P", "K", "Q"],
     "turtle_chars"  : ["F", "B", "L", "l", "R", "r", "P", "K", "Q", "(", "*", ")", "{", "|", "}", "~"]
-
 }
 
 uart = {
@@ -269,17 +269,10 @@ def setup():
     with open("/log/datetime.txt", "w") as file:
         file.write("{}\r\n0000000000.txt\r\n\r\n".format(system.get("init_datetime")))
 
-    with open("/log/exception/0000000000.txt", "w") as file:
-        file.write("{}\r\nFallback exception log initialised successfully.\r\n\r\n".format(system.get("init_datetime")))
-
-    with open("/log/event/0000000000.txt", "w") as file:
-        file.write("{}\r\nFallback event log initialised successfully.\r\n\r\n".format(system.get("init_datetime")))
-
-    with open("/log/object/0000000000.txt", "w") as file:
-        file.write("{}\r\nFallback object log initialised successfully.\r\n\r\n".format(system.get("init_datetime")))
-
-    with open("/log/run/0000000000.txt", "w") as file:
-        file.write("{}\r\nFallback run log initialised successfully.\r\n\r\n".format(system.get("init_datetime")))
+    for folder in logger.get("folders"):
+        with open("/log/{}/0000000000.txt".format(folder), "w") as file:
+            file.write("{}     \tFallback {} log initialised successfully.\r\n\r\n\r\n"
+                       .format(system.get("init_datetime"), folder))
 
     for moduleName, module in configModules.items():
         uos.mkdir("/etc/{}".format(moduleName))
