@@ -82,11 +82,15 @@ _jsonSender = None
 
 _denyHtml = not config.get("web_server", "html_enabled")
 _denyJson = not config.get("web_server", "json_enabled")
+_log_event    = config.get("web_server", "log_event")
+_log_request  = config.get("web_server", "log_request")
+_log_response = config.get("web_server", "log_response")
 
 allowedMethods     = {"GET", "POST", "PUT", "DELETE"}
 allowedHtmlMethods = {"GET", "POST"}
 allowedJsonMethods = {"GET", "POST", "PUT", "DELETE"}
 _hasJsonBody       = {"POST", "PUT"}
+
 
 
 ################################
@@ -134,14 +138,20 @@ def isAllowed(methodName, methodSet = None):
 ## PRIVATE, HELPER METHODS
 
 def _logRequest():
-    logger.append("{}\t{}".format(_request.get("method"), _request.get("path")))
-    logger.append(_request)
+    if _log_event:
+        logger.append("{}\t{}".format(_request.get("method"), _request.get("path")))
+
+    if _log_request:
+        logger.append(_request)
 
 
 def _logResponse(response):
-    metaResponse = response.get("meta").get("response")
-    logger.append("{}\t{}".format(metaResponse.get("status").replace(" ", "\t", 1), metaResponse.get("message")))
-    logger.append(response)
+    if _log_event:
+        metaResponse = response.get("meta").get("response")
+        logger.append("{}\t{}".format(metaResponse.get("status").replace(" ", "\t", 1), metaResponse.get("message")))
+
+    if _log_response:
+        logger.append(response)
 
 
 def _poll(timer):
