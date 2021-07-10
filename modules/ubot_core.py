@@ -259,11 +259,36 @@ def _executeJsonPost():                                                         
             elif _jsonRequest.get("parsed"):
                 return _jsonPostFile()
 
-        if _jsonRequest.get("parsed") and _jsonRequest.get("present") == 1:
+        if _jsonRequest.get("present") == 1:
             if category in _jsonPostFunctions.keys():
                 return _jsonPostFunctions.get(category)()
 
     return "403 Forbidden", "Job: [REST] POST request. Cause: The format of the URL is invalid.", {}
+
+
+def _jsonBodyValidator(job, obligatoryParameters = ("value",)):
+    if _jsonRequest.get("parsed"):
+        body = _jsonRequest.get("body")
+        if all([body.get(item) is not None for item in obligatoryParameters]):
+            return "200 OK", job, {}
+        else:
+            return "403 Forbidden", job + " Cause: The request body is present and parsed, but incomplete.", {}
+    else:
+        return "400 Bad Request", job + " Cause: The request body could not be parsed.", {}
+
+
+def _jsonReplyWithFileInstance(job, path, jobGist):
+    if path != "" and path is not False:
+        pathArray = path.split("/")
+        job = "Request: {} '{}' ({}).".format(jobGist, pathArray[3], pathArray[2])
+        savedProgram = _jsonGetFileOf(pathArray[1:4])
+
+        if savedProgram[0] == "200 OK":
+            return "200 OK", job, savedProgram[2]
+        else:
+            return "500 Internal Server Error", job + " Cause: The file system is not available.", {}
+    else:
+        return "422 Unprocessable Entity", job + " Cause: Semantic error in JSON.", {}
 
 
 def _jsonPostProgram():
@@ -276,19 +301,14 @@ def _jsonPostProgram():
 
         if body == "":
             path = turtle.saveLoadedProgram(folder, title)
-        elif _jsonRequest.get("parsed"):
-            path = turtle.saveProgram(folder, title, body.get("value"))
         else:
-            return "400 Bad Request", job + " Cause: The request body could not be parsed.", _jsonRequest
+            result = _jsonBodyValidator(job)
+            if result[0] != "200 OK":
+                return result
 
-        if path != "":
-            pathArray = path.split("/")
-            job = "Request: Save program '{}' ({}).".format(pathArray[3], pathArray[2])
-            savedProgram = _jsonGetFileOf(pathArray[1:4])
+            path = turtle.saveProgram(folder, title, body.get("value"))
 
-            if savedProgram[0] == "200 OK":
-                return "201 Created", job, savedProgram[2]
-            return "500 Internal Server Error", job + " Cause: The file system is not available.", {}
+        return _jsonReplyWithFileInstance(job, path, "Save program")
     else:
         return "403 Forbidden", job + " Cause: The file already exists.", {}
 
@@ -299,18 +319,24 @@ def _jsonPostFile():
 
 def _jsonPostCommand():
     job = "Request: Starting commands execution."
+
+    result = _jsonBodyValidator(job)
+    if result[0] != "200 OK":
+        return result
+
     commandArray = _jsonRequest.get("body").get("value")
-    counter = 0
+    counter, commandCount = 0, -1
     try:
+        commandCount = len(commandArray)
         for command in commandArray:
             counter += 1 if executeCommand(command) else 0
     except Exception as e:
         logger.append(e)
 
-    if counter == len(commandArray):
+    if counter == commandCount:
         return "200 OK", job, counter
     else:
-        return "422 Unprocessable Entity", job + " Cause: Semantic error in JSON.", counter
+        return "422 Unprocessable Entity", job + " Cause: Semantic error in JSON.", {}
 
 
 def _jsonPostLog():
@@ -320,24 +346,28 @@ def _jsonPostLog():
 def _jsonPostRoot():
     if config.get("system", "root"):
         job = "Request: Starting MicroPython commands execution."
-        body = _jsonRequest.get("body")
 
-        if body.get("chk") == config.get("system", "chk"):
-            commands = body.get("value")
-            results = []
-            try:
-                for command in commands:
-                    if command[0] == "EXEC":
-                        results.append("[EXEC] '{}' : '{}'".format(command[1], exec(command[1])))
-                    elif command[0] == "EVAL":
-                        results.append("[EVAL] '{}' : '{}'".format(command[1], eval(command[1])))
-            except Exception as e:
-                logger.append(e)
+        result = _jsonBodyValidator(job, ("value", "chk"))
+        if result[0] == "200 OK":
+            body = _jsonRequest.get("body")
 
-            if len(results) == len(commands):
-                return "200 OK", job, results
-            else:
-                return "422 Unprocessable Entity", job + " Cause: Semantic error in JSON.", results
+            if body.get("chk") == config.get("system", "chk"):
+                commands = body.get("value")
+                results = []
+                try:
+                    for command in commands:
+                        if command[0] == "EXEC":
+                            results.append("[EXEC] {} : {}".format(command[1], exec(command[1])))
+                        elif command[0] == "EVAL":
+                            results.append("[EVAL] {} : {}".format(command[1], eval(command[1])))
+                except Exception as e:
+                    logger.append(e)
+
+                if len(results) == len(commands):
+                    return "200 OK", job, results
+                else:
+                    return "422 Unprocessable Entity", job + " Cause: Semantic error in JSON.", results
+    return "403 Forbidden", "Job: [REST] POST request. Cause: The format of the URL is invalid.", {}
 
 
 _jsonPostFunctions = {

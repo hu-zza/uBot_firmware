@@ -191,7 +191,7 @@ def _readIncoming():
         if not line:
             break
         elif line == b"\r\n":
-            if 0 < _request["contentLength"]:
+            if 0 < _request.get("contentLength"):
                 _request["body"] = str(_socketFile.read(_request["contentLength"]), "utf-8")
             break
         
@@ -264,7 +264,7 @@ def _processHtmlQuery():
         _htmlFunctionMap[_request.get("method")]()
     else:
         _reply("405 Method Not Allowed", "The following HTTP request methods are allowed with text/html "
-                                                 "content type: {}.".format(", ".join(allowedHtmlMethods)))
+                                         "content type: {}.".format(", ".join(allowedHtmlMethods)))
 
 
 def _unavailableSupplierFunction(a = None, b = None, c = None):
@@ -360,6 +360,7 @@ def _sendHeader(status = "200 OK", length = None, allow = None):
         _connection.write("Content-Length: {}\r\n".format(length))
     _connection.write("Content-Type: {}; charset=UTF-8\r\n".format(reply))
     _connection.write("Content-Encoding: identity\r\n")
+    _connection.write("Transfer-Encoding: identity\r\n")
     _connection.write("Server: {}\r\n".format(_server))
     _connection.write("Allow: {}\r\n".format(allow))
     _connection.write("Cache-Control: no-cache\r\n")                                       # TODO: Make caching possible
@@ -382,7 +383,7 @@ def _processJsonQuery():
     else:
         methods = ", ".join(allowedJsonMethods)
         _reply("405 Method Not Allowed", "The following HTTP request methods are allowed with application/json "
-                                                 "content type: {}.".format(methods))
+                                         "content type: {}.".format(methods))
 
 
 def _isSpecialJsonRequest():
@@ -405,7 +406,7 @@ def _reply(responseStatus, message, result = None):
     try:
         reply = _replyMap.get(_request.get("processing"))(responseStatus, message, result)
 
-        _sendHeader(responseStatus)
+        _sendHeader(responseStatus, len(reply))
         _connection.write(reply)                                                        # TODO: written bytes check, etc
         _logResponse(_response)
     except Exception as e:
