@@ -174,8 +174,8 @@ def getProgramCode(folder, title):
     return result[0] if 0 < len(result) else ""
 
 
-def getNormalizedPathOf(folder, title = None):
-    return data.getNormalizedPathOf(("program", folder), None if title is None else "{}.txt".format(title))
+def getNormalizedPathOf(folder, title = ""):
+    return data.getNormalizedPathOf(("program", folder), None if title == "" else "{}.txt".format(title))
 
 
 def runProgram(folder, title):
@@ -212,29 +212,29 @@ def loadProgramFromString(turtleCode):
         return False
 
 
-def saveLoadedProgram(folder = None, title = None):
-    saveProgram(_jsonFolder if folder is None else folder, title, getProgramArray())
+def saveLoadedProgram(folder = "", title = ""):
+    return saveProgram(_jsonFolder if folder == "" else folder, title, getProgramArray())
 
 
-def saveProgram(folder = None, title = None, program = ""):
+def saveProgram(folder = "", title = "", program = ""):
     global _savedCount
 
-    folder = _jsonFolder if folder is None else folder
-    path    = _generateFullPath() if title is None else "/program/{}/{}.txt".format(folder.lower(), title.lower())
+    folder = _jsonFolder if folder == "" else folder
+    path    = _generateFullPathForAutoSave() if title == "" else "/program/{}/{}.txt".format(folder.lower(), title.lower())
     dirPath = path[:path.rindex("/")]
 
     if not doesFolderExist(folder):
         data.createFolderOfPath(dirPath)
 
-    result = data.saveFileOfPath(path, program, True)
+    isSaved = data.saveFileOfPath(path, program, True)
 
-    if not result and title is None:
+    if not isSaved and title is None:
         _savedCount -= 1
 
-    return result
+    return path if isSaved else ""
 
 
-def _generateFullPath():
+def _generateFullPathForAutoSave():
     global _savedCount
     _savedCount += 1
     return "/program/{}/{:010d}_{:03d}.txt".format(_turtleFolder, _powerOns, _savedCount)

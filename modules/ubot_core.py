@@ -218,7 +218,7 @@ def _jsonGetProgramActionStarting():
 
 
 def _jsonGetFileByRawLink():
-    return data.createRestReplyFrom(_jsonRequest.get("path")[1:4])
+    return _jsonGetFileOf(_jsonRequest.get("path")[1:4])
 
 
 def _jsonGetFileByJsonLink():
@@ -274,14 +274,17 @@ def _jsonPostProgram():
         body = _jsonRequest.get("body")
 
         if body == "":
-            result = turtle.saveLoadedProgram(folder, title)
+            path = turtle.saveLoadedProgram(folder, title)
         elif _jsonRequest.get("parsed"):
-            result = turtle.saveProgram(folder, title, body.get("value"))
+            path = turtle.saveProgram(folder, title, body.get("value"))
         else:
             return "400 Bad Request", job + " Cause: The request body could not be parsed.", _jsonRequest
 
-        if result:
-            savedProgram = data.createRestReplyFrom("program", folder, title)
+        if path != "":
+            pathArray = path.split("/")
+            job = "Request: Save program '{}' ({}).".format(pathArray[3], pathArray[2])
+            savedProgram = _jsonGetFileOf(pathArray[1:4])
+
             if savedProgram[0] == "200 OK":
                 return "201 Created", job, savedProgram[2]
             return "500 Internal Server Error", job + " Cause: The file system is not available.", {}
@@ -321,7 +324,7 @@ def _jsonPostRoot():
         try:
             for command in commands:
                 if command[0] == "EXEC":
-                    results.append("[EXEC] '{}' : void".format(exec(command[1])))
+                    results.append("[EXEC] '{}' : '{}'".format(command[1], exec(command[1])))
                 elif command[0] == "EVAL":
                     results.append("[EVAL] '{}' : '{}'".format(command[1], eval(command[1])))
         except Exception as e:

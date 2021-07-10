@@ -44,11 +44,18 @@ def doesExist(path):
 
 
 def normalizePath(path):
-    """ Prepare for error-free using. Make it lowercase, and add leading slash if necessary. """
+    """ Prepare for error-free using. Make it stripped, lowercase, and add leading slash if necessary. """
     if path is None or path == "":
         return "/"
     else:
-        return path if path[0] == "/" else "/{}".format(path.lower())
+        try:
+            path = path.strip().lower()
+            return path if path[0] == "/" else "/{}".format(path)
+        except Exception as e:
+            logger.append(e)
+            logger.append(AttributeError("ubot_data#normalizePath\r\n'{}' is not a string representing a path.\r\n"
+                                         .format(path)))
+            return "/Exception @ ubot_data#normalizePath"
 
 
 def normalizeFolderPath(folder):
@@ -56,13 +63,17 @@ def normalizeFolderPath(folder):
     return folder if folder[-1] == "/" else "{}/".format(folder)
 
 
-def getNormalizedPathOf(pathAsList = (), fileName = None):
-    if 0 == len(pathAsList):
+def getNormalizedPathOf(pathAsList = (), fileName = ""):
+    if pathAsList is None or len(pathAsList) == 0:
         path = "/"
+    elif isinstance(pathAsList, list) or isinstance(pathAsList, tuple):
+        path = normalizeFolderPath("".join([normalizePath(item) for item in pathAsList]))
     else:
-        path = normalizeFolderPath("/".join(pathAsList))
+        logger.append(AttributeError("ubot_data#getNormalizedPathOf\r\n'{}' is not an iterable representing a path.\r\n"
+                                     .format(pathAsList)))
+        return "/Exception @ ubot_data#getNormalizedPathOf/"
 
-    return path if fileName is None else "{}{}".format(path, fileName)
+    return path if fileName == "" else "{}{}".format(path, fileName)
 
 
 def isFolder(path):
@@ -81,9 +92,10 @@ def _typeIntEqualsExpectedInt(path, expectedInt):
             return uos.stat(path)[0] == expectedInt
         except Exception as e:
             logger.append(e)
+            logger.append(AttributeError("ubot_data#_typeIntEqualsExpectedInt\r\nCan not process '{}'.\r\n".format(path)))
             return False
     else:
-        logger.append(AttributeError("Path '{}' doesn't exist.".format(path)))
+        logger.append(AttributeError("ubot_data#_typeIntEqualsExpectedInt\r\nPath '{}' doesn't exist.\r\n".format(path)))
         return False
 
 
@@ -101,7 +113,7 @@ def doesFileExist(path):
         return False
 
 
-def getFoldersOf(folder = None):
+def getFoldersOf(folder = ""):
     """ Returns subfolders of the given folder as a string tuple. """
     folder = normalizeFolderPath(folder)
     try:
@@ -109,36 +121,37 @@ def getFoldersOf(folder = None):
         return tuple([fileName for fileName in entities if isFolder("{}{}".format(folder, fileName))])
     except Exception as e:
         logger.append(e)
+        logger.append(AttributeError("ubot_data#getFoldersOf\r\nFolder '{}' doesn't exist.\r\n".format(folder)))
         return ()
 
 
-def getFilenamesOf(folder = None, subFolder = None, suffix = None):
+def getFilenamesOf(folder = "", subFolder = "", suffix = ""):
     """ Returns files of the given folder (or /folder/subfolder) as a string tuple. The strings contains only file names
     (without the dot and the suffix). Result can be filtered by suffix."""
     return tuple([file[:file.rindex(".")] for file in getFilesOf(folder, subFolder, suffix)])
 
 
-def getFilenamesOfPath(path = None, suffix = None):
+def getFilenamesOfPath(path = "", suffix = ""):
     """ Returns files of the given path as a string tuple. The strings contains only file names
     (without the dot and the suffix). Result can be filtered by suffix."""
     return tuple([file[:file.rindex(".")] for file in getFilesOfPath(path, suffix)])
 
 
-def getFilesOf(folder = None, subFolder = None, suffix = None):
+def getFilesOf(folder = "", subFolder = "", suffix = ""):
     """ Returns files of the given folder (or /folder/subfolder) as a string tuple. Result can be filtered by suffix."""
     return getFilesOfPath(getNormalizedPathOf((folder, subFolder)), suffix)
 
 
-def getFilesOfPath(path = None, suffix = None):
+def getFilesOfPath(path = "", suffix = ""):
     """ Returns files of the given path as a string tuple. Result can be filtered by suffix."""
     path = normalizeFolderPath(path)
-    suffix = "" if suffix is None else suffix
 
     try:
         entities = uos.listdir(path)
         return tuple([name for name in entities if name.endswith(suffix) and isFile("{}{}".format(path, name))])
     except Exception as e:
-        logger.append(AttributeError("Path '{}' doesn't exist.".format(path)))
+        logger.append(e)
+        logger.append(AttributeError("ubot_data#getFilesOfPath\r\nPath '{}' doesn't exist.\r\n".format(path)))
         return ()
 
 
@@ -154,9 +167,10 @@ def getFile(path, isJson = False):
                     return tuple([line for line in file])
         except Exception as e:
             logger.append(e)
+            logger.append(AttributeError("ubot_data#getFile\r\nCan not process '{}'.\r\n".format(path)))
             return ()
     else:
-        logger.append(AttributeError("Path '{}' doesn't exist.".format(path)))
+        logger.append(AttributeError("ubot_data#getFile\r\nPath '{}' doesn't exist.\r\n".format(path)))
         return ()
 
 
@@ -164,7 +178,7 @@ def canCreate(path):
     return normalizePath(path).split("/")[1] in config.get("data", "write_rights")
 
 
-def createFolderOf(folder = None, subFolder = None):
+def createFolderOf(folder = "", subFolder = ""):
     return createFolderOfPath(getNormalizedPathOf((folder, subFolder)))
 
 
@@ -206,6 +220,7 @@ def _saveFile(path, lines, isJson = False):
             return written == 0
     except Exception as e:
         logger.append(e)
+        logger.append(AttributeError("ubot_data#_saveFile\r\nCan not process '{}'.\r\n".format(path)))
         return False
 
 
