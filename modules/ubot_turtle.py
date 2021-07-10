@@ -670,7 +670,7 @@ def _checkLoopCounter():
         buzzer.keyBeep("attention")
         buzzer.midiBeep(64, 100, 500, _loopCounter)
     else:
-        buzzer.keyBeep("tooLong")
+        buzzer.keyBeep("too_long")
     buzzer.rest(1000)
     return 0
 

@@ -22,9 +22,7 @@ def printJob(job):
 def printResult(result):
     print("\r\nRESULT: {}\r\n\r\n".format(result))
 
-major = 0
-minor = 0
-patch = 0
+major, minor, patch = 0, 0, 0
 
 with open("{}/inisetup.py".format(modulesPath)) as file:
     for line in file:

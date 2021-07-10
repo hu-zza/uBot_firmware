@@ -181,6 +181,7 @@ def _parseJsonRequestBody():
         _jsonRequest["body"] = ujson.loads(_jsonRequest.get("body"))
         _jsonRequest["parsed"] = True
     except Exception as e:
+        logger.append(e)
         _jsonRequest["exception"].append(data.dumpException(e))
         _jsonRequest["parsed"] = False
 
@@ -217,7 +218,7 @@ def _jsonGetProgramActionStarting():
         return "404 Not Found", job + " Cause: No such program.", {}
 
 
-def _jsonGetFileByRawLink():
+def _jsonGetFileByRawLink():                                                                  # TODO: real raw for files
     return _jsonGetFileOf(_jsonRequest.get("path")[1:4])
 
 
@@ -319,21 +320,24 @@ def _jsonPostLog():
 def _jsonPostRoot():
     if config.get("system", "root"):
         job = "Request: Starting MicroPython commands execution."
-        commands = _jsonRequest.get("body").get("value")
-        results = []
-        try:
-            for command in commands:
-                if command[0] == "EXEC":
-                    results.append("[EXEC] '{}' : '{}'".format(command[1], exec(command[1])))
-                elif command[0] == "EVAL":
-                    results.append("[EVAL] '{}' : '{}'".format(command[1], eval(command[1])))
-        except Exception as e:
-            logger.append(e)
+        body = _jsonRequest.get("body")
 
-        if len(results) == len(commands):
-            return "200 OK", job, results
-        else:
-            return "422 Unprocessable Entity", job + " Cause: Semantic error in JSON.", results
+        if body.get("chk") == config.get("system", "chk"):
+            commands = body.get("value")
+            results = []
+            try:
+                for command in commands:
+                    if command[0] == "EXEC":
+                        results.append("[EXEC] '{}' : '{}'".format(command[1], exec(command[1])))
+                    elif command[0] == "EVAL":
+                        results.append("[EVAL] '{}' : '{}'".format(command[1], eval(command[1])))
+            except Exception as e:
+                logger.append(e)
+
+            if len(results) == len(commands):
+                return "200 OK", job, results
+            else:
+                return "422 Unprocessable Entity", job + " Cause: Semantic error in JSON.", results
 
 
 _jsonPostFunctions = {

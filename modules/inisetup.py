@@ -3,8 +3,8 @@ import network, ujson, uos
 from flashbdev import bdev
 from ubinascii import hexlify
 
-firmware = (0, 1, 160)
-initDatetime = (2021, 7, 10, 0, 2, 10, 0, 0)
+firmware = (0, 1, 161)
+initDatetime = (2021, 7, 10, 0, 19, 25, 0, 0)
 
 AP  = network.WLAN(network.AP_IF)
 mac = hexlify(AP.config("mac"), ":").decode()
@@ -43,7 +43,7 @@ buzzer = {
 
     "change_count"  : (71, 100, 0, 1),
     "boundary"      : (60, 500, 100, 2),
-    "tooLong"       : (64, 1500, 100, 2),
+    "too_long"      : (64, 1500, 100, 2),
 
     "added"         : ((71, 500, 50, 1), (64, 300, 50, 1), (60, 100, 50, 1)),
     "loaded"        : ((60, 500, 50, 1), (64, 300, 50, 1), (71, 100, 50, 1)),

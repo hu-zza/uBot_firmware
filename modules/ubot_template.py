@@ -181,10 +181,9 @@ def getTurtlePanel():
 
 
 def getSystemPanel():
-    major, minor, patch = config.get("system", "firmware")
-
-    allMemory = gc.mem_free() + gc.mem_alloc()
-    freeMemoryPercent = gc.mem_free() * 100 // allMemory
+    free, alloc = gc.mem_free(), gc.mem_alloc()
+    allMemory = free + alloc
+    freeMemoryPercent = free * 100 // allMemory
 
     stat = uos.statvfs("/")
     freeSpace = stat[4] * stat[0]       # f_bavail * f_bsize
@@ -195,6 +194,8 @@ def getSystemPanel():
     uid = config.get("system", "id")
     idA = " - ".join(uid[i:i + 4] for i in range(0, 16, 4))
     idB = " - ".join(uid[i:i + 4] for i in range(16, 32, 4))
+
+    major, minor, patch = config.get("system", "firmware")
 
     return ("        <h3>System info</h3>\r\n"
             "            <table class='data'>\r\n"
@@ -478,6 +479,11 @@ def getCrossSymbol():
             "                 </symbol>\r\n")
 
 
+def linkPathToExistingPath(path, existingPath):
+    title[path] = title.get(existingPath)
+    style[path] = style.get(existingPath)
+    parts[path] = parts.get(existingPath)
+
 
 ############
 ## CATALOGS
@@ -487,7 +493,7 @@ title = {
     "/_datetime"    : "&microBot Date & Time",
     "/_webrepl"     : "&microBot WebREPL",
     "/_calibration" : "&microBot Calibration",
-    "/debug"        : "&microBot Debug",
+    "/debug"        : "&microBot Debug - Dashboard",
     "/_system"      : "&microBot Debug - System info",
     "/_services"    : "&microBot Debug - Service status",
     "/_ap"          : "&microBot Debug - Access point",
@@ -546,14 +552,6 @@ debugPanels = {
     "Access point"   : "/_ap"
 }
 
-title["/"] = title.get("/simple")
-style["/"] = style.get("/simple")
-parts["/"] = parts.get("/simple")
-
-title["/professional"] = title.get("/pro")
-style["/professional"] = style.get("/pro")
-parts["/professional"] = parts.get("/pro")
-
-title["/turtlecode"] = title.get("/turtle")
-style["/turtlecode"] = style.get("/turtle")
-parts["/turtlecode"] = parts.get("/turtle")
+linkPathToExistingPath("/", "/simple")
+linkPathToExistingPath("/professional", "/pro")
+linkPathToExistingPath("/turtlecode", "/turtle")

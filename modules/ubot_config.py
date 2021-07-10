@@ -157,7 +157,7 @@ try:
 except Exception as e:
     _exceptions.append(e)
 
-    powerOns = int(uos.listdir("/log/exception")[-1][:-4])   # [last file][cut extension]
+    powerOns = int(uos.listdir("/log/exception")[-1][:-4])   # [last file][cut extension '.txt']
     powerOnsSource = "guessing based on filenames"
 
 powerOns += 1                                               # Increment the counter
@@ -171,8 +171,8 @@ import ubot_logger as logger
 for exception in _exceptions:
     logger.append(exception)
 
-_exceptions = logger
-_exceptions.append("System RTC has been set. Source: {}".format(dateTimeSource))
-_exceptions.append("'Power on count' has been set. Source: {}".format(powerOnsSource))
+del _exceptions
+logger.append("System RTC has been set. Source: {}".format(dateTimeSource))
+logger.append("'Power on count' has been set. Source: {}".format(powerOnsSource))
 
 import ubot_data as data

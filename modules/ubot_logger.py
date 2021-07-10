@@ -185,7 +185,7 @@ def _defineIndex(item):
 ################################
 ## INITIALISATION
 
-_fileName = "{:010d}.txt".format(int(config.get("system", "power_ons")))
+_fileName = "{:010d}.txt".format(config.get("system", "power_ons"))
 
 try:
     with open("/log/datetime.txt", "a") as file:

@@ -55,12 +55,28 @@ _socket.listen(5)
 _poller.register(_socket, uselect.POLLIN)
 
 _incoming = ""
-_inMethod = ""
-_inPath = ""
-_inContentLength = 0
-_inContentType = ""
-_inAccept = ""
-_inBody = ""
+_request = {
+    "method": "",
+    "path": "",
+    "contentLength": 0,
+    "contentType": "",
+    "accept": "",
+    "body": "",
+    "processing": "UNDEFINED"
+}
+
+_major, _minor, _patch = config.get("system", "firmware")
+_server = "uBot_firmware/{}.{}.{}".format(_major, _minor, _patch)
+_response = {
+        "meta": {
+            "request": _request,
+            "response": {
+                "code": 0,
+                "status": "",
+                "message": ""
+            }},
+        "result": {}
+}
 
 _jsonSender = None
 
@@ -117,14 +133,14 @@ def isAllowed(methodName, methodSet = None):
 ################################
 ## PRIVATE, HELPER METHODS
 
-def _logRequest(request):
-    logger.append("{}\t{}".format(request.get("method"), request.get("path")))
-    logger.append(request)
+def _logRequest():
+    logger.append("{}\t{}".format(_request.get("method"), _request.get("path")))
+    logger.append(_request)
 
 
 def _logResponse(response):
-    meta = response.get("meta")
-    logger.append("{}\t{}".format(meta.get("status").replace(" ", "\t", 1), meta.get("message")))
+    metaResponse = response.get("meta").get("response")
+    logger.append("{}\t{}".format(metaResponse.get("status").replace(" ", "\t", 1), metaResponse.get("message")))
     logger.append(response)
 
 
@@ -141,15 +157,15 @@ def _poll(timer):
 
 
 def _clearOldRequestData():
-    global _incoming, _inMethod, _inPath, _inContentLength, _inContentType, _inAccept, _inBody
+    global _request
 
-    _incoming = ""
-    _inMethod = ""
-    _inPath = ""
-    _inContentLength = 0
-    _inContentType = ""
-    _inAccept = ""
-    _inBody = ""
+    _request["method"] = ""
+    _request["path"] = ""
+    _request["contentLength"] = 0
+    _request["contentType"] = ""
+    _request["accept"] = ""
+    _request["body"] = ""
+    _request["processing"] = "UNDEFINED"
 
 
 def _processIncoming(incoming):
@@ -164,74 +180,90 @@ def _processIncoming(incoming):
 
 
 def _readIncoming():
-    global _connection, _address, _inBody
+    global _connection, _address, _request
 
     _connection, _address = _incoming.accept()
-    requestFile = _connection.makefile("rwb", 0)
+    _socketFile = _connection.makefile("rwb", 0)
 
     while True:
-        line = requestFile.readline()
+        line = _socketFile.readline()
 
         if not line:
             break
         elif line == b"\r\n":
-            if 0 < _inContentLength:
-                _inBody = str(requestFile.read(_inContentLength), "utf-8")
+            if 0 < _request["contentLength"]:
+                _request["body"] = str(_socketFile.read(_request["contentLength"]), "utf-8")
             break
         
         _processHeaderLine(str(line, "utf-8"))
+    _chooseProcessingMethod()
 
 
 def _processHeaderLine(line):
-    global _inMethod, _inPath, _inContentLength, _inContentType, _inAccept
-    
-    if _inMethod == "":
-        firstSpace = line.find(" ")
-        pathEnd = line.find(" HTTP")
+    global _request
 
-        _inMethod = line[0:firstSpace].upper()
-        _inPath = line[firstSpace + 1:pathEnd].lower()
+    line = line.lower()
+
+    if _request.get("method") == "":
+        firstSpace = line.find(" ")
+        pathEnd = line.find(" http")
+
+        _request["method"] = line[0:firstSpace].upper()
+        _request["path"] = line[firstSpace + 1:pathEnd]
         
-    if 0 <= line.lower().find("content-length:"):
-        _inContentLength = int(line[15:].strip())
+    if 0 <= line.find("content-length:"):
+        lengthString = line[15:].strip()
+        _request["contentLength"] = int(lengthString) if lengthString.isdigit() else 0
         
-    if 0 <= line.lower().find("content-type:"):
-        _inContentType = line[13:].strip().lower()
+    if 0 <= line.find("content-type:"):
+        _request["contentType"] = line[13:].strip()
         
-    if 0 <= line.lower().find("accept:"):
-        _inAccept = line[7:].strip().lower()
+    if 0 <= line.find("accept:"):
+        _request["accept"] = line[7:].strip()
+
+
+def _chooseProcessingMethod():
+    global _request
+
+    accept = _request.get("accept")
+    contentType = _request.get("contentType")
+    union = accept + contentType
+
+    if "text/html" in union:
+        _request["processing"] = "HTML"
+    elif "application/json" in union or "*/*" in accept:
+        _request["processing"] = "JSON"
+    else:
+        _request["processing"] = "UNDEFINED"
 
 
 def _processBody():
-    _logRequest(
-        {"path":   _inPath,
-         "method": _inMethod,
-         "type":   _inContentType,
-         "accept": _inAccept,
-         "body":   _inBody
-         })
+    _logRequest()
 
-    if isAllowed(_inMethod):
-        if "text/html" in _inContentType or "text/html" in _inAccept:
-            _processHtmlQuery()
-        elif "application/json" in _inContentType or "application/json" in _inAccept or "*/*" in _inAccept:
-            _processJsonQuery()
-        else:
-            _reply("HTML", "415 Unsupported Media Type",
-                   "'Content-Type' / 'Accept' should be 'text/html' or 'application/json'.")
+    if isAllowed(_request.get("method")):
+        try:
+            _processingMap.setdefault(_request.get("processing"), _unsupportedTypeHandler)()
+        except Exception as e:
+            logger.append(e)
+            _reply("500 Internal Server Error", "A fatal error occurred during processing the {} {} request."
+                   .format(_request.get("processing"), _request.get("method")), data.dumpException(e))
     else:
-        _reply("HTML", "405 Method Not Allowed",
+        _reply("405 Method Not Allowed",
                "The following HTTP request methods are allowed: {}.".format(", ".join(allowedMethods)))
+
+
+def _unsupportedTypeHandler():
+    _reply("415 Unsupported Media Type", "'Content-Type' / 'Accept' should be 'text/html' or 'application/json'.")
 
 
 def _processHtmlQuery():
     if _denyHtml:
         result = _unavailableSupplierFunction()
-        _reply("HTML", result[0], result[1])
-    elif isAllowed(_inMethod, allowedHtmlMethods):
-        _htmlFunctionMap[_inMethod]()
+        _reply(result[0], result[1])
+    elif isAllowed(_request.get("method"), allowedHtmlMethods):
+        _htmlFunctionMap[_request.get("method")]()
     else:
-        _reply("HTML", "405 Method Not Allowed", "The following HTTP request methods are allowed with text/html "
+        _reply("405 Method Not Allowed", "The following HTTP request methods are allowed with text/html "
                                                  "content type: {}.".format(", ".join(allowedHtmlMethods)))
 
 
@@ -240,33 +272,30 @@ def _unavailableSupplierFunction(a = None, b = None, c = None):
 
 
 def _processHtmlGetQuery():
-    try:
-        if _inPath in template.title:
-            _replyWithHtmlTemplate()
-        elif _inPath.startswith("/raw/"):
-            _replyWithHtmlRaw()
-        else:
-            _reply("HTML", "404 Not Found", "Request: Get the page / file '{}'.".format(_inPath))
-    except Exception as e:
-        _reply("HTML", "500 Internal Server Error", "A fatal error occurred during processing the HTML GET request.",
-               data.dumpException(e))
-    finally:
-        _connection.close()
+    path = _request.get("path")
+
+    if path in template.title:
+        _replyWithHtmlTemplate()
+    elif path.startswith("/raw/"):
+        _replyWithHtmlRaw()
+    else:
+        _reply("404 Not Found", "Request: Get the page / file '{}'.".format(path))
 
 
 def _replyWithHtmlTemplate():
     _sendHeader()
-    _connection.write(template.getPageHeadStart().format(template.title.get(_inPath)))
+    path = _request.get("path")
+    _connection.write(template.getPageHeadStart().format(template.title.get(path)))
 
-    for style in template.style.get(_inPath):
+    for style in template.style.get(path):
         _connection.write(style())
 
     _connection.write(template.getPageHeadEnd())
 
-    for part in template.parts.get(_inPath):
+    for part in template.parts.get(path):
         _connection.write(part())
 
-    if _inPath.startswith("/debug"):                                                                  # TODO: Extracting
+    if path.startswith("/debug"):                                                                  # TODO: Extracting
         _connection.write("        <h3>Information panels</h3>\r\n")
 
         for panelTitle in sorted(template.debugPanels.keys()):
@@ -296,24 +325,26 @@ def _replyWithHtmlTemplate():
 
         _connection.write("            </table>\r\n")
     _connection.write(template.getPageFooter())
-    _logResponse(_getBasicReplyMap("200 OK", "Request: Get the page '{}'.".format(_inPath)))
+    _logResponse(_getBasicReplyMap("200 OK", "Request: Get the page '{}'.".format(path)))
 
 
 def _replyWithHtmlRaw():
+    filePath = _request.get("path")[4:]
     _sendHeader()
-    _connection.write(template.getPageHeadStart().format("&microBot Raw &nbsp;| &nbsp; " + _inPath[4:]))
+    _connection.write(template.getPageHeadStart().format("&microBot Raw &nbsp;| &nbsp; " + filePath))
     _connection.write(template.getGeneralStyle())
     _connection.write(template.getRawStyle())
     _connection.write(template.getPageHeadEnd())
-    _sendRaw(_inPath[4:])
+    _sendRaw(filePath)
     _connection.write(template.getPageFooter())
-    _logResponse(_getBasicReplyMap("200 OK", "Request: Get the file '{}'.".format(_inPath[4:])))
+    _logResponse(_getBasicReplyMap("200 OK", "Request: Get the file '{}'.".format(filePath)))
 
 
-def _sendHeader(returnFormat = "HTML", status = "200 OK", allow = None):
+def _sendHeader(status = "200 OK", length = None, allow = None):
     reply = "text/plain"
     allowSet = ", ".join(allowedMethods)
 
+    returnFormat = _request.get("processing")
     if returnFormat == "HTML":
         reply = "text/html"
         allowSet = ", ".join(allowedHtmlMethods)
@@ -325,27 +356,32 @@ def _sendHeader(returnFormat = "HTML", status = "200 OK", allow = None):
         allow = allowSet
 
     _connection.write("HTTP/1.1 {}\r\n".format(status))
-    _connection.write("Content-Type: {}\r\n".format(reply))
+    if length is not None:
+        _connection.write("Content-Length: {}\r\n".format(length))
+    _connection.write("Content-Type: {}; charset=UTF-8\r\n".format(reply))
+    _connection.write("Content-Encoding: identity\r\n")
+    _connection.write("Server: {}\r\n".format(_server))
     _connection.write("Allow: {}\r\n".format(allow))
+    _connection.write("Cache-Control: no-cache\r\n")                                       # TODO: Make caching possible
     _connection.write("Connection: close\r\n\r\n")
 
 
 def _processHtmlPostQuery():
-    _reply("HTML", "501 Not Implemented", "This service is not implemented yet.")
+    _reply("501 Not Implemented", "This service is not implemented yet.")
 
 
 def _processJsonQuery():
     if _denyJson:
         result = _unavailableSupplierFunction()
-        _reply("JSON", result[0], result[1], result[2])
-    elif isAllowed(_inMethod, allowedJsonMethods):
+        _reply(result[0], result[1], result[2])
+    elif isAllowed(_request.get("method"), allowedJsonMethods):
         if _isSpecialJsonRequest():
             _handleSpecialJsonRequest()
         else:
             _startJsonProcessing()
     else:
         methods = ", ".join(allowedJsonMethods)
-        _reply("JSON", "405 Method Not Allowed", "The following HTTP request methods are allowed with application/json "
+        _reply("405 Method Not Allowed", "The following HTTP request methods are allowed with application/json "
                                                  "content type: {}.".format(methods))
 
 
@@ -358,42 +394,44 @@ def _handleSpecialJsonRequest():
 
 
 def _startJsonProcessing():
-    try:
-        _jsonSender(_inPath, _inBody)
-        result = _jsonFunctionMap[_inMethod]()
-        _reply("JSON", result[0], result[1], result[2])
-    except Exception as e:
-        _reply("JSON", "500 Internal Server Error", "A fatal error occurred during processing the JSON GET request.",
-               data.dumpException(e))
-    finally:
-        _connection.close()
+    _jsonSender(_request.get("path"), _request.get("body"))
+    result = _jsonFunctionMap[_request.get("method")]()
+    _reply(result[0], result[1], result[2])
 
 
-def _reply(returnFormat, responseStatus, message, result = None):
+def _reply(responseStatus, message, result = None):
     """ Try to reply with a text/html or application/json
         if the connection is alive, then closes it. """
-
     try:
-        replyMap = _getBasicReplyMap(responseStatus, message, result)
+        reply = _replyMap.get(_request.get("processing"))(responseStatus, message, result)
 
-        _sendHeader(returnFormat, responseStatus)
-
-        reply = ""
-        if returnFormat == "HTML":
-            if responseStatus == "404 Not Found":
-                message = _getHelperLinks()
-
-            style = template.getGeneralStyle() + template.getSimpleStyle()
-            reply = template.getSimplePage().format(title = responseStatus, style = style, body = message)
-        elif returnFormat == "JSON":
-            reply = ujson.dumps(replyMap)
-
+        _sendHeader(responseStatus)
         _connection.write(reply)                                                        # TODO: written bytes check, etc
-        _logResponse(replyMap)
+        _logResponse(_response)
     except Exception as e:
+        logger.append(e)
         logger.append("E104\tECONNRESET @ webserver#_reply")
-    finally:
-        _connection.close()
+
+
+def _createHtmlReply(responseStatus, message, result = None):
+    _updateReply(responseStatus, message, result)
+
+    if responseStatus == "404 Not Found":
+        message = _getHelperLinks()
+
+    style = template.getGeneralStyle() + template.getSimpleStyle()
+    return template.getSimplePage().format(title = responseStatus, style = style, body = message)
+
+
+def _createJsonReply(responseStatus, message, result = None):
+    _updateReply(responseStatus, message, result)
+    return ujson.dumps(_response)
+
+
+
+def _updateReply(responseStatus, message, result = None):
+    global _response
+    _response = _getBasicReplyMap(responseStatus, message, result)
 
 
 def _getBasicReplyMap(responseStatus, message, result = None):
@@ -404,9 +442,12 @@ def _getBasicReplyMap(responseStatus, message, result = None):
 
     replyMap = {
         "meta": {
-            "code": statusCode,
-            "status": responseStatus,
-            "message": _getMessageWithFlags(message, statusCode)},
+            "request": _request,
+            "response": {
+                "code": statusCode,
+                "status": responseStatus,
+                "message": _getMessageWithFlags(message, statusCode)
+            }},
         "result": result
     }
     return replyMap
@@ -433,7 +474,7 @@ def _getHelperLinks():
     for key in sorted(template.title.keys()):
         if key == "/" or key[1] != "_":
             helperLinks += "            <li><a href='{key}'>{title}</a><br><small>{host}{key}</small></li>\r\n".format(
-                host=config.get("ap", "ip"), key=key, title=template.title.get(key)
+                host = config.get("ap", "ip"), key = key, title = template.title.get(key)
             )
     helperLinks += "        </ul>\r\n"
     return helperLinks
@@ -508,4 +549,14 @@ _jsonFunctionMap = {
     "POST":   _unavailableSupplierFunction,
     "PUT":    _unavailableSupplierFunction,
     "DELETE": _unavailableSupplierFunction
+}
+
+_processingMap = {
+    "HTML": _processHtmlQuery,
+    "JSON": _processJsonQuery
+}
+
+_replyMap = {
+    "HTML": _createHtmlReply,
+    "JSON": _createJsonReply
 }
