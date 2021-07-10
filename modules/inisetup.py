@@ -3,8 +3,8 @@ import network, ujson, uos
 from flashbdev import bdev
 from ubinascii import hexlify
 
-firmware = (0, 1, 162)
-initDatetime = (2021, 7, 10, 0, 21, 47, 0, 0)
+firmware = (0, 1, 163)
+initDatetime = (2021, 7, 10, 0, 23, 45, 0, 0)
 
 AP  = network.WLAN(network.AP_IF)
 mac = hexlify(AP.config("mac"), ":").decode()
@@ -82,7 +82,7 @@ logger = {
     "name"          : "Logger",
     "active"        : True,
     "folders"       : ("exception", "event", "object", "run"),
-    "active_logs"   : ("Exception", "Event", "Object", "Run")    # All: ("Exception", "Event", "Object", "Run")
+    "active_logs"   : ("exception", "event", "object", "run")    # All: ("exception", "event", "object", "run")
 }
 
 motor = {

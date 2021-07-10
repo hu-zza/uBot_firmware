@@ -29,7 +29,7 @@
     SOFTWARE.
 """
 
-import ujson, usys
+import usys
 
 import ubot_config as config
 import ubot_turtle as turtle
@@ -40,10 +40,10 @@ _enabled = config.get("logger", "active")
 
                 # Name        | List  | Path  | Enabled
 _logFiles = (
-                ["Exception",   [],     "",     "Exception" in config.get("logger", "active_logs")],
-                ["Event",       [],     "",     "Event" in config.get("logger", "active_logs")],
-                ["Object",      [],     "",     "Object" in config.get("logger", "active_logs")],
-                ["Run",         [],     "",     "Run" in config.get("logger", "active_logs")])
+                ["Exception",   [],     "",     "exception" in config.get("logger", "active_logs")],
+                ["Event",       [],     "",     "event" in config.get("logger", "active_logs")],
+                ["Object",      [],     "",     "object" in config.get("logger", "active_logs")],
+                ["Run",         [],     "",     "run" in config.get("logger", "active_logs")])
 
 
 ################################

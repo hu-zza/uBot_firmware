@@ -29,8 +29,6 @@
     SOFTWARE.
 """
 
-import ujson, uos
-
 from machine import Pin, Timer
 
 import ubot_config as config

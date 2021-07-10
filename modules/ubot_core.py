@@ -153,7 +153,7 @@ def extractCharTupleFromString(tupleString, enabledCharsSet):
 ################################
 ## PRIVATE METHODS FOR REST/JSON
 
-_jsonRequest = {
+_jsonRequest = {                                                                        ########## JSON REQUEST HANDLING
     "path": tuple(),
     "present": 0,
     "body": "",
@@ -186,6 +186,35 @@ def _parseJsonRequestBody():
         _jsonRequest["parsed"] = False
 
 
+def _jsonBodyValidator(job, obligatoryParameters = ("value",)):                               ########## GENERAL HELPERS
+    if _jsonRequest.get("parsed"):
+        body = _jsonRequest.get("body")
+        if all([body.get(item) is not None for item in obligatoryParameters]):
+            return "200 OK", job, {}
+        else:
+            return "403 Forbidden", job + " Cause: The request body is present and parsed, but incomplete.", {}
+    else:
+        return "400 Bad Request", job + " Cause: The request body could not be parsed.", {}
+
+
+def _jsonReplyWithFileInstance(job, path, jobGist):
+    if path != "" and path is not False:
+        pathArray = path.split("/")
+        job = "Request: {} '{}' ({}).".format(jobGist, pathArray[3], pathArray[2])
+        savedProgram = _jsonGetFileOfPath(pathArray[1:4])
+
+        if savedProgram[0] == "200 OK":
+            return "200 OK", job, savedProgram[2]
+        else:
+            return "500 Internal Server Error", job + " Cause: The file system is not available.", {}
+    else:
+        return "422 Unprocessable Entity", job + " Cause: Semantic error in JSON.", {}
+
+
+def _jsonGetFileOfPath(path):
+    return data.createRestReplyFrom(path[0], path[1], path[2])
+
+
 def _executeJsonGet():                                                                       ########## JSON GET HANDLER
     if _jsonRequest.get("present") < 5:
         category = _jsonRequest.get("path")[0]
@@ -208,10 +237,7 @@ def _jsonGetProgramActionStarting():
         result = doProgramAction(folder, title, action)
 
         if result[0]:
-            status, message, json = data.createRestReplyFrom("program", folder, title)
-            json["result"] = result[1]
-
-            return status, "{} <- {}".format(job, message), json
+            return "200 OK", job, result[1]
         else:
             return "403 Forbidden", job + " Cause: Semantic error in the URL.", {}
     else:
@@ -219,15 +245,11 @@ def _jsonGetProgramActionStarting():
 
 
 def _jsonGetFileByRawLink():                                                                  # TODO: real raw for files
-    return _jsonGetFileOf(_jsonRequest.get("path")[1:4])
+    return _jsonGetFileOfPath(_jsonRequest.get("path")[1:4])
 
 
 def _jsonGetFileByJsonLink():
-    return _jsonGetFileOf(_jsonRequest.get("path")[0:3])
-
-
-def _jsonGetFileOf(path):
-    return data.createRestReplyFrom(path[0], path[1], path[2])
+    return _jsonGetFileOfPath(_jsonRequest.get("path")[0:3])
 
 
 def _jsonGetCommandExecution():
@@ -264,31 +286,6 @@ def _executeJsonPost():                                                         
                 return _jsonPostFunctions.get(category)()
 
     return "403 Forbidden", "Job: [REST] POST request. Cause: The format of the URL is invalid.", {}
-
-
-def _jsonBodyValidator(job, obligatoryParameters = ("value",)):
-    if _jsonRequest.get("parsed"):
-        body = _jsonRequest.get("body")
-        if all([body.get(item) is not None for item in obligatoryParameters]):
-            return "200 OK", job, {}
-        else:
-            return "403 Forbidden", job + " Cause: The request body is present and parsed, but incomplete.", {}
-    else:
-        return "400 Bad Request", job + " Cause: The request body could not be parsed.", {}
-
-
-def _jsonReplyWithFileInstance(job, path, jobGist):
-    if path != "" and path is not False:
-        pathArray = path.split("/")
-        job = "Request: {} '{}' ({}).".format(jobGist, pathArray[3], pathArray[2])
-        savedProgram = _jsonGetFileOf(pathArray[1:4])
-
-        if savedProgram[0] == "200 OK":
-            return "200 OK", job, savedProgram[2]
-        else:
-            return "500 Internal Server Error", job + " Cause: The file system is not available.", {}
-    else:
-        return "422 Unprocessable Entity", job + " Cause: Semantic error in JSON.", {}
 
 
 def _jsonPostProgram():
@@ -340,7 +337,28 @@ def _jsonPostCommand():
 
 
 def _jsonPostLog():
-    pass
+    job = "Request: Send log for processing."
+
+    if config.get("logger", "active"):
+        result = _jsonBodyValidator(job)
+        if result[0] != "200 OK":
+            return result
+
+        log = _jsonRequest.get("body").get("value")
+
+        logFile = "event" if isinstance(log, str) else "object"
+        if logFile in config.get("logger", "active_logs"):
+            logger.append(log)
+            status, message, json = _jsonGetFileOfPath(("log", logFile, config.get("system", "power_ons")))
+
+            if status == "200 OK":
+                return "200 OK", job, json
+            else:
+                return "500 Internal Server Error", job + " Cause: The file system is not available.", {}
+        else:
+            return "403 Forbidden", job + " Cause: The log '{}' is inactive.".format(logFile), {}
+    else:
+        return "403 Forbidden", job + " Cause: The logger module is inactive.", {}
 
 
 def _jsonPostRoot():
