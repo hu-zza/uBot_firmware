@@ -52,16 +52,17 @@ buzzer = {
 
 constant = {
     "name"          : "Constant provider",
-    "active"        : True,     # Just for unity
+    "active"        : True,     # Should be always active
     "api_link"      : "https://zza.hu/uBot_API"
 }
 
 data = {
-    "name"          : "IO",
-    "active"        : True,     # Just for unity
+    "name"          : "File manager",
+    "active"        : True,     # Should be always active
     "json_folders"  : ("etc", ),
     "write_rights"  : ("home", "program"),
     "clean_rights"  : ("home", "log", "program"),
+    "modify_rights" : ("ap", "buzzer", "feedback", "i2c", "logger", "motor", "turtle", "uart", "web_repl", "web_server"),
     "has_action"    : ("etc", "program")
 }
 
@@ -71,7 +72,7 @@ feedback = {
 }
 
 i2c = {
-    "name"          : "I2C Bus",
+    "name"          : "I2C Driver",
     "active"        : False,
     "sda"           : 0,
     "scl"           : 2,
@@ -79,9 +80,9 @@ i2c = {
 }
 
 logger = {
-    "name"          : "Logger",
+    "name"          : "Log manager",
     "active"        : True,
-    "folders"       : ("exception", "event", "object", "run"),
+    "folders"       : ("exception", "event", "object", "run"),   # Used only at running inisetup.py
     "active_logs"   : ("exception", "event", "object", "run")    # All: ("exception", "event", "object", "run")
 }
 
@@ -99,8 +100,8 @@ motor = {
 }
 
 system = {
-    "name"          : "System",
-    "active"        : True,     # Just for unity
+    "name"          : "System core",
+    "active"        : True,     # Should be always active
     "id"            : hexlify(uos.urandom(32)).decode(),
     "chk"           : hexlify(uos.urandom(32)).decode(),
     "firmware"      : firmware,
@@ -110,7 +111,7 @@ system = {
 }
 
 turtle = {
-    "name"          : "Turtle",
+    "name"          : "Turtle interface",
     "active"        : True,
     "named_folder"  : "named",
     "turtle_folder" : "turtle",
@@ -131,8 +132,14 @@ turtle = {
 }
 
 uart = {
-    "name"          : "UART",
+    "name"          : "UART interface",
     "active"        : True
+}
+
+web_repl = {
+    "name"          : "MicroPython WebREPL",
+    "active"        : False,
+    "password"      : "uBot_REPL"
 }
 
 web_server = {
@@ -145,12 +152,6 @@ web_server = {
     "log_event"     : False,
     "log_request"   : False,
     "log_response"  : False
-}
-
-web_repl = {
-    "name"          : "MicroPython WebREPL",
-    "active"        : False,
-    "password"      : "uBot_REPL"
 }
 
 

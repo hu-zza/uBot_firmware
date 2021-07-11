@@ -198,10 +198,11 @@ def _jsonBodyValidator(job, obligatoryParameters = ("value",)):                 
         return "400 Bad Request", "{} Cause: The request body could not be parsed.".format(job), {}
 
 
-def _jsonReplyWithFileInstance(job, path, jobGist):
+def _jsonReplyWithFileInstance(job, path):
     if path != "":
         pathArray = path.split("/")
-        job = "Request: {} '{}' ({}).".format(jobGist, pathArray[3], pathArray[2])
+        jobGist = job[:job.find("'")]
+        job = "{}'{}' ({}).".format(jobGist, pathArray[3], pathArray[2])
         savedProgram = _jsonGetFileOfPath(pathArray[1:4])
 
         if savedProgram[0] == "200 OK":
@@ -296,21 +297,22 @@ def _jsonPostProgram():
 
     job = "Request: Save program '{}' ({}).".format(title, folder)
     if not turtle.doesProgramExist(folder, title):
-
-        body = _jsonRequest.get("body")
-
-        if body == "":
-            path = turtle.saveLoadedProgram(folder, title)
-        else:
-            result = _jsonBodyValidator(job)
-            if result[0] != "200 OK":
-                return result
-
-            path = turtle.saveProgram(folder, title, body.get("value"))
-
-        return _jsonReplyWithFileInstance(job, path, "Save program")
+        return _jsonWriteProgram(folder, title, job)
     else:
         return "403 Forbidden", "{} Cause: The program already exists.".format(job), {}
+
+
+def _jsonWriteProgram(folder, title, job):
+    body = _jsonRequest.get("body")
+    if body == "":
+        path = turtle.saveLoadedProgram(folder, title)
+    else:
+        result = _jsonBodyValidator(job)
+        if result[0] != "200 OK":
+            return result
+
+        path = turtle.saveProgram(folder, title, body.get("value"))
+    return _jsonReplyWithFileInstance(job, path)
 
 
 def _jsonPostFile():
@@ -320,19 +322,21 @@ def _jsonPostFile():
     job = "Request: Save file '{}' ({}).".format(title, folder)
     path = data.getNormalizedPathOf((category, folder), title)
     if not data.doesExist(path):
-
-        result = _jsonBodyValidator(job)
-        if result[0] != "200 OK":
-            return result
-
-        body = _jsonRequest.get("body")
-        file = ujson.dumps(body.get("value")) if body.get("isJson") is True else body.get("value")
-
-        path = path if data.saveFileOfPath(path, file, True) else ""
-
-        return _jsonReplyWithFileInstance(job, path, "Save file")
+        return _jsonWriteFile(job, path)
     else:
         return "403 Forbidden", "{} Cause: The file already exists.".format(job), {}
+
+
+def _jsonWriteFile(path, job):
+    result = _jsonBodyValidator(job)
+    if result[0] != "200 OK":
+        return result
+
+    body = _jsonRequest.get("body")
+    file = ujson.dumps(body.get("value")) if body.get("isJson") is True else body.get("value")
+    path = path if data.saveFileOfPath(path, file, True) else ""
+
+    return _jsonReplyWithFileInstance(job, path)
 
 
 def _jsonPostCommand():
@@ -419,24 +423,27 @@ _jsonPostFunctions = {
 def _executeJsonPut():                                                                       ########## JSON PUT HANDLER
     if _jsonRequest.get("present") == 3:
         _parseJsonRequestBody()
-
-        if _jsonRequest.get("parsed"):
-            category = _jsonRequest.get("path")[0]
-
-            if category == "etc":
-                return _jsonChangeSystemProperty()
-            elif category in config.get("data", "write_rights"):
-                return _jsonPutFile()
+        return _jsonPutFile()
 
     return "403 Forbidden", "Job: [REST] PUT request. Cause: The format of the URL is invalid.", {}
 
 
 def _jsonPutFile():
-    pass
+    category, folder, title = _jsonRequest.get("path")[0:3]
+    title = data.normalizeTxtFilename(title)
 
+    job = "Request: Modify file '{}' ({}).".format(title, folder)
+    if category in config.get("data", "write_rights") or category == "etc" and folder in config.get("data", "modify_rights"):
 
-def _jsonChangeSystemProperty():
-    pass
+        path = data.getNormalizedPathOf((category, folder), title)
+
+        if data.doesExist(path):
+            return _jsonWriteFile(job, path)
+        else:
+            return "403 Forbidden", "{} Cause: The file doesn't exist.".format(job), {}
+    else:
+        return "403 Forbidden", "{} Cause: The file can not be modified.".format(job), {}
+
 
 
 def _executeJsonDelete():                                                                 ########## JSON DELETE HANDLER

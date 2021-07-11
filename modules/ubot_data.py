@@ -327,7 +327,7 @@ def _createJsonFolderInstance(folder, isRoot = False):
                           "href": "{}{}/".format(folderLink, subFolder),
                           "raw":  "{}{}/".format(folderRawLink, subFolder)} for subFolder in subFolders]}
     else:
-        return "404 Not Found", job + " Cause: No such folder.", {}
+        return "404 Not Found", job + " Cause: The folder doesn't exist.", {}
 
 
 def _createJsonSubFolderInstance(folder, subFolder):
@@ -356,7 +356,7 @@ def _createJsonSubFolderInstance(folder, subFolder):
                           "href": "{}{}".format(folderLink, file),
                           "raw":  "{}{}.txt".format(folderRawLink, file)} for file in files]}     #! Burnt-in txt suffix
     else:
-        return "404 Not Found", job + " Cause: No such folder.", {}
+        return "404 Not Found", job + " Cause: The folder doesn't exist.", {}
 
 
 def _createJsonFileInstance(folder, subFolder, file):
@@ -382,6 +382,6 @@ def _createJsonFileInstance(folder, subFolder, file):
                 "children": [],
                 "value": getFile(path, isJson)}
         else:
-            return "404 Not Found", job + " Cause: No such file.", {}
+            return "404 Not Found", job + " Cause: The file doesn't exist.", {}
     else:
         return "403 Forbidden", job + " Cause: Invalid path in the URL.", {}
