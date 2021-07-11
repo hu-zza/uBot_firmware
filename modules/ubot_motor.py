@@ -144,8 +144,9 @@ def add(movementTuple):
 
     duration    : integer parameter (length of movement in millisecond)
     """
-    _moveList.append(movementTuple)
-    _startProcessing()
+    if isinstance(movementTuple, tuple) and isinstance(movementTuple[0], int) and isinstance(movementTuple[1], int):
+        _moveList.append(movementTuple)
+        _startProcessing()
 
 
 def stop():

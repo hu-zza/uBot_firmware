@@ -198,7 +198,15 @@ def getLineCountOfFile(path):
     return sum(1 for _ in open(path))
 
 
-def canCreate(path):
+def canModify(path):
+    if doesExist(path):
+        pathArray = normalizePath(path).split("/")
+        return pathArray[1] == "etc" and pathArray[2] in config.get("data", "modify_rights")
+    else:
+        return False
+
+
+def canWrite(path):
     return normalizePath(path).split("/")[1] in config.get("data", "write_rights")
 
 
@@ -207,7 +215,7 @@ def createFolderOf(folder = "", subFolder = ""):
 
 
 def createFolderOfPath(path):
-    if canCreate(path) and not doesExist(path):
+    if canWrite(path) and not doesExist(path):
         uos.mkdir(normalizeFolderPath(path)[:-1])
         return doesExist(path)
     else:
@@ -221,7 +229,7 @@ def saveFileOf(pathAsList, filename, lines, isRecursive = False):
 
 
 def saveFileOfPath(path, lines, isRecursive = False):
-    if canCreate(path):
+    if canWrite(path) or canModify(path):
         return _saveFile(path, lines, isRecursive)
     else:
         return False

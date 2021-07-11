@@ -198,7 +198,7 @@ def _jsonBodyValidator(job, obligatoryParameters = ("value",)):                 
         return "400 Bad Request", "{} Cause: The request body could not be parsed.".format(job), {}
 
 
-def _jsonReplyWithFileInstance(job, path):
+def _jsonReplyWithFileInstance(path, job):
     if path != "":
         pathArray = path.split("/")
         jobGist = job[:job.find("'")]
@@ -295,7 +295,7 @@ def _jsonPostProgram():
     folder, title = _jsonRequest.get("path")[1:3]
     title = data.normalizeTxtFilename(title)
 
-    job = "Request: Save program '{}' ({}).".format(title, folder)
+    job = "Request: Save the program '{}' ({}).".format(title, folder)
     if not turtle.doesProgramExist(folder, title):
         return _jsonWriteProgram(folder, title, job)
     else:
@@ -312,14 +312,14 @@ def _jsonWriteProgram(folder, title, job):
             return result
 
         path = turtle.saveProgram(folder, title, body.get("value"))
-    return _jsonReplyWithFileInstance(job, path)
+    return _jsonReplyWithFileInstance(path, job)
 
 
 def _jsonPostFile():
     category, folder, title = _jsonRequest.get("path")[0:3]
     title = data.normalizeTxtFilename(title)
 
-    job = "Request: Save file '{}' ({}).".format(title, folder)
+    job = "Request: Save the file '{}' ({}).".format(title, folder)
     path = data.getNormalizedPathOf((category, folder), title)
     if not data.doesExist(path):
         return _jsonWriteFile(job, path)
@@ -327,16 +327,18 @@ def _jsonPostFile():
         return "403 Forbidden", "{} Cause: The file already exists.".format(job), {}
 
 
-def _jsonWriteFile(path, job):
+def _jsonWriteFile(path, job, isJson = None):
     result = _jsonBodyValidator(job)
     if result[0] != "200 OK":
         return result
 
-    body = _jsonRequest.get("body")
-    file = ujson.dumps(body.get("value")) if body.get("isJson") is True else body.get("value")
+    body   = _jsonRequest.get("body")
+    isJson = isJson is True or body.get("isJson") is True
+
+    file = ujson.dumps(body.get("value")) if isJson else body.get("value")
     path = path if data.saveFileOfPath(path, file, True) else ""
 
-    return _jsonReplyWithFileInstance(job, path)
+    return _jsonReplyWithFileInstance(path, job)
 
 
 def _jsonPostCommand():
@@ -431,27 +433,25 @@ def _executeJsonPut():                                                          
 def _jsonPutFile():
     category, folder, title = _jsonRequest.get("path")[0:3]
     title = data.normalizeTxtFilename(title)
+    path = data.getNormalizedPathOf((category, folder), title)
 
-    job = "Request: Modify file '{}' ({}).".format(title, folder)
-    if category in config.get("data", "write_rights") or category == "etc" and folder in config.get("data", "modify_rights"):
+    job = "Request: Modify the file '{}' ({}).".format(title, folder)
 
-        path = data.getNormalizedPathOf((category, folder), title)
+    if data.doesExist(path):
+        if category in config.get("data", "write_rights") or \
+                category == "etc" and folder in config.get("data", "modify_rights"):
 
-        if data.doesExist(path):
-            return _jsonWriteFile(job, path)
+            return _jsonWriteFile(path, job, True if category == "etc" else None)
         else:
-            return "403 Forbidden", "{} Cause: The file doesn't exist.".format(job), {}
+            return "403 Forbidden", "{} Cause: The file can not be modified.".format(job), {}
     else:
-        return "403 Forbidden", "{} Cause: The file can not be modified.".format(job), {}
+        return "403 Forbidden", "{} Cause: The file doesn't exist.".format(job), {}
 
 
 
 def _executeJsonDelete():                                                                 ########## JSON DELETE HANDLER
     if 0 < _jsonRequest.get("present") < 4:
-        category = _jsonRequest.get("path")[0]
-
-        if category in config.get("data", "clean_rights"):
-            return _jsonDelete()
+        return _jsonDelete()
 
     return "403 Forbidden", "Job: [REST] DELETE request. Cause: The format of the URL is invalid.", {}
 
@@ -549,7 +549,7 @@ if config.get("web_server", "active"):
             webserver.setJsonSender(_updateJsonRequest)
             webserver.setJsonCallback("GET", _executeJsonGet)
             webserver.setJsonCallback("POST", _executeJsonPost)
-            #webserver.setJsonCallback("PUT", _executeJsonPut)
+            webserver.setJsonCallback("PUT", _executeJsonPut)
             #webserver.setJsonCallback("DELETE", _executeJsonDelete)
         webserver.start()
     except Exception as e:

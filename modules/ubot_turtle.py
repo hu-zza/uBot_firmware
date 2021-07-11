@@ -134,7 +134,9 @@ def move(direction):
     if isinstance(direction, str):
         direction = ord(direction)
 
-    motor.add(_moveCharMapping.get(direction))
+    movementTuple = _moveCharMapping.get(direction)
+    if movementTuple is not None:
+        motor.add(movementTuple)
 
 
 def skipSignal(stepCount = 1, endCount = 0):
