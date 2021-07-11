@@ -174,6 +174,7 @@ def _updateJsonRequest(path = "", body = ""):
     _jsonRequest["path"] = tuple(array)
     _jsonRequest["body"] = body
     _jsonRequest["parsed"] = False
+    _jsonRequest["exception"] = []
 
 
 def _parseJsonRequestBody():
@@ -192,13 +193,13 @@ def _jsonBodyValidator(job, obligatoryParameters = ("value",)):                 
         if all([body.get(item) is not None for item in obligatoryParameters]):
             return "200 OK", job, {}
         else:
-            return "403 Forbidden", job + " Cause: The request body is present and parsed, but incomplete.", {}
+            return "403 Forbidden", "{} Cause: The request body is present and parsed, but incomplete.".format(job), {}
     else:
-        return "400 Bad Request", job + " Cause: The request body could not be parsed.", {}
+        return "400 Bad Request", "{} Cause: The request body could not be parsed.".format(job), {}
 
 
 def _jsonReplyWithFileInstance(job, path, jobGist):
-    if path != "" and path is not False:
+    if path != "":
         pathArray = path.split("/")
         job = "Request: {} '{}' ({}).".format(jobGist, pathArray[3], pathArray[2])
         savedProgram = _jsonGetFileOfPath(pathArray[1:4])
@@ -206,9 +207,9 @@ def _jsonReplyWithFileInstance(job, path, jobGist):
         if savedProgram[0] == "200 OK":
             return "200 OK", job, savedProgram[2]
         else:
-            return "500 Internal Server Error", job + " Cause: The file system is not available.", {}
+            return "500 Internal Server Error", "{} Cause: The file system is not available.".format(job), {}
     else:
-        return "422 Unprocessable Entity", job + " Cause: Semantic error in JSON.", {}
+        return "422 Unprocessable Entity", "{} Cause: Semantic error in JSON.".format(job), {}
 
 
 def _jsonGetFileOfPath(path):
@@ -239,9 +240,9 @@ def _jsonGetProgramActionStarting():
         if result[0]:
             return "200 OK", job, result[1]
         else:
-            return "403 Forbidden", job + " Cause: Semantic error in the URL.", {}
+            return "403 Forbidden", "{} Cause: Semantic error in the URL.".format(job), {}
     else:
-        return "404 Not Found", job + " Cause: No such program.", {}
+        return "404 Not Found", "{} Cause: No such program.".format(job), {}
 
 
 def _jsonGetFileByRawLink():                                                                  # TODO: real raw for files
@@ -261,7 +262,7 @@ def _jsonGetCommandExecution():
                                    "href": "http://{}/command/{}".format(config.get("ap", "ip"), command)}
     except Exception:
         pass
-    return "403 Forbidden", job + " Cause: Semantic error in the URL.", {}
+    return "403 Forbidden", "{} Cause: Semantic error in the URL.".format(job), {}
 
 
 _jsonGetFunctions = {
@@ -276,9 +277,7 @@ def _executeJsonPost():                                                         
         category = _jsonRequest.get("path")[0]
 
         if category in config.get("data", "write_rights"):
-            if category == "program":
-                return _jsonPostProgram()
-            elif _jsonRequest.get("parsed"):
+            if _jsonRequest.get("present") == 3 or category == "program":
                 return _jsonPostFile()
 
         if _jsonRequest.get("present") == 1:
@@ -288,30 +287,33 @@ def _executeJsonPost():                                                         
     return "403 Forbidden", "Job: [REST] POST request. Cause: The format of the URL is invalid.", {}
 
 
-def _jsonPostProgram():
-    folder, title = _jsonRequest.get("path")[1:3]
+def _jsonPostFile():
+    category, folder, title = _jsonRequest.get("path")[0:3]
+    isProgram = category == "program"
+    artifact  = "program" if isProgram else "file"
+    title = data.normalizeTxtFileName(title)
 
-    job = "Request: Save program '{}' ({}).".format(title, folder)
-    if not turtle.doesProgramExist(folder, title):
+    job = "Request: Save {} '{}' ({}).".format(artifact, title, folder)
+    path = data.getNormalizedPathOf((category, folder), title)
+    if not data.doesExist(path):
 
         body = _jsonRequest.get("body")
 
-        if body == "":
+        if isProgram and body == "":
             path = turtle.saveLoadedProgram(folder, title)
         else:
-            result = _jsonBodyValidator(job)
+            result = _jsonBodyValidator(job, ("value",) if isProgram else ("value", "isJson"))
             if result[0] != "200 OK":
                 return result
 
-            path = turtle.saveProgram(folder, title, body.get("value"))
+            if isProgram:
+                path = turtle.saveProgram(folder, title, body.get("value"))
+            else:
+                path = path if data.saveFileOfPath(path, body.get("value"), body.get("isJson"), True) else ""
 
-        return _jsonReplyWithFileInstance(job, path, "Save program")
+        return _jsonReplyWithFileInstance(job, path, "Save {}".format(artifact))
     else:
-        return "403 Forbidden", job + " Cause: The file already exists.", {}
-
-
-def _jsonPostFile():
-    pass
+        return "403 Forbidden", "{} Cause: The {} already exists.".format(job, artifact), {}
 
 
 def _jsonPostCommand():
@@ -333,7 +335,7 @@ def _jsonPostCommand():
     if counter == commandCount:
         return "200 OK", job, counter
     else:
-        return "422 Unprocessable Entity", job + " Cause: Semantic error in JSON.", {}
+        return "422 Unprocessable Entity", "{} Cause: Semantic error in JSON.".format(job), {}
 
 
 def _jsonPostLog():
@@ -354,11 +356,11 @@ def _jsonPostLog():
             if status == "200 OK":
                 return "200 OK", job, json
             else:
-                return "500 Internal Server Error", job + " Cause: The file system is not available.", {}
+                return "500 Internal Server Error", "{} Cause: The file system is not available.".format(job), {}
         else:
-            return "403 Forbidden", job + " Cause: The log '{}' is inactive.".format(logFile), {}
+            return "403 Forbidden", "{} Cause: The log '{}' is inactive.".format(job, logFile), {}
     else:
-        return "403 Forbidden", job + " Cause: The logger module is inactive.", {}
+        return "403 Forbidden", "{} Cause: The logger module is inactive.".format(job), {}
 
 
 def _jsonPostRoot():
@@ -384,7 +386,7 @@ def _jsonPostRoot():
                 if len(results) == len(commands):
                     return "200 OK", job, results
                 else:
-                    return "422 Unprocessable Entity", job + " Cause: Semantic error in JSON.", results
+                    return "422 Unprocessable Entity", "{} Cause: Semantic error in JSON.".format(job), results
     return "403 Forbidden", "Job: [REST] POST request. Cause: The format of the URL is invalid.", {}
 
 

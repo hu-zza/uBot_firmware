@@ -3,8 +3,8 @@ import network, ujson, uos
 from flashbdev import bdev
 from ubinascii import hexlify
 
-firmware = (0, 1, 164)
-initDatetime = (2021, 7, 10, 0, 23, 55, 0, 0)
+firmware = (0, 1, 165)
+initDatetime = (2021, 7, 11, 0, 2, 50, 0, 0)
 
 AP  = network.WLAN(network.AP_IF)
 mac = hexlify(AP.config("mac"), ":").decode()
@@ -144,7 +144,7 @@ web_server = {
     "json_enabled"  : True,
     "log_event"     : True,
     "log_request"   : False,
-    "log_response"  : True
+    "log_response"  : False
 }
 
 web_repl = {
@@ -232,7 +232,7 @@ def setup():
     uos.mkdir("/program/json")
 
     firmware = system.get("firmware")
-    firmwareComment = "# uBot firmware {}.{}.{}\r\n\r\n".format(
+    firmwareComment = "# μBot firmware {}.{}.{}\r\n\r\n".format(
         firmware[0], firmware[1], firmware[2]
     )
 

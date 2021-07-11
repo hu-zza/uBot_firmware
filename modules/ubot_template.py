@@ -181,9 +181,9 @@ def getTurtlePanel():
 
 
 def getSystemPanel():
-    free, alloc = gc.mem_free(), gc.mem_alloc()
-    allMemory = free + alloc
-    freeMemoryPercent = free * 100 // allMemory
+    freeMemory, allocatedMemory = gc.mem_free(), gc.mem_alloc()
+    allMemory = freeMemory + allocatedMemory
+    freeMemoryPercent = freeMemory * 100 // allMemory
 
     stat = uos.statvfs("/")
     freeSpace = stat[4] * stat[0]       # f_bavail * f_bsize
@@ -209,7 +209,7 @@ def getSystemPanel():
             "            </table>\r\n").format(powerOns = config.get("system", "power_ons"),
                                              savedPrograms = turtle.getProgramsCount(),
                                              major = major, minor = minor, patch = patch,
-                                             freeMemoryPercent = freeMemoryPercent, freeMemory = gc.mem_free(), allMemory = allMemory,
+                                             freeMemoryPercent = freeMemoryPercent, freeMemory = freeMemory, allMemory = allMemory,
                                              freeSpacePercent = freeSpacePercent, freeSpace = freeSpace, allSpace = allSpace,
                                              year = year, month = month, day = day, hour = hour, minute = minute, second = second,
                                              idA = idA, idB = idB)

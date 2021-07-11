@@ -63,6 +63,16 @@ def normalizeFolderPath(folder):
     return folder if folder[-1] == "/" else "{}/".format(folder)
 
 
+def normalizeTxtFileName(fileName):
+    if isinstance(fileName, str):
+        fileName = fileName.lower()
+        return fileName if fileName.endswith(".txt") or fileName == "" else "{}.txt".format(fileName)
+    else:
+        logger.append(AttributeError("ubot_data#normalizeTxtFileName\r\n'{}' is not a string representing a filename.\r\n"
+                                     .format(fileName)))
+        return "Exception @ ubot_data#normalizeTxtFileName"
+
+
 def getNormalizedPathOf(pathAsList = (), fileName = ""):
     if pathAsList is None or len(pathAsList) == 0:
         path = "/"
@@ -190,24 +200,26 @@ def createFolderOfPath(path):
         return False
 
 
-def saveFileOf(pathAsList, fileName, lines, isJson = False):
+def saveFileOf(pathAsList, fileName, lines, isJson = False, isRecursive = False):
     return saveFileOfPath(
-        getNormalizedPathOf(pathAsList, fileName if not fileName.endswith(".txt") else "{}.txt".format(fileName)),
-        lines,
-        isJson)
+        getNormalizedPathOf(pathAsList, normalizeTxtFileName(fileName)),
+        lines, isJson, isRecursive)
 
 
-def saveFileOfPath(path, lines, isJson = False):
+def saveFileOfPath(path, lines, isJson = False, isRecursive = False):
     if canCreate(path):
-        return _saveFile(path, lines, isJson)
+        return _saveFile(path, lines, isJson, isRecursive)
     else:
         return False
 
 
-def _saveFile(path, lines, isJson = False):
+def _saveFile(path, lines, isJson = False, isRecursive = False):
     path = normalizePath(path)
     written = 0
     try:
+        if isRecursive:
+            _createFoldersIfNeeded(path)
+
         with open(path, "w") as file:
             if isinstance(lines, tuple) or isinstance(lines, list):
                 for line in lines:
@@ -222,6 +234,16 @@ def _saveFile(path, lines, isJson = False):
         logger.append(e)
         logger.append(AttributeError("ubot_data#_saveFile\r\nCan not process '{}'.\r\n".format(path)))
         return False
+
+
+def _createFoldersIfNeeded(path):
+        pathArray = path.split("/")[1:-1]
+        elements = []
+        for i in range(len(pathArray)):
+            elements.append(pathArray[i])
+            path = getNormalizedPathOf(elements)
+            if not doesExist(path):
+                createFolderOfPath(path)
 
 
 def _writeOut(file, line, isJson = False):
@@ -322,9 +344,8 @@ def _createJsonSubFolderInstance(folder, subFolder):
 
 
 def _createJsonFileInstance(folder, subFolder, file):
-    _file  = "{:010d}".format(int(file)) if folder == "log" and isinstance(file, int) or file.isdigit() else file
-    _file  = _file if _file == "" or _file.endswith(".txt") else "{}.txt".format(_file)           #! Burnt-in txt suffix
-    path   = getNormalizedPathOf((folder, subFolder), _file)                                      #! if file != ""
+    _file  = normalizeTxtFileName(logger.normalizeLogTitle(file) if folder == "log" else file)
+    path   = getNormalizedPathOf((folder, subFolder), _file)
     parent = getNormalizedPathOf((folder, subFolder))
     job = "Request: Get the file '{}'.".format(path)
 

@@ -305,7 +305,7 @@ def _replyWithHtmlTemplate():
     for part in template.parts.get(path):
         _connection.write(part())
 
-    if path.startswith("/debug"):                                                                  # TODO: Extracting
+    if path.startswith("/debug"):                                                                     # TODO: Extracting
         _connection.write("        <h3>Information panels</h3>\r\n")
 
         for panelTitle in sorted(template.debugPanels.keys()):

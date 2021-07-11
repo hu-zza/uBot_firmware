@@ -78,11 +78,16 @@ def getCategoryLogs(category):
 
 
 def getLog(category, title):
-    return data.getFile(data.getNormalizedPathOf(("log", category), "{}.txt".format(title)))
+    title = data.normalizeTxtFileName(normalizeLogTitle(title))
+    return data.getFile(data.getNormalizedPathOf(("log", category), title))
 
 
 def doesLogExist(category, title):
-    return title in getCategoryLogs(category)
+    return normalizeLogTitle(title) in getCategoryLogs(category)
+
+
+def normalizeLogTitle(title):
+    return "{:010d}".format(int(title)) if isinstance(title, int) or title.isdigit() else title
 
 
 ################################

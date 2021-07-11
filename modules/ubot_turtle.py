@@ -173,7 +173,7 @@ def getProgramCode(folder, title):
 
 
 def getNormalizedPathOf(folder, title = ""):
-    return data.getNormalizedPathOf(("program", folder), None if title == "" else "{}.txt".format(title))
+    return data.getNormalizedPathOf(("program", folder), data.normalizeTxtFileName(title))
 
 
 def runProgram(folder, title):
@@ -217,8 +217,9 @@ def saveLoadedProgram(folder = "", title = ""):
 def saveProgram(folder = "", title = "", program = ""):
     global _savedCount
 
-    folder = _jsonFolder if folder == "" else folder
-    path    = _generateFullPathForAutoSave() if title == "" else "/program/{}/{}.txt".format(folder.lower(), title.lower())
+    folder  = _jsonFolder if folder == "" else folder.lower()
+    title   = data.normalizeTxtFileName(title)
+    path    = _generateFullPathForAutoSave() if title == "" else "/program/{}/{}".format(folder, title)
     dirPath = path[:path.rindex("/")]
 
     if not doesFolderExist(folder):
