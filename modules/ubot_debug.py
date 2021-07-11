@@ -136,12 +136,12 @@ def printExceptions(nr = None):
                "listExceptions() command.\r\n"))
     else:
         exceptionFiles = uos.listdir("/log/exception")
-        fileName = "{:010d}.txt".format(nr)
+        filename = "{:010d}.txt".format(nr)
 
-        if fileName in exceptionFiles:
+        if filename in exceptionFiles:
             try:
                 print()
-                with open("/log/exception/" + fileName) as file:
+                with open("/log/exception/" + filename) as file:
                     for line in file:
                         print(line, end="")
                 print()

@@ -14,7 +14,7 @@ firmwarePath = "{}/GIT/uBot/uBot_firmware".format(homePath)
 modulesPath  = "{}/modules".format(firmwarePath)
 sandboxPath  = "{}/sandbox".format(firmwarePath)
 
-fileNameFormat = "uBot_firmware_{}.{}.{}.bin"
+filenameFormat = "uBot_firmware_{}.{}.{}.bin"
 
 def printJob(job):
     print("\r\nJOB: {}\r\n\r\n".format(job))
@@ -53,16 +53,16 @@ artifacts = [name for name in os.listdir(sandboxPath) if name.endswith(".bin")]
 for artifact in artifacts:
     os.remove("{}/{}".format(sandboxPath, artifact))
 
-fileName = fileNameFormat.format(major, minor, patch)
+filename = filenameFormat.format(major, minor, patch)
 printJob("COPY ARTIFACT")
-shutil.copyfile(artifactPath, "{}/{}".format(sandboxPath, fileName))
+shutil.copyfile(artifactPath, "{}/{}".format(sandboxPath, filename))
 
 printJob("ERASE FLASH")
 printResult(os.system("esptool.py --port /dev/ttyUSB0 erase_flash"))
 
 printJob("FLASH FIRMWARE")
 printResult(os.system("esptool.py --port /dev/ttyUSB0 --baud 460800 write_flash --flash_size=detect 0 {}/{}"
-                      .format(sandboxPath, fileName)))
+                      .format(sandboxPath, filename)))
 
 printJob("CHANGE DIR: {}".format(oldCwd))
 os.chdir(oldCwd)

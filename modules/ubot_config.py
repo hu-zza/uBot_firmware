@@ -44,7 +44,7 @@ def getModules():
 
 def getAttributesOf(module):
     """ Returns a tuple consists all available attributes, or an empty tuple. """
-    return data.getFilenamesOf("etc", module)
+    return data.getFileNamesOf("etc", module)
 
 
 def get(module, attribute):

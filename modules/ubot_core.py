@@ -146,7 +146,7 @@ def extractIntTupleFromString(tupleString):
 
 
 def extractCharTupleFromString(tupleString, enabledCharsSet):
-    return tuple([char for char in tupleString if char in enabledCharsSet])
+    return tuple(char for char in tupleString if char in enabledCharsSet)
 
 
 
@@ -190,7 +190,7 @@ def _parseJsonRequestBody():
 def _jsonBodyValidator(job, obligatoryParameters = ("value",)):                               ########## GENERAL HELPERS
     if _jsonRequest.get("parsed"):
         body = _jsonRequest.get("body")
-        if all([body.get(item) is not None for item in obligatoryParameters]):
+        if all(body.get(item) is not None for item in obligatoryParameters):
             return "200 OK", job, {}
         else:
             return "403 Forbidden", "{} Cause: The request body is present and parsed, but incomplete.".format(job), {}
@@ -277,8 +277,11 @@ def _executeJsonPost():                                                         
         category = _jsonRequest.get("path")[0]
 
         if category in config.get("data", "write_rights"):
-            if _jsonRequest.get("present") == 3 or category == "program":
+            if category == "program":
+                return _jsonPostProgram()
+            elif _jsonRequest.get("present") == 3:
                 return _jsonPostFile()
+
 
         if _jsonRequest.get("present") == 1:
             if category in _jsonPostFunctions.keys():
@@ -287,33 +290,49 @@ def _executeJsonPost():                                                         
     return "403 Forbidden", "Job: [REST] POST request. Cause: The format of the URL is invalid.", {}
 
 
-def _jsonPostFile():
-    category, folder, title = _jsonRequest.get("path")[0:3]
-    isProgram = category == "program"
-    artifact  = "program" if isProgram else "file"
-    title = data.normalizeTxtFileName(title)
+def _jsonPostProgram():
+    folder, title = _jsonRequest.get("path")[1:3]
+    title = data.normalizeTxtFilename(title)
 
-    job = "Request: Save {} '{}' ({}).".format(artifact, title, folder)
-    path = data.getNormalizedPathOf((category, folder), title)
-    if not data.doesExist(path):
+    job = "Request: Save program '{}' ({}).".format(title, folder)
+    if not turtle.doesProgramExist(folder, title):
 
         body = _jsonRequest.get("body")
 
-        if isProgram and body == "":
+        if body == "":
             path = turtle.saveLoadedProgram(folder, title)
         else:
-            result = _jsonBodyValidator(job, ("value",) if isProgram else ("value", "isJson"))
+            result = _jsonBodyValidator(job)
             if result[0] != "200 OK":
                 return result
 
-            if isProgram:
-                path = turtle.saveProgram(folder, title, body.get("value"))
-            else:
-                path = path if data.saveFileOfPath(path, body.get("value"), body.get("isJson"), True) else ""
+            path = turtle.saveProgram(folder, title, body.get("value"))
 
-        return _jsonReplyWithFileInstance(job, path, "Save {}".format(artifact))
+        return _jsonReplyWithFileInstance(job, path, "Save program")
     else:
-        return "403 Forbidden", "{} Cause: The {} already exists.".format(job, artifact), {}
+        return "403 Forbidden", "{} Cause: The program already exists.".format(job), {}
+
+
+def _jsonPostFile():
+    category, folder, title = _jsonRequest.get("path")[0:3]
+    title = data.normalizeTxtFilename(title)
+
+    job = "Request: Save file '{}' ({}).".format(title, folder)
+    path = data.getNormalizedPathOf((category, folder), title)
+    if not data.doesExist(path):
+
+        result = _jsonBodyValidator(job)
+        if result[0] != "200 OK":
+            return result
+
+        body = _jsonRequest.get("body")
+        file = ujson.dumps(body.get("value")) if body.get("isJson") is True else body.get("value")
+
+        path = path if data.saveFileOfPath(path, file, True) else ""
+
+        return _jsonReplyWithFileInstance(job, path, "Save file")
+    else:
+        return "403 Forbidden", "{} Cause: The file already exists.".format(job), {}
 
 
 def _jsonPostCommand():

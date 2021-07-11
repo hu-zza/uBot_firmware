@@ -63,27 +63,27 @@ def normalizeFolderPath(folder):
     return folder if folder[-1] == "/" else "{}/".format(folder)
 
 
-def normalizeTxtFileName(fileName):
-    if isinstance(fileName, str):
-        fileName = fileName.lower()
-        return fileName if fileName.endswith(".txt") or fileName == "" else "{}.txt".format(fileName)
+def normalizeTxtFilename(filename):
+    if isinstance(filename, str):
+        filename = filename.lower()
+        return filename if filename.endswith(".txt") or filename == "" else "{}.txt".format(filename)
     else:
-        logger.append(AttributeError("ubot_data#normalizeTxtFileName\r\n'{}' is not a string representing a filename.\r\n"
-                                     .format(fileName)))
-        return "Exception @ ubot_data#normalizeTxtFileName"
+        logger.append(AttributeError("ubot_data#normalizeTxtFilename\r\n'{}' is not a string representing a filename.\r\n"
+                                     .format(filename)))
+        return "Exception @ ubot_data#normalizeTxtFilename"
 
 
-def getNormalizedPathOf(pathAsList = (), fileName = ""):
+def getNormalizedPathOf(pathAsList = (), filename =""):
     if pathAsList is None or len(pathAsList) == 0:
         path = "/"
     elif isinstance(pathAsList, list) or isinstance(pathAsList, tuple):
-        path = normalizeFolderPath("".join([normalizePath(item) for item in pathAsList]))
+        path = normalizeFolderPath("".join(normalizePath(item) for item in pathAsList))
     else:
         logger.append(AttributeError("ubot_data#getNormalizedPathOf\r\n'{}' is not an iterable representing a path.\r\n"
                                      .format(pathAsList)))
         return "/Exception @ ubot_data#getNormalizedPathOf/"
 
-    return path if fileName == "" else "{}{}".format(path, fileName)
+    return path if filename == "" else "{}{}".format(path, filename)
 
 
 def isFolder(path):
@@ -128,53 +128,55 @@ def getFoldersOf(folder = ""):
     folder = normalizeFolderPath(folder)
     try:
         entities = uos.listdir(folder)
-        return tuple([fileName for fileName in entities if isFolder("{}{}".format(folder, fileName))])
+        return tuple(filename for filename in entities if isFolder("{}{}".format(folder, filename)))
     except Exception as e:
         logger.append(e)
         logger.append(AttributeError("ubot_data#getFoldersOf\r\nFolder '{}' doesn't exist.\r\n".format(folder)))
         return ()
 
 
-def getFilenamesOf(folder = "", subFolder = "", suffix = ""):
-    """ Returns files of the given folder (or /folder/subfolder) as a string tuple. The strings contains only file names
+def getFileNamesOf(folder ="", subFolder ="", suffix =""):
+    """ Returns files of the given folder (or /folder/subFolder) as a string tuple. The strings contains only file names
     (without the dot and the suffix). Result can be filtered by suffix."""
-    return tuple([file[:file.rindex(".")] for file in getFilesOf(folder, subFolder, suffix)])
+    return tuple(file[:file.rindex(".")] for file in getFilesOf(folder, subFolder, suffix))
 
 
-def getFilenamesOfPath(path = "", suffix = ""):
+def getFileNamesOfPath(path ="", suffix =""):
     """ Returns files of the given path as a string tuple. The strings contains only file names
     (without the dot and the suffix). Result can be filtered by suffix."""
-    return tuple([file[:file.rindex(".")] for file in getFilesOfPath(path, suffix)])
+    return tuple(file[:file.rindex(".")] for file in getFilesOfPath(path, suffix))
 
 
 def getFilesOf(folder = "", subFolder = "", suffix = ""):
-    """ Returns files of the given folder (or /folder/subfolder) as a string tuple. Result can be filtered by suffix."""
+    """ Returns filenames (file_name.suffix) of the given folder (or /folder/subFolder) as a string tuple. Result can be
+     filtered by suffix."""
     return getFilesOfPath(getNormalizedPathOf((folder, subFolder)), suffix)
 
 
 def getFilesOfPath(path = "", suffix = ""):
-    """ Returns files of the given path as a string tuple. Result can be filtered by suffix."""
+    """ Returns filenames (file_name.suffix) of the given path as a string tuple. Result can be filtered by suffix."""
     path = normalizeFolderPath(path)
 
     try:
         entities = uos.listdir(path)
-        return tuple([name for name in entities if name.endswith(suffix) and isFile("{}{}".format(path, name))])
+        return tuple(name for name in entities if name.endswith(suffix) and isFile("{}{}".format(path, name)))
     except Exception as e:
         logger.append(e)
         logger.append(AttributeError("ubot_data#getFilesOfPath\r\nPath '{}' doesn't exist.\r\n".format(path)))
         return ()
 
 
-def getFile(path, isJson = False):
+def getFile(path, isJson = None):
     path = normalizePath(path)
 
     if doesFileExist(path):
         try:
+            likelyJson = isJson is True or isJson is not False and getLineCountOfFile(path) == 1
             with open(path, "r") as file:
-                if isJson:
-                    return tuple([ujson.loads(line) for line in file])
+                if likelyJson:
+                    return tuple(loadsJsonSoftly(line) for line in file)
                 else:
-                    return tuple([line for line in file])
+                    return tuple(line for line in file)
         except Exception as e:
             logger.append(e)
             logger.append(AttributeError("ubot_data#getFile\r\nCan not process '{}'.\r\n".format(path)))
@@ -182,6 +184,18 @@ def getFile(path, isJson = False):
     else:
         logger.append(AttributeError("ubot_data#getFile\r\nPath '{}' doesn't exist.\r\n".format(path)))
         return ()
+
+
+def loadsJsonSoftly(line):
+    try:
+        return ujson.loads(line)
+    except:
+        return line
+
+
+def getLineCountOfFile(path):
+    path = normalizePath(path)
+    return sum(1 for _ in open(path))
 
 
 def canCreate(path):
@@ -200,20 +214,20 @@ def createFolderOfPath(path):
         return False
 
 
-def saveFileOf(pathAsList, fileName, lines, isJson = False, isRecursive = False):
+def saveFileOf(pathAsList, filename, lines, isRecursive = False):
     return saveFileOfPath(
-        getNormalizedPathOf(pathAsList, normalizeTxtFileName(fileName)),
-        lines, isJson, isRecursive)
+        getNormalizedPathOf(pathAsList, normalizeTxtFilename(filename)),
+        lines, isRecursive)
 
 
-def saveFileOfPath(path, lines, isJson = False, isRecursive = False):
+def saveFileOfPath(path, lines, isRecursive = False):
     if canCreate(path):
-        return _saveFile(path, lines, isJson, isRecursive)
+        return _saveFile(path, lines, isRecursive)
     else:
         return False
 
 
-def _saveFile(path, lines, isJson = False, isRecursive = False):
+def _saveFile(path, lines, isRecursive = False):
     path = normalizePath(path)
     written = 0
     try:
@@ -223,9 +237,11 @@ def _saveFile(path, lines, isJson = False, isRecursive = False):
         with open(path, "w") as file:
             if isinstance(lines, tuple) or isinstance(lines, list):
                 for line in lines:
-                    written += _writeOut(file, line, isJson)
+                    written += _writeOut(file, line, False)
             elif isinstance(lines, str):
-                written += _writeOut(file, lines, isJson)
+                written += _writeOut(file, lines, False)
+            elif isinstance(lines, dict):
+                written += _writeOut(file, lines, True)
             else:
                 return False
 
@@ -319,7 +335,7 @@ def _createJsonSubFolderInstance(folder, subFolder):
     job = "Request: Get the folder '{}'.".format(path)
 
     if isFolder(path):
-        files         = getFilenamesOfPath(path, "txt")                                           #! Burnt-in txt suffix
+        files         = getFileNamesOfPath(path, "txt")              #! Burnt-in txt suffix: filtered by it, but chopped
         parent        = normalizeFolderPath(folder)
         folderLink    = "{}{}".format(_hostLink, path[1:])
         folderRawLink = "{}{}".format(_rawLink, path[1:])
@@ -344,14 +360,14 @@ def _createJsonSubFolderInstance(folder, subFolder):
 
 
 def _createJsonFileInstance(folder, subFolder, file):
-    _file  = normalizeTxtFileName(logger.normalizeLogTitle(file) if folder == "log" else file)
+    _file  = normalizeTxtFilename(logger.normalizeLogTitle(file) if folder == "log" else file)
     path   = getNormalizedPathOf((folder, subFolder), _file)
     parent = getNormalizedPathOf((folder, subFolder))
     job = "Request: Get the file '{}'.".format(path)
 
     if doesFolderExist(parent):
         if doesFileExist(path):
-            isJson = folder in config.get("data", "json_folders")
+            isJson = True if folder in config.get("data", "json_folders") else None
             return "200 OK", job, {
                 "name": _file,
                 "type": "file",

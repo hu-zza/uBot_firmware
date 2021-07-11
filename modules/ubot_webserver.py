@@ -317,14 +317,14 @@ def _replyWithHtmlTemplate():
 
         _powerOns     = config.get("system", "power_ons")
         _host         = "http://{}/raw".format(config.get("ap", "ip"))
-        _fileNameBase = "/log/{{}}/{:010d}.txt".format(config.get("system", "power_ons"))
+        _filenameBase = "/log/{{}}/{:010d}.txt".format(config.get("system", "power_ons"))
         _fallbackBase = "/log/{}/0000000000.txt"
 
         _connection.write("            <table class='data'>\r\n")
         for category in logger.getLogCategories():
             _connection.write("                <tr><td><strong>{}:</strong></td>".format(category))
 
-            _currentLog = _fileNameBase.format(category)
+            _currentLog = _filenameBase.format(category)
             _fallbackLog = _fallbackBase.format(category)
 
             _connection.write("<td><a href='{}{}' target='_blank'>current ({} B)</a></td>"
@@ -503,23 +503,23 @@ def _sendRaw(path):
                                "                <tr><td><a href='..'>..</a></td><td></td></tr>"))
 
             try:
-                for fileName in uos.listdir(path):
+                for filename in uos.listdir(path):
                     _connection.write("                <tr>")
 
                     try:
-                        stat = uos.stat("{}{}".format(path, fileName))
+                        stat = uos.stat("{}{}".format(path, filename))
 
                         if stat[0] == 0x04000:  # Folder
                             _connection.write(
-                                "<td><a href='{fileName}/'>{fileName}/</a></td><td>-</td>".format(fileName = fileName))
+                                "<td><a href='{filename}/'>{filename}/</a></td><td>-</td>".format(filename = filename))
 
                         elif stat[0] == 0x08000:  # File
                             _connection.write(
-                                "<td><a href='{fileName}'>{fileName}</a></td><td>{fileSize:,} B</td>".format(
-                                    fileName = fileName, fileSize = stat[6]))
+                                "<td><a href='{filename}'>{filename}</a></td><td>{fileSize:,} B</td>".format(
+                                    filename = filename, fileSize = stat[6]))
 
                         else:
-                            _connection.write("<td colspan='2'>{}</td>".format(fileName))
+                            _connection.write("<td colspan='2'>{}</td>".format(filename))
 
                     except Exception:
                         _connection.write("<td class='info' colspan='2'>This entity cannot be listed.</td>")

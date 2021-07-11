@@ -35,7 +35,7 @@ import ubot_config as config
 import ubot_turtle as turtle
 import ubot_data   as data
 
-_fileName = 0
+_filename = 0
 _enabled = config.get("logger", "active")
 
                 # Name        | List  | Path  | Enabled
@@ -51,7 +51,7 @@ _logFiles = (
 
 def append(item, logIndex = None):
     if _enabled:
-        if _fileName != 0:
+        if _filename != 0:
             try:
                 logIndex = _defineIndex(item) if logIndex is None else logIndex
                 if 0 <= logIndex:
@@ -74,12 +74,12 @@ def getLogCategories():
 
 
 def getCategoryLogs(category):
-    return data.getFilenamesOf("log", category)
+    return data.getFileNamesOf("log", category)
 
 
 def getLog(category, title):
-    title = data.normalizeTxtFileName(normalizeLogTitle(title))
-    return data.getFile(data.getNormalizedPathOf(("log", category), title))
+    title = data.normalizeTxtFilename(normalizeLogTitle(title))
+    return data.getFile(data.getNormalizedPathOf(("log", category), title), False)
 
 
 def doesLogExist(category, title):
@@ -117,12 +117,12 @@ def _appendToList(item):
 def _saveFromList(logFile, fallback = False):
     if _enabled and logFile[3] and 0 < len(logFile[1]):             # Logger and log is active and log list has item(s).
 
-        if _fileName == 0:                                          # If filename is undefined.
+        if _filename == 0:                                          # If filename is undefined.
             fallback = True
 
-        fileName = "0000000000.txt" if fallback else _fileName
+        filename = "0000000000.txt" if fallback else _filename
         try:
-            with open(logFile[2] + fileName, "a") as file:
+            with open(logFile[2] + filename, "a") as file:
                 for item in logFile[1]:
                     _writeOutItem(item[0], file, item[1])
             logFile[1] = []
@@ -190,16 +190,16 @@ def _defineIndex(item):
 ################################
 ## INITIALISATION
 
-_fileName = "{:010d}.txt".format(config.get("system", "power_ons"))
+_filename = "{:010d}.txt".format(config.get("system", "power_ons"))
 
 try:
     with open("/log/datetime.txt", "a") as file:
-        file.write("{}\r\n{}\r\n\r\n".format(config.datetime(), _fileName))
+        file.write("{}\r\n{}\r\n\r\n".format(config.datetime(), _filename))
 except Exception as e:
     _appendToList(e)
 
 for _logFile in _logFiles:
-    _logFile[2] = "/log/{}/{}".format(_logFile[0].lower(), _fileName)
+    _logFile[2] = "/log/{}/{}".format(_logFile[0].lower(), _filename)
     try:
         with open(_logFile[2], "w") as file:
             file.write("{}     \t{} log initialised successfully.\r\n\r\n\r\n".format(config.datetime(), _logFile[0]))

@@ -38,7 +38,7 @@ import ubot_motor  as motor
 import ubot_data   as data
 
 _powerOns      = config.get("system", "power_ons")
-_jsonFolder    = config.get("turtle", "json_folder")
+_namedFolder   = config.get("turtle", "named_folder")
 _turtleFolder  = config.get("turtle", "turtle_folder")
 _moveChars     = config.get("turtle", "move_chars")
 _turtleChars   = config.get("turtle", "turtle_chars")
@@ -144,7 +144,7 @@ def skipSignal(stepCount = 1, endCount = 0):
     _endSignalSkipCount += endCount
 
 def getProgramsCount():
-    return sum([len(getProgramListOf(folder)) for folder in getProgramFolders()])
+    return sum(len(getProgramListOf(folder)) for folder in getProgramFolders())
 
 
 def getProgramFolders():
@@ -160,20 +160,20 @@ def createFolder(folder):
 
 
 def getProgramListOf(folder):
-    return data.getFilenamesOf("program", folder)
+    return data.getFileNamesOf("program", folder)
 
 
 def doesProgramExist(folder, title):
-    return data.doesExist(getNormalizedPathOf(folder, title))
+    return data.doesFileExist(getNormalizedPathOf(folder, title))
 
 
 def getProgramCode(folder, title):
-    result = data.getFile(getNormalizedPathOf(folder, title))
+    result = data.getFile(getNormalizedPathOf(folder, title), False)
     return result[0] if 0 < len(result) else ""
 
 
 def getNormalizedPathOf(folder, title = ""):
-    return data.getNormalizedPathOf(("program", folder), data.normalizeTxtFileName(title))
+    return data.getNormalizedPathOf(("program", folder), data.normalizeTxtFilename(title))
 
 
 def runProgram(folder, title):
@@ -211,21 +211,21 @@ def loadProgramFromString(turtleCode):
 
 
 def saveLoadedProgram(folder = "", title = ""):
-    return saveProgram(_jsonFolder if folder == "" else folder, title, getProgramArray())
+    return saveProgram(_namedFolder if folder == "" else folder, title, getProgramArray())
 
 
 def saveProgram(folder = "", title = "", program = ""):
     global _savedCount
 
-    folder  = _jsonFolder if folder == "" else folder.lower()
-    title   = data.normalizeTxtFileName(title)
+    folder  = _namedFolder if folder == "" else folder.lower()
+    title   = data.normalizeTxtFilename(title)
     path    = _generateFullPathForAutoSave() if title == "" else "/program/{}/{}".format(folder, title)
     dirPath = path[:path.rindex("/")]
 
     if not doesFolderExist(folder):
         data.createFolderOfPath(dirPath)
 
-    isSaved = data.saveFileOfPath(path, program, True)
+    isSaved = data.saveFileOfPath(path, program)
 
     if not isSaved and title is None:
         _savedCount -= 1

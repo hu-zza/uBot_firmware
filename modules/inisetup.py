@@ -3,8 +3,8 @@ import network, ujson, uos
 from flashbdev import bdev
 from ubinascii import hexlify
 
-firmware = (0, 1, 165)
-initDatetime = (2021, 7, 11, 0, 2, 50, 0, 0)
+firmware = (0, 1, 166)
+initDatetime = (2021, 7, 11, 0, 12, 50, 0, 0)
 
 AP  = network.WLAN(network.AP_IF)
 mac = hexlify(AP.config("mac"), ":").decode()
@@ -59,7 +59,7 @@ constant = {
 data = {
     "name"          : "IO",
     "active"        : True,     # Just for unity
-    "json_folders"  : ("etc", "program"),
+    "json_folders"  : ("etc", ),
     "write_rights"  : ("home", "program"),
     "clean_rights"  : ("home", "log", "program"),
     "has_action"    : ("etc", "program")
@@ -112,7 +112,7 @@ system = {
 turtle = {
     "name"          : "Turtle",
     "active"        : True,
-    "json_folder"   : "json",
+    "named_folder"  : "named",
     "turtle_folder" : "turtle",
     "move_length"   : 890,
     "turn_length"   : 359,
@@ -142,7 +142,7 @@ web_server = {
     "timeout"       : 750,
     "html_enabled"  : True,
     "json_enabled"  : True,
-    "log_event"     : True,
+    "log_event"     : False,
     "log_request"   : False,
     "log_response"  : False
 }
@@ -229,7 +229,7 @@ def setup():
 
     uos.mkdir("/program")
     uos.mkdir("/program/turtle")
-    uos.mkdir("/program/json")
+    uos.mkdir("/program/named")
 
     firmware = system.get("firmware")
     firmwareComment = "# μBot firmware {}.{}.{}\r\n\r\n".format(
