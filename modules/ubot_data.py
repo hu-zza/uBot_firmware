@@ -50,12 +50,21 @@ def normalizePath(path):
     else:
         try:
             path = path.strip().lower()
-            return path if path[0] == "/" else "/{}".format(path)
+            path = path if path[0] == "/" else "/{}".format(path)
+            return _sanitizePath(path)
         except Exception as e:
             logger.append(e)
             logger.append(AttributeError("ubot_data#normalizePath\r\n'{}' is not a string representing a path.\r\n"
                                          .format(path)))
             return "/Exception @ ubot_data#normalizePath"
+
+
+def _sanitizePath(path):
+    path = path.strip(".")
+
+    while 0 <= path.find("/../") or 0 <= path.find("/./"):
+        path = path.replace("/../", "/").replace("/./", "/")
+    return path
 
 
 def normalizeFolderPath(folder):
@@ -207,7 +216,6 @@ def getEntityCountOfFolder(path):
         return len(uos.listdir(path))
     else:
         return 0
-
 
 
 def canCreate(path):

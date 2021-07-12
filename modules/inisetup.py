@@ -3,8 +3,8 @@ import network, ujson, uos
 from flashbdev import bdev
 from ubinascii import hexlify
 
-firmware = (0, 1, 169)
-initDatetime = (2021, 7, 12, 0, 20, 10, 0, 0)
+firmware = (0, 1, 170)
+initDatetime = (2021, 7, 12, 0, 23, 55, 0, 0)
 
 AP  = network.WLAN(network.AP_IF)
 mac = hexlify(AP.config("mac"), ":").decode()
@@ -73,7 +73,7 @@ feedback = {
 }
 
 i2c = {
-    "name"          : "I2C Driver",
+    "name"          : "I2C driver",
     "active"        : False,
     "sda"           : 0,
     "scl"           : 2,
@@ -138,7 +138,7 @@ uart = {
 }
 
 web_repl = {
-    "name"          : "MicroPython WebREPL",
+    "name"          : "WebREPL",
     "active"        : False,
     "password"      : "uBot_REPL"
 }
