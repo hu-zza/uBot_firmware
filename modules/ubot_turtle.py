@@ -162,7 +162,7 @@ def createFolder(folder):
 
 
 def getProgramListOf(folder):
-    return data.getFileNamesOf("program", folder)
+    return data.getFileNamesOf("program", folder, "txt")
 
 
 def doesProgramExist(folder, title):

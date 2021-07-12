@@ -73,7 +73,7 @@ def normalizeTxtFilename(filename):
         return "Exception @ ubot_data#normalizeTxtFilename"
 
 
-def getNormalizedPathOf(pathAsList = (), filename =""):
+def getNormalizedPathOf(pathAsList = (), filename = ""):
     if pathAsList is None or len(pathAsList) == 0:
         path = "/"
     elif isinstance(pathAsList, list) or isinstance(pathAsList, tuple):
@@ -198,16 +198,37 @@ def getLineCountOfFile(path):
     return sum(1 for _ in open(path))
 
 
-def canModify(path):
+def canCreate(path):
+    if not doesExist(path):
+        return _checkPermission(path, "write_rights")
+    else:
+        False
+
+
+def canWrite(path):
+    return _checkPermission(path, "write_rights")
+
+
+def canDelete(path):
     if doesExist(path):
-        pathArray = normalizePath(path).split("/")
-        return pathArray[1] == "etc" and pathArray[2] in config.get("data", "modify_rights")
+        return _checkPermission(path, "delete_rights")
     else:
         return False
 
 
-def canWrite(path):
-    return normalizePath(path).split("/")[1] in config.get("data", "write_rights")
+def canModify(path):
+    if doesExist(path):
+        return _checkPermission(path, "modify_rights")
+    else:
+        return False
+
+
+def _checkPermission(path, nameOfPrefixSet):
+    path = normalizePath(path)
+    for prefix in config.get("data", nameOfPrefixSet):
+        if path.find(prefix) == 0 and len(prefix) < len(path):
+            return True
+    return False
 
 
 def createFolderOf(folder = "", subFolder = ""):
@@ -215,7 +236,7 @@ def createFolderOf(folder = "", subFolder = ""):
 
 
 def createFolderOfPath(path):
-    if canWrite(path) and not doesExist(path):
+    if canCreate(path):
         uos.mkdir(normalizeFolderPath(path)[:-1])
         return doesExist(path)
     else:
@@ -232,7 +253,7 @@ def saveFileOfPath(path, lines, isRecursive = False):
     if canWrite(path) or canModify(path):
         return _saveFile(path, lines, isRecursive)
     else:
-        return False
+        return ""
 
 
 def _saveFile(path, lines, isRecursive = False):
@@ -251,13 +272,13 @@ def _saveFile(path, lines, isRecursive = False):
             elif isinstance(lines, dict):
                 written += _writeOut(file, lines, True)
             else:
-                return False
+                return ""
 
-            return written == 0
+            return path
     except Exception as e:
         logger.append(e)
         logger.append(AttributeError("ubot_data#_saveFile\r\nCan not process '{}'.\r\n".format(path)))
-        return False
+        return ""
 
 
 def _createFoldersIfNeeded(path):
@@ -273,6 +294,40 @@ def _createFoldersIfNeeded(path):
 def _writeOut(file, line, isJson = False):
     toWrite = "{}\r\n".format(ujson.dumps(line) if isJson else line)
     return file.write(toWrite) - len(toWrite)
+
+
+def deleteFileOfPath(path):
+    if doesExist(path):
+        if isFile(path):
+            try:
+                uos.rmdir(path)
+            except Exception as e:
+                logger.append(e)
+                logger.append(AttributeError("ubot_data#deleteFileOfPath\r\nCan not delete '{}'.\r\n".format(path)))
+                return False
+        else:
+            logger.append(AttributeError("ubot_data#deleteFileOfPath\r\n'{}' is not a file.\r\n".format(path)))
+            return False
+    else:
+        logger.append(AttributeError("ubot_data#deleteFileOfPath\r\nPath '{}' doesn't exist.\r\n".format(path)))
+        return False
+
+
+def deleteFolderOfPath(path):
+    if doesExist(path):
+        if isFolder(path):
+            try:
+                uos.rmdir(path)
+            except Exception as e:
+                logger.append(e)
+                logger.append(AttributeError("ubot_data#deleteFolderOfPath\r\nCan not delete '{}'.\r\n".format(path)))
+                return False
+        else:
+            logger.append(AttributeError("ubot_data#deleteFolderOfPath\r\n'{}' is not a folder.\r\n".format(path)))
+            return False
+    else:
+        logger.append(AttributeError("ubot_data#deleteFolderOfPath\r\nPath '{}' doesn't exist.\r\n".format(path)))
+        return False
 
 
 ################################

@@ -218,16 +218,19 @@ def _jsonGetFileOfPath(path):
 
 
 def _executeJsonGet():                                                                       ########## JSON GET HANDLER
-    if _jsonRequest.get("present") < 5:
+    presentArgs = _jsonRequest.get("present")
+
+    if presentArgs < 5:
         category = _jsonRequest.get("path")[0]
-        if category == "program" and _jsonRequest.get("present") == 4:
+
+        if category == "program" and presentArgs == 4:
             return _jsonGetProgramActionStarting()
         else:
             result = _jsonGetFunctions.setdefault(category, _jsonGetFileByJsonLink)()
             if result is not None and result != ():
                 return result
 
-    return "403 Forbidden", "Job: [REST] GET request. Cause: The format of the URL is invalid.", {}
+    return "403 Forbidden", "Request: REST GET. Cause: The format of the URL is invalid.", {}
 
 
 def _jsonGetProgramActionStarting():
@@ -273,22 +276,21 @@ _jsonGetFunctions = {
 
 
 def _executeJsonPost():                                                                     ########## JSON POST HANDLER
-    if 0 < _jsonRequest.get("present") < 4:
+    present = _jsonRequest.get("present")
+
+    if 0 < present < 4:
         _parseJsonRequestBody()
         category = _jsonRequest.get("path")[0]
 
-        if category in config.get("data", "write_rights"):
-            if category == "program":
-                return _jsonPostProgram()
-            elif _jsonRequest.get("present") == 3:
-                return _jsonPostFile()
-
-
-        if _jsonRequest.get("present") == 1:
+        if category == "program":
+            return _jsonPostProgram()
+        elif present == 3:
+            return _jsonPostFile()
+        elif present == 1:
             if category in _jsonPostFunctions.keys():
                 return _jsonPostFunctions.get(category)()
 
-    return "403 Forbidden", "Job: [REST] POST request. Cause: The format of the URL is invalid.", {}
+    return "403 Forbidden", "Request: REST POST. Cause: The format of the URL is invalid.", {}
 
 
 def _jsonPostProgram():
@@ -321,8 +323,12 @@ def _jsonPostFile():
 
     job = "Request: Save the file '{}' ({}).".format(title, folder)
     path = data.getNormalizedPathOf((category, folder), title)
+
     if not data.doesExist(path):
-        return _jsonWriteFile(job, path)
+        if data.canWrite(path):             # The existence checked, so data#canCreate is overkill.
+            return _jsonWriteFile(job, path)
+        else:
+            return "403 Forbidden", "{} Cause: Missing write permission.".format(job), {}
     else:
         return "403 Forbidden", "{} Cause: The file already exists.".format(job), {}
 
@@ -427,7 +433,7 @@ def _executeJsonPut():                                                          
         _parseJsonRequestBody()
         return _jsonPutFile()
 
-    return "403 Forbidden", "Job: [REST] PUT request. Cause: The format of the URL is invalid.", {}
+    return "403 Forbidden", "Request: REST PUT. Cause: The format of the URL is invalid.", {}
 
 
 def _jsonPutFile():
@@ -438,26 +444,44 @@ def _jsonPutFile():
     job = "Request: Modify the file '{}' ({}).".format(title, folder)
 
     if data.doesExist(path):
-        if category in config.get("data", "write_rights") or \
-                category == "etc" and folder in config.get("data", "modify_rights"):
-
+        if data.canWrite(path) or data.canModify(path):
             return _jsonWriteFile(path, job, True if category == "etc" else None)
         else:
-            return "403 Forbidden", "{} Cause: The file can not be modified.".format(job), {}
+            return "403 Forbidden", "{} Cause: Missing write / modify permission.".format(job), {}
     else:
         return "403 Forbidden", "{} Cause: The file doesn't exist.".format(job), {}
 
 
 
 def _executeJsonDelete():                                                                 ########## JSON DELETE HANDLER
-    if 0 < _jsonRequest.get("present") < 4:
-        return _jsonDelete()
+    if 1 < _jsonRequest.get("present") < 4:
+        return _jsonDeleteEntity()
 
-    return "403 Forbidden", "Job: [REST] DELETE request. Cause: The format of the URL is invalid.", {}
+    return "403 Forbidden", "Request: REST DELETE. Cause: The format of the URL is invalid.", {}
 
 
-def _jsonDelete():
-    pass
+def _jsonDeleteEntity():
+    category, folder, title = _jsonRequest.get("path")[0:3]
+    title = data.normalizeTxtFilename(title)
+    isFile = title != ""
+
+    entity = "file" if isFile else "folder"
+    descriptor = "'{}' ({}).".format(title, folder) if isFile else "'{}'.".format(folder)
+    job = "Request: Delete the {} {}".format(entity, descriptor)
+
+    path = data.getNormalizedPathOf((category, folder), title)
+
+    if data.doesExist(path):
+        if data.canDelete(path):
+            result = data.deleteFileOfPath(path) if isFile else data.deleteFolderOfPath(path)
+            if result and not data.doesExist(path):
+                return "200 OK", job, {}
+            else:
+                return "500 Internal Server Error", "{} Cause: The file system is not available.".format(job), {}
+        else:
+            return "403 Forbidden", "{} Cause: Missing delete permission.".format(job), {}
+    else:
+        return "403 Forbidden", "{} Cause: The {} doesn't exist.".format(job, entity), {}
 
 
 
@@ -550,7 +574,7 @@ if config.get("web_server", "active"):
             webserver.setJsonCallback("GET", _executeJsonGet)
             webserver.setJsonCallback("POST", _executeJsonPost)
             webserver.setJsonCallback("PUT", _executeJsonPut)
-            #webserver.setJsonCallback("DELETE", _executeJsonDelete)
+            webserver.setJsonCallback("DELETE", _executeJsonDelete)
         webserver.start()
     except Exception as e:
         logger.append(e)

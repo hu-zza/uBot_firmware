@@ -3,8 +3,8 @@ import network, ujson, uos
 from flashbdev import bdev
 from ubinascii import hexlify
 
-firmware = (0, 1, 167)
-initDatetime = (2021, 7, 11, 0, 17, 20, 0, 0)
+firmware = (0, 1, 168)
+initDatetime = (2021, 7, 12, 0, 17, 25, 0, 0)
 
 AP  = network.WLAN(network.AP_IF)
 mac = hexlify(AP.config("mac"), ":").decode()
@@ -60,10 +60,11 @@ data = {
     "name"          : "File manager",
     "active"        : True,     # Should be always active
     "json_folders"  : ("etc", ),
-    "modify_rights" : ("ap", "buzzer", "feedback", "i2c", "logger", "motor", "turtle", "uart", "web_repl", "web_server"),
-    "write_rights"  : ("home", "program"),
-    "delete_rights" : ("home", "log", "program"),
-    "has_action"    : ("etc", "program")
+    "modify_rights" : ("/etc/ap/", "/etc/buzzer/", "/etc/feedback/", "/etc/i2c/", "/etc/logger/", "/etc/motor/",
+                       "/etc/turtle/", "/etc/uart/", "/etc/web_repl/", "/etc/web_server"),
+    "write_rights"  : ("/home/", "/program/"),
+    "delete_rights" : ("/home/", "/log/exception/", "/log/event/", "/log/object/", "/log/run/", "/program/"),
+    "has_action"    : ("/etc/", "/program/")
 }
 
 feedback = {

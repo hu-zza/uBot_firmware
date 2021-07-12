@@ -74,7 +74,7 @@ def getLogCategories():
 
 
 def getCategoryLogs(category):
-    return data.getFileNamesOf("log", category)
+    return data.getFileNamesOf("log", category, "txt")
 
 
 def getLog(category, title):
