@@ -86,6 +86,20 @@ def getNormalizedPathOf(pathAsList = (), filename = ""):
     return path if filename == "" else "{}{}".format(path, filename)
 
 
+def doesFolderExist(path):
+    if doesExist(path):
+        return isFolder(path)
+    else:
+        return False
+
+
+def doesFileExist(path):
+    if doesExist(path):
+        return isFile(path)
+    else:
+        return False
+
+
 def isFolder(path):
     return _typeIntEqualsExpectedInt(path, 0x4000)
 
@@ -106,20 +120,6 @@ def _typeIntEqualsExpectedInt(path, expectedInt):
             return False
     else:
         logger.append(AttributeError("ubot_data#_typeIntEqualsExpectedInt\r\nPath '{}' doesn't exist.\r\n".format(path)))
-        return False
-
-
-def doesFolderExist(path):
-    if doesExist(path):
-        return isFolder(path)
-    else:
-        return False
-
-
-def doesFileExist(path):
-    if doesExist(path):
-        return isFile(path)
-    else:
         return False
 
 
@@ -195,14 +195,26 @@ def loadsJsonSoftly(line):
 
 def getLineCountOfFile(path):
     path = normalizePath(path)
-    return sum(1 for _ in open(path))
+    if isFile(path):
+        return sum(1 for _ in open(path))
+    else:
+        return 0
+
+
+def getEntityCountOfFolder(path):
+    path = normalizePath(path)
+    if isFolder(path):
+        return len(uos.listdir(path))
+    else:
+        return 0
+
 
 
 def canCreate(path):
     if not doesExist(path):
         return _checkPermission(path, "write_rights")
     else:
-        False
+        return False
 
 
 def canWrite(path):
@@ -211,6 +223,8 @@ def canWrite(path):
 
 def canDelete(path):
     if doesExist(path):
+        if isFolder(path) and 0 < len(uos.listdir(path)):
+            return False
         return _checkPermission(path, "delete_rights")
     else:
         return False
@@ -297,10 +311,11 @@ def _writeOut(file, line, isJson = False):
 
 
 def deleteFileOfPath(path):
-    if doesExist(path):
+    if canDelete(path):
         if isFile(path):
             try:
-                uos.rmdir(path)
+                uos.remove(path)
+                return True
             except Exception as e:
                 logger.append(e)
                 logger.append(AttributeError("ubot_data#deleteFileOfPath\r\nCan not delete '{}'.\r\n".format(path)))
@@ -309,15 +324,19 @@ def deleteFileOfPath(path):
             logger.append(AttributeError("ubot_data#deleteFileOfPath\r\n'{}' is not a file.\r\n".format(path)))
             return False
     else:
-        logger.append(AttributeError("ubot_data#deleteFileOfPath\r\nPath '{}' doesn't exist.\r\n".format(path)))
+        if doesExist(path):
+            logger.append(AttributeError("ubot_data#deleteFileOfPath\r\nMissing delete permission.\r\n".format(path)))
+        else:
+            logger.append(AttributeError("ubot_data#deleteFileOfPath\r\nPath '{}' doesn't exist.\r\n".format(path)))
         return False
 
 
 def deleteFolderOfPath(path):
-    if doesExist(path):
+    if canDelete(path):
         if isFolder(path):
             try:
                 uos.rmdir(path)
+                return True
             except Exception as e:
                 logger.append(e)
                 logger.append(AttributeError("ubot_data#deleteFolderOfPath\r\nCan not delete '{}'.\r\n".format(path)))
@@ -326,8 +345,12 @@ def deleteFolderOfPath(path):
             logger.append(AttributeError("ubot_data#deleteFolderOfPath\r\n'{}' is not a folder.\r\n".format(path)))
             return False
     else:
-        logger.append(AttributeError("ubot_data#deleteFolderOfPath\r\nPath '{}' doesn't exist.\r\n".format(path)))
+        if doesExist(path):
+            logger.append(AttributeError("ubot_data#deleteFolderOfPath\r\nMissing delete permission.\r\n".format(path)))
+        else:
+            logger.append(AttributeError("ubot_data#deleteFolderOfPath\r\nPath '{}' doesn't exist.\r\n".format(path)))
         return False
+
 
 
 ################################
@@ -369,7 +392,7 @@ def _createJsonFolderInstance(folder, isRoot = False):
     realFolder = normalizeFolderPath(folder)
     job = "Request: Get the folder '{}'.".format(realFolder)
 
-    if isRoot or isFolder(realFolder):
+    if isRoot or doesFolderExist(realFolder):
         subFolders    = getFoldersOf(realFolder)
         folderLink    = "{}{}".format(_hostLink, realFolder[1:])
         folderRawLink = "{}{}".format(_rawLink, realFolder[1:])
@@ -397,7 +420,7 @@ def _createJsonSubFolderInstance(folder, subFolder):
     path = getNormalizedPathOf((folder, subFolder))
     job = "Request: Get the folder '{}'.".format(path)
 
-    if isFolder(path):
+    if doesFolderExist(path):
         files         = getFileNamesOfPath(path, "txt")              #! Burnt-in txt suffix: filtered by it, but chopped
         parent        = normalizeFolderPath(folder)
         folderLink    = "{}{}".format(_hostLink, path[1:])

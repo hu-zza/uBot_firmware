@@ -473,7 +473,14 @@ def _jsonDeleteEntity():
 
     if data.doesExist(path):
         if data.canDelete(path):
-            result = data.deleteFileOfPath(path) if isFile else data.deleteFolderOfPath(path)
+            if isFile:
+                result = data.deleteFileOfPath(path)
+            else:
+                if 0 == data.getEntityCountOfFolder(path):
+                    result = data.deleteFolderOfPath(path)
+                else:
+                    return "403 Forbidden", "{} Cause: The folder '{}' is not empty.".format(job, folder), {}
+
             if result and not data.doesExist(path):
                 return "200 OK", job, {}
             else:

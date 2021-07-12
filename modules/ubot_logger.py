@@ -38,12 +38,12 @@ import ubot_data   as data
 _filename = 0
 _enabled = config.get("logger", "active")
 
-                # Name        | List  | Path  | Enabled
-_logFiles = (
-                ["Exception",   [],     "",     "exception" in config.get("logger", "active_logs")],
-                ["Event",       [],     "",     "event" in config.get("logger", "active_logs")],
-                ["Object",      [],     "",     "object" in config.get("logger", "active_logs")],
-                ["Run",         [],     "",     "run" in config.get("logger", "active_logs")])
+        # Name        | List  | Path  | Enabled
+_logs = (
+        ["Exception",   [],     "",     "exception" in config.get("logger", "active_logs")],
+        ["Event",       [],     "",     "event" in config.get("logger", "active_logs")],
+        ["Object",      [],     "",     "object" in config.get("logger", "active_logs")],
+        ["Run",         [],     "",     "run" in config.get("logger", "active_logs")])
 
 
 ################################
@@ -55,7 +55,7 @@ def append(item, logIndex = None):
             try:
                 logIndex = _defineIndex(item) if logIndex is None else logIndex
                 if 0 <= logIndex:
-                    with open(_logFiles[logIndex][2], "a") as file:
+                    with open(_logs[logIndex][2], "a") as file:
                         _writeOutItem(config.datetime(), file, item)
             except Exception as e:
                 _appendToList(e)
@@ -65,7 +65,7 @@ def append(item, logIndex = None):
 
 
 def logCommandsAndProgram():
-    if _logFiles[3][3]:
+    if _logs[3][3]:
         append((turtle.getCommandArray(), turtle.getProgramArray()), 3)
 
 
@@ -94,19 +94,19 @@ def normalizeLogTitle(title):
 ## PRIVATE, HELPER METHODS
 
 def _appendToList(item):
-    global _logFiles
+    global _logs
 
     index = _defineIndex(item)
 
     if 0 <= index:
         try:
-            _logFiles[index][1].append((config.datetime(), item))
+            _logs[index][1].append((config.datetime(), item))
 
-            if 30 < len(_logFiles[index][1]):
+            if 30 < len(_logs[index][1]):
                 try:
-                    _saveFromList(_logFiles[index])
+                    _saveFromList(_logs[index])
                 except Exception as e:
-                    _logFiles[index][1] = _logFiles[index][1][10:]         # Reassign list (Delete the oldest 10 items.)
+                    _logs[index][1] = _logs[index][1][10:]         # Reassign list (Delete the oldest 10 items.)
 
         except Exception as e:
             usys.print_exception(e)
@@ -179,11 +179,11 @@ def _defineIndex(item):
     if not _enabled:
         return -1
     elif isinstance(item, Exception):
-        return 0 if _logFiles[0][3] else -1
+        return 0 if _logs[0][3] else -1
     elif isinstance(item, str):
-        return 1 if _logFiles[1][3] else -1
+        return 1 if _logs[1][3] else -1
     else:
-        return 2 if _logFiles[2][3] else -1
+        return 2 if _logs[2][3] else -1
 
 
 
@@ -198,7 +198,7 @@ try:
 except Exception as e:
     _appendToList(e)
 
-for _logFile in _logFiles:
+for _logFile in _logs:
     _logFile[2] = "/log/{}/{}".format(_logFile[0].lower(), _filename)
     try:
         with open(_logFile[2], "w") as file:
