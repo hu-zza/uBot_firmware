@@ -35,6 +35,52 @@ import ubot_config as config
 import ubot_logger as logger
 
 
+class Path:
+    def __init__(self, path):
+        self.path = path
+        self.isExist = None
+        self.isFile  = None
+        self.isTxt   = None
+
+        _initializePath(self)
+
+
+def _initializePath(pathObject):
+    try:
+        path = normalizePathOrThrow(str(pathObject.path))
+
+        if doesExist(path):
+            pathObject.isExist = True
+
+            if uos.stat(path)[0] == 0x4000:
+                pathObject.isFile = False
+                pathObject.isTxt  = False
+
+                if not path.endswith("/"):
+                    path = "{}/".format(path)
+            else:
+                pathObject.isFile = True
+                pathObject.isTxt = True
+
+                if not path.endswith(".txt"):
+                    path = "{}.txt".format(path)
+        else:
+            pathObject.isExist = False
+            pathObject.isFile  = False
+            pathObject.isTxt   = False
+
+        pathObject.path = path
+
+    except Exception as e:
+        logger.append(e)
+        logger.append(AttributeError("ubot_data#_initializePath\r\nCan not initialize Path object with path '{}'.\r\n"
+                                     .format(pathObject.path)))
+        pathObject.path = ""
+        pathObject.isExist = False
+        pathObject.isFile  = False
+        pathObject.isTxt   = False
+
+
 def doesExist(path):
     try:
         uos.stat(normalizePath(path))
@@ -44,19 +90,24 @@ def doesExist(path):
 
 
 def normalizePath(path):
-    """ Prepare for error-free using. Make it stripped, lowercase, and add leading slash if necessary. """
+    """ Prepare for error-free using: Make it stripped, lowercase, add leading slash if necessary, and sanitize it. """
+    try:
+        return normalizePathOrThrow(path)
+    except Exception as e:
+        logger.append(e)
+        logger.append(AttributeError("ubot_data#normalizePath\r\n'{}' is not a string representing a path.\r\n"
+                                     .format(path)))
+        return "/Exception @ ubot_data#normalizePath"
+
+
+def normalizePathOrThrow(path):
+    """ Prepare for error-free using: Make it stripped, lowercase, add leading slash if necessary, and sanitize it. """
     if path is None or path == "":
         return "/"
     else:
-        try:
-            path = path.strip().lower()
-            path = path if path[0] == "/" else "/{}".format(path)
-            return _sanitizePath(path)
-        except Exception as e:
-            logger.append(e)
-            logger.append(AttributeError("ubot_data#normalizePath\r\n'{}' is not a string representing a path.\r\n"
-                                         .format(path)))
-            return "/Exception @ ubot_data#normalizePath"
+        path = path.strip().lower()
+        path = path if path[0] == "/" else "/{}".format(path)
+        return _sanitizePath(path)
 
 
 def _sanitizePath(path):
