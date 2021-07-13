@@ -35,8 +35,9 @@ import ubot_config as config
 import ubot_turtle as turtle
 import ubot_data   as data
 
-_filename = 0
-_enabled = config.get("logger", "active")
+MAIN_FOLDER = data.Path("log")
+_filename   = 0
+_enabled    = config.get("logger", "active")
 
         # Name        | List  | Path  | Enabled
 _logs = (
@@ -70,16 +71,15 @@ def logCommandsAndProgram():
 
 
 def getLogCategories():
-    return data.getFoldersOf("log")
+    return data.getFoldersOf(MAIN_FOLDER)
 
 
 def getCategoryLogs(category):
-    return data.getFileNamesOf("log", category, "txt")
+    return data.getFileNameListOf("log", category, "txt")
 
 
 def getLog(category, title):
-    title = data.normalizeTxtFilename(normalizeLogTitle(title))
-    return data.getFile(data.getNormalizedPathOf(("log", category), title), False)
+    return data.getFile(data.createPathOf("log", category, normalizeLogTitle(title)), False)
 
 
 def doesLogExist(category, title):

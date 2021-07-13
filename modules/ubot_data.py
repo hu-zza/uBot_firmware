@@ -36,54 +36,84 @@ import ubot_logger as logger
 
 
 class Path:
-    def __init__(self, path):
-        self.path = path
-        self.isExist = None
-        self.isFile  = None
-        self.isTxt   = None
+    """ Represents a path in filesystem. The main characteristic is initialized immediately after construction,
+    but rights (create, write, delete, modify) are lazy. """
+    def __init__(self, path: str) -> None:
+        self.path  = path
+        self.array = ()
+        self.size  = 0
+        self.isExist  = False
+        self.isFolder = False
+        self.isFile   = False
+        self.isTxt    = False
+        self.description = "[invalid]"
+        self.canWrite  = None
+        self.canDelete = None
+        self.canModify = None
 
         _initializePath(self)
 
+    def __str__(self) -> str:
+        return self.path
 
-def _initializePath(pathObject):
+
+
+def _initializePath(path: Path) -> None:
+    """ Firstly tries to initialize Path object from the original path string,
+    if it fails, appends the suffix ".txt" and tries again. """
     try:
-        path = normalizePathOrThrow(str(pathObject.path))
+        pathString = _normalizePathOrThrow(path.path)
 
-        if doesExist(path):
-            pathObject.isExist = True
+        if _doesExist(pathString):
+            path.isExist = True
 
-            if uos.stat(path)[0] == 0x4000:     # Folder
-                pathObject.isFile = False
-                pathObject.isTxt  = False
+            if uos.stat(pathString)[0] == 0x4000:     # Folder
+                path.isFolder = True
+                description = "folder '{}' ({})"
 
-                if not path.endswith("/"):
-                    path = "{}/".format(path)
+                if not pathString.endswith("/"):
+                    pathString = "{}/".format(pathString)
             else:
-                pathObject.isFile = True
-                pathObject.isTxt = path.endswith(".txt")
-        elif doesExist("{}.txt".format(path)):
-            path = "{}.txt".format(path)
-            pathObject.isExist = True
-            pathObject.isFile  = True
-            pathObject.isTxt   = True
+                path.isFile = True
+                description = "file '{}' ({})"
+                path.isTxt = pathString.endswith(".txt")
+        elif _doesExist("{}.txt".format(pathString)):                                             #! Burnt-in txt suffix
+            path.isExist = True
+            path.isFile  = True
+            path.isTxt   = True
+            pathString   = "{}.txt".format(pathString)
+            description  = "file '{}' ({})"
         else:
-            pathObject.isExist = False
-            pathObject.isFile  = False
-            pathObject.isTxt   = False
+            description = "[non-existent] '{}' ({})"
 
-        pathObject.path = path
+        array = tuple(item for item in pathString.split("/") if item != "")
+        path.description = description.format(array[-1], "/{}".format("/".join(array[:-1])))
+        path.path  = pathString
+        path.array = array
+        path.size  = len(array)
 
     except Exception as e:
         logger.append(e)
         logger.append(AttributeError("ubot_data#_initializePath\r\nCan not initialize Path object with path '{}'.\r\n"
-                                     .format(pathObject.path)))
-        pathObject.path = ""
-        pathObject.isExist = False
-        pathObject.isFile  = False
-        pathObject.isTxt   = False
+                                     .format(path)))
+        _invalidatePath(path)
 
 
-def doesExist(path):
+def _invalidatePath(path: Path) -> None:
+    path.path  = ""
+    path.array = ()
+    path.size  = 0
+    path.isExist  = False
+    path.isFolder = False
+    path.isFile   = False
+    path.isTxt    = False
+    path.description = "[invalid]"
+    path.canWrite  = False
+    path.canDelete = False
+    path.canModify = False
+
+
+def _doesExist(path: str) -> bool:
     try:
         uos.stat(path)
         return True
@@ -91,18 +121,40 @@ def doesExist(path):
         return False
 
 
-def normalizePath(path):
-    """ Prepare for error-free using: Make it stripped, lowercase, add leading slash if necessary, and sanitize it. """
+def _isFolder(path: str) -> bool:
     try:
-        return normalizePathOrThrow(path)
+        return _typeIntEqualsExpectedInt(path, 0x4000)
     except Exception as e:
         logger.append(e)
-        logger.append(AttributeError("ubot_data#normalizePath\r\n'{}' is not a string representing a path.\r\n"
+        logger.append(AttributeError("ubot_data#_isFolder\r\nCan not process '{}'.\r\n".format(path)))
+        return False
+
+
+def _isFile(path: str) -> bool:
+    try:
+        return _typeIntEqualsExpectedInt(path, 0x8000)
+    except Exception as e:
+        logger.append(e)
+        logger.append(AttributeError("ubot_data#_isFile\r\nCan not process '{}'.\r\n".format(path)))
+        return False
+
+
+def _typeIntEqualsExpectedInt(path: str, expectedInt: int) -> bool:
+    return uos.stat(path)[0] == expectedInt
+
+
+def _normalizePath(path: str) -> str:
+    """ Prepare for error-free using: Make it stripped, lowercase, add leading slash if necessary, and sanitize it. """
+    try:
+        return _normalizePathOrThrow(path)
+    except Exception as e:
+        logger.append(e)
+        logger.append(AttributeError("ubot_data#_normalizePath\r\n'{}' is not a string representing a path.\r\n"
                                      .format(path)))
-        return "/Exception @ ubot_data#normalizePath"
+        return "/Exception @ ubot_data#_normalizePath"
 
 
-def normalizePathOrThrow(path):
+def _normalizePathOrThrow(path: str) -> str:
     """ Prepare for error-free using: Make it stripped, lowercase, add leading slash if necessary, and sanitize it. """
     if path is None or path == "":
         return "/"
@@ -112,17 +164,57 @@ def normalizePathOrThrow(path):
         return _sanitizePath(path)
 
 
-def _sanitizePath(path):
+def _sanitizePath(path: str) -> str:
     path = path.strip(".")
+    path = _replaceWhileFound(path, "//", "/")
+    path = _replaceWhileFound(path, "/./", "/")
+    return _replaceWhileFound(path, "/../", "/")
 
-    while 0 <= path.find("/../") or 0 <= path.find("/./"):
-        path = path.replace("/../", "/").replace("/./", "/")
+
+def _replaceWhileFound(path: str, old: str, new: str) -> str:
+    while 0 <= path.find(old):
+        path = path.replace(old, new)
     return path
 
 
-def normalizeFolderPath(folder):
-    folder = normalizePath(folder)
-    return folder if folder[-1] == "/" else "{}/".format(folder)
+def createPathOf(*pathArray: str) -> Path:
+    return createPath(pathArray)
+
+
+def createPath(pathArray: tuple) -> Path:
+    try:
+        return Path("/" if pathArray is None or len(pathArray) == 0 else "/".join(pathArray))
+    except Exception as e:
+        logger.append(AttributeError("ubot_data#createPath\r\n'{}' is not a string iterable representing a path.\r\n"
+                                     .format(pathArray)))
+    return INVALID_PATH
+
+INVALID_PATH = Path("")
+_invalidatePath(INVALID_PATH)
+
+
+def createFolderOf(*pathArray: str) -> bool:
+    return createFolder(createPath(pathArray))
+
+
+def createFolder(path: Path) -> bool:
+    if canCreate(path):
+        pathString = path.path[:-1]
+        uos.mkdir(pathString)
+        return _doesExist(pathString)
+    else:
+        return False
+
+
+def createFoldersOfPath(path: Path) -> None:
+    if canWrite(path):
+        pathArray = path.array
+        elements = []
+        for i in range(len(pathArray) - 1 if path.isFile else 0):
+            elements.append(pathArray[i])
+            path = "/{}".format("/".join(elements))
+            if not _doesExist(path):
+                createFolder(createPath(elements))
 
 
 def normalizeTxtFilename(filename):
@@ -135,108 +227,66 @@ def normalizeTxtFilename(filename):
         return "Exception @ ubot_data#normalizeTxtFilename"
 
 
-def getNormalizedPathOf(pathAsList = (), filename = ""):
-    if pathAsList is None or len(pathAsList) == 0:
-        path = "/"
-    elif isinstance(pathAsList, list) or isinstance(pathAsList, tuple):
-        path = normalizeFolderPath("".join(normalizePath(item) for item in pathAsList))
-    else:
-        logger.append(AttributeError("ubot_data#getNormalizedPathOf\r\n'{}' is not an iterable representing a path.\r\n"
-                                     .format(pathAsList)))
-        return "/Exception @ ubot_data#getNormalizedPathOf/"
 
-    return path if filename == "" else "{}{}".format(path, filename)
+def doesFolderExist(path: Path) -> bool:
+    return path.isExist and path.isFolder
 
 
-def doesFolderExist(path):
-    if doesExist(path):
-        return isFolder(path)
-    else:
-        return False
+def doesFileExist(path: Path) -> bool:
+    return path.isExist and path.isFile
 
 
-def doesFileExist(path):
-    if doesExist(path):
-        return isFile(path)
-    else:
-        return False
-
-
-def isFolder(path):
-    return _typeIntEqualsExpectedInt(path, 0x4000)
-
-
-def isFile(path):
-    return _typeIntEqualsExpectedInt(path, 0x8000)
-
-
-def _typeIntEqualsExpectedInt(path, expectedInt):
-    path = normalizePath(path)
-
-    if doesExist(path):
+def getFoldersOf(path: Path) -> tuple:
+    """ Returns subfolders of the given folder as a string tuple. """
+    if doesFolderExist(path):
         try:
-            return uos.stat(path)[0] == expectedInt
+            return tuple(filename for filename in uos.listdir(path.path) if _isFolder("{}{}".format(path, filename)))
         except Exception as e:
             logger.append(e)
-            logger.append(AttributeError("ubot_data#_typeIntEqualsExpectedInt\r\nCan not process '{}'.\r\n".format(path)))
-            return False
+            logger.append(AttributeError("ubot_data#getFoldersOf\r\nCan not process '{}'.\r\n".format(path)))
+            return ()
     else:
-        logger.append(AttributeError("ubot_data#_typeIntEqualsExpectedInt\r\nPath '{}' doesn't exist.\r\n".format(path)))
-        return False
-
-
-def getFoldersOf(folder = ""):
-    """ Returns subfolders of the given folder as a string tuple. """
-    folder = normalizeFolderPath(folder)
-    try:
-        entities = uos.listdir(folder)
-        return tuple(filename for filename in entities if isFolder("{}{}".format(folder, filename)))
-    except Exception as e:
-        logger.append(e)
-        logger.append(AttributeError("ubot_data#getFoldersOf\r\nFolder '{}' doesn't exist.\r\n".format(folder)))
+        logger.append(AttributeError("ubot_data#getFoldersOf\r\nFolder '{}' doesn't exist.\r\n".format(path)))
         return ()
 
 
-def getFileNamesOf(folder ="", subFolder ="", suffix =""):
+def getFileNameListOf(folder = "", subFolder = "", suffix = "") -> tuple:
     """ Returns files of the given folder (or /folder/subFolder) as a string tuple. The strings contains only file names
     (without the dot and the suffix). Result can be filtered by suffix."""
-    return tuple(file[:file.rindex(".")] for file in getFilesOf(folder, subFolder, suffix))
+    return tuple(file[:file.rindex(".")] for file in getFileListOf(folder, subFolder, suffix))
 
 
-def getFileNamesOfPath(path ="", suffix =""):
-    """ Returns files of the given path as a string tuple. The strings contains only file names
-    (without the dot and the suffix). Result can be filtered by suffix."""
-    return tuple(file[:file.rindex(".")] for file in getFilesOfPath(path, suffix))
-
-
-def getFilesOf(folder = "", subFolder = "", suffix = ""):
+def getFileListOf(folder = "", subFolder = "", suffix = "") -> tuple:
     """ Returns filenames (file_name.suffix) of the given folder (or /folder/subFolder) as a string tuple. Result can be
      filtered by suffix."""
-    return getFilesOfPath(getNormalizedPathOf((folder, subFolder)), suffix)
+    return getFileList(createPathOf(folder, subFolder), suffix)
 
 
-def getFilesOfPath(path = "", suffix = ""):
+def getFileNameList(path: Path, suffix = "") -> tuple:
+    """ Returns files of the given path as a string tuple. The strings contains only file names
+    (without the dot and the suffix). Result can be filtered by suffix."""
+    return tuple(file[:file.rindex(".")] for file in getFileList(path, suffix))
+
+
+def getFileList(path: Path, suffix = "") -> tuple:
     """ Returns filenames (file_name.suffix) of the given path as a string tuple. Result can be filtered by suffix."""
-    path = normalizeFolderPath(path)
-
     try:
-        entities = uos.listdir(path)
-        return tuple(name for name in entities if name.endswith(suffix) and isFile("{}{}".format(path, name)))
+        pathString = path.path
+        return tuple(name for name in uos.listdir(pathString)
+                     if name.endswith(suffix) and _isFile("{}{}".format(pathString, name)))
     except Exception as e:
         logger.append(e)
         logger.append(AttributeError("ubot_data#getFilesOfPath\r\nPath '{}' doesn't exist.\r\n".format(path)))
         return ()
 
 
-def getFile(path, isJson = None):
-    path = normalizePath(path)
-
-    if doesFileExist(path):
+def getFile(path: Path, isJson: bool = None) -> tuple:
+    if assertPath(path, True, False, True):
         try:
             likelyJson = isJson is True or isJson is not False and getLineCountOfFile(path) == 1
-            with open(path, "r") as file:
+            with open(path.path, "r") as file:
                 if likelyJson:
-                    return tuple(loadsJsonSoftly(line) for line in file)
+                    return tuple(__loadsJsonSoftly(line) for line in file)
                 else:
                     return tuple(line for line in file)
         except Exception as e:
@@ -244,138 +294,138 @@ def getFile(path, isJson = None):
             logger.append(AttributeError("ubot_data#getFile\r\nCan not process '{}'.\r\n".format(path)))
             return ()
     else:
-        logger.append(AttributeError("ubot_data#getFile\r\nPath '{}' doesn't exist.\r\n".format(path)))
+        logger.append(AttributeError("ubot_data#getFile\r\nPath '{}' does not meet the requirements.\r\n".format(path)))
         return ()
 
 
-def loadsJsonSoftly(line):
+def __loadsJsonSoftly(line: str) -> object:
     try:
         return ujson.loads(line)
     except:
         return line
 
 
-def getLineCountOfFile(path):
-    path = normalizePath(path)
-    if isFile(path):
-        return sum(1 for _ in open(path))
+def getLineCountOfFile(path: Path) -> int:
+    if path.isFile:
+        return sum(1 for _ in open(path.path))
     else:
         return 0
 
 
-def getEntityCountOfFolder(path):
-    path = normalizePath(path)
-    if isFolder(path):
+def getEntityCountOfFolder(path: Path) -> int:
+    if doesFolderExist(path):
         return len(uos.listdir(path))
     else:
         return 0
 
 
-def canCreate(path):
-    if not doesExist(path):
-        return _checkPermission(path, "write_rights")
-    else:
-        return False
+def canCreate(path: Path) -> bool:
+    if path.canWrite is None:
+        path.canWrite = _checkPermission(path.path, "write_rights")
+
+    return path.canWrite and not path.isExist
 
 
-def canWrite(path):
-    return _checkPermission(path, "write_rights")
+def canWrite(path: Path) -> bool:
+    if path.canWrite is None:
+        path.canWrite = _checkPermission(path.path, "write_rights")
+
+    return path.canWrite
 
 
-def canDelete(path):
-    if doesExist(path):
-        if isFolder(path) and 0 < len(uos.listdir(path)):
-            return False
-        return _checkPermission(path, "delete_rights")
-    else:
-        return False
+def canDelete(path: Path) -> bool:
+    if path.canDelete is None:
+        path.canDelete = _checkPermission(path.path, "delete_rights")
+
+    return path.canDelete and path.isExist
 
 
-def canModify(path):
-    if doesExist(path):
-        return _checkPermission(path, "modify_rights")
-    else:
-        return False
+def canModify(path: Path) -> bool:
+    if path.canModify is None:
+        path.canModify = _checkPermission(path.path, "modify_rights")
+
+    return path.canModify and path.isExist
 
 
-def _checkPermission(path, nameOfPrefixSet):
-    path = normalizePath(path)
+def _checkPermission(path: str, nameOfPrefixSet: str) -> bool:
     for prefix in config.get("data", nameOfPrefixSet):
         if path.find(prefix) == 0 and len(prefix) < len(path):
             return True
     return False
 
 
-def createFolderOf(folder = "", subFolder = ""):
-    return createFolderOfPath(getNormalizedPathOf((folder, subFolder)))
+def assertPath(path: Path, isExist = False, isFolder = False, isFile = False, isTxt = False) -> bool:
+    if path.isExist != isExist:
+        if path.isExist:
+            logger.append(AttributeError("ubot_data#_assertPath\r\nPath '{}' exists.\r\n".format(path)))
+        else:
+            logger.append(AttributeError("ubot_data#_assertPath\r\nPath '{}' does not exist.\r\n".format(path)))
+        return False
+
+    if path.isFolder != isFolder:
+        if path.isFolder:
+            logger.append(AttributeError("ubot_data#_assertPath\r\nPath '{}' represents a folder.\r\n".format(path)))
+        else:
+            logger.append(AttributeError("ubot_data#_assertPath\r\nPath '{}' does not represent a folder.\r\n".format(path)))
+        return False
+
+    if path.isFile != isFile:
+        if path.isFile:
+            logger.append(AttributeError("ubot_data#_assertPath\r\nPath '{}' represents a file.\r\n".format(path)))
+        else:
+            logger.append(AttributeError("ubot_data#_assertPath\r\nPath '{}' does not represent a file.\r\n".format(path)))
+        return False
+
+    if path.isTxt != isTxt:
+        if path.isTxt:
+            logger.append(AttributeError("ubot_data#_assertPath\r\nPath '{}' represents a txt file.\r\n".format(path)))
+        else:
+            logger.append(AttributeError("ubot_data#_assertPath\r\nPath '{}' does not represent a txt file.\r\n".format(path)))
+        return False
+
+    return True
 
 
-def createFolderOfPath(path):
-    if canCreate(path):
-        uos.mkdir(normalizeFolderPath(path)[:-1])
-        return doesExist(path)
+def saveFile(path: Path, lines: object, isRecursive: bool = False) -> bool:
+    if canWrite(path) or canModify(path):
+        path = _normalizePath(path)
+        written = 0
+        try:
+            if isRecursive:
+                createFoldersOfPath(path)
+
+            with open(path, "w") as file:
+                if isinstance(lines, tuple) or isinstance(lines, list):
+                    for line in lines:
+                        written += _writeOut(file, line, False)
+                elif isinstance(lines, str):
+                    written += _writeOut(file, lines, False)
+                elif isinstance(lines, dict):
+                    written += _writeOut(file, lines, True)
+                else:
+                    return False
+
+            return written == 0
+        except Exception as e:
+            logger.append(e)
+            logger.append(AttributeError("ubot_data#saveFile\r\nCan not process '{}'.\r\n".format(path)))
+            return False
     else:
+        logger.append(AttributeError("ubot_data#saveFile\r\nCan not process '{}'.\r\n".format(path)))
         return False
 
 
-def saveFileOf(pathAsList, filename, lines, isRecursive = False):
-    return saveFileOfPath(
-        getNormalizedPathOf(pathAsList, normalizeTxtFilename(filename)),
-        lines, isRecursive)
-
-
-def saveFileOfPath(path, lines, isRecursive = False):
-    if canWrite(path) or canModify(path):
-        return _saveFile(path, lines, isRecursive)
-    else:
-        return ""
-
-
-def _saveFile(path, lines, isRecursive = False):
-    path = normalizePath(path)
-    written = 0
-    try:
-        if isRecursive:
-            _createFoldersIfNeeded(path)
-
-        with open(path, "w") as file:
-            if isinstance(lines, tuple) or isinstance(lines, list):
-                for line in lines:
-                    written += _writeOut(file, line, False)
-            elif isinstance(lines, str):
-                written += _writeOut(file, lines, False)
-            elif isinstance(lines, dict):
-                written += _writeOut(file, lines, True)
-            else:
-                return ""
-
-            return path
-    except Exception as e:
-        logger.append(e)
-        logger.append(AttributeError("ubot_data#_saveFile\r\nCan not process '{}'.\r\n".format(path)))
-        return ""
-
-
-def _createFoldersIfNeeded(path):
-        pathArray = path.split("/")[1:-1]
-        elements = []
-        for i in range(len(pathArray)):
-            elements.append(pathArray[i])
-            path = getNormalizedPathOf(elements)
-            if not doesExist(path):
-                createFolderOfPath(path)
-
-
-def _writeOut(file, line, isJson = False):
+def _writeOut(file: object, line: str, isJson: bool = False) -> int:
     toWrite = "{}\r\n".format(ujson.dumps(line) if isJson else line)
     return file.write(toWrite) - len(toWrite)
 
 
-def deleteFileOfPath(path):
+def deleteFileOfPath(path: Path) -> bool:
     if canDelete(path):
-        if isFile(path):
+        if path.isFile:
             try:
-                uos.remove(path)
+                uos.remove(path.path)
+                path.isExist = False
                 return True
             except Exception as e:
                 logger.append(e)
@@ -385,18 +435,19 @@ def deleteFileOfPath(path):
             logger.append(AttributeError("ubot_data#deleteFileOfPath\r\n'{}' is not a file.\r\n".format(path)))
             return False
     else:
-        if doesExist(path):
-            logger.append(AttributeError("ubot_data#deleteFileOfPath\r\nMissing delete permission.\r\n".format(path)))
+        if path.isExist:
+            logger.append(AttributeError("ubot_data#deleteFileOfPath\r\nMissing delete permission.\r\n"))
         else:
             logger.append(AttributeError("ubot_data#deleteFileOfPath\r\nPath '{}' doesn't exist.\r\n".format(path)))
         return False
 
 
-def deleteFolderOfPath(path):
+def deleteFolderOfPath(path: Path) -> bool:
     if canDelete(path):
-        if isFolder(path):
+        if path.isFolder:
             try:
-                uos.rmdir(path)
+                uos.rmdir(path.path)
+                path.isExist = False
                 return True
             except Exception as e:
                 logger.append(e)
@@ -406,8 +457,8 @@ def deleteFolderOfPath(path):
             logger.append(AttributeError("ubot_data#deleteFolderOfPath\r\n'{}' is not a folder.\r\n".format(path)))
             return False
     else:
-        if doesExist(path):
-            logger.append(AttributeError("ubot_data#deleteFolderOfPath\r\nMissing delete permission.\r\n".format(path)))
+        if _doesExist(path):
+            logger.append(AttributeError("ubot_data#deleteFolderOfPath\r\nMissing delete permission.\r\n"))
         else:
             logger.append(AttributeError("ubot_data#deleteFolderOfPath\r\nPath '{}' doesn't exist.\r\n".format(path)))
         return False
@@ -424,8 +475,8 @@ def dumpException(exception):
 ################################
 ## REST/JSON related methods
 
-_hostLink = "http://{}/".format(config.get("ap", "ip"))
-_rawLink  = _hostLink + "raw/"
+_hostLink = "http://{}".format(config.get("ap", "ip"))
+_rawLink  = "{}/raw".format(_hostLink)
 
 def createRestReplyFrom(*path):
     clearPath = _deleteSpaceholders(path)
@@ -450,13 +501,14 @@ def _isBlank(text):
 
 
 def _createJsonFolderInstance(folder, isRoot = False):
-    realFolder = normalizeFolderPath(folder)
-    job = "Request: Get the folder '{}'.".format(realFolder)
+    path = Path(folder)
+    name = str(path)
+    job  = "Request: Get the folder '{}'.".format(name)
 
-    if isRoot or doesFolderExist(realFolder):
-        subFolders    = getFoldersOf(realFolder)
-        folderLink    = "{}{}".format(_hostLink, realFolder[1:])
-        folderRawLink = "{}{}".format(_rawLink, realFolder[1:])
+    if isRoot or path.isExist:
+        subFolders    = getFoldersOf(path)
+        folderLink    = "{}{}".format(_hostLink, name)
+        folderRawLink = "{}{}".format(_rawLink,  name)
 
         return "200 OK", job, {
             "name": "root" if isRoot else folder,
@@ -466,8 +518,8 @@ def _createJsonFolderInstance(folder, isRoot = False):
 
             "parent": {} if isRoot else {"name": "root",
                                          "type": "folder",
-                                         "href": _hostLink,
-                                         "raw": _rawLink},
+                                         "href": "{}/".format(_hostLink),
+                                         "raw":  "{}/".format(_rawLink)},
 
             "children": [{"name": subFolder,
                           "type": "folder",
@@ -478,14 +530,15 @@ def _createJsonFolderInstance(folder, isRoot = False):
 
 
 def _createJsonSubFolderInstance(folder, subFolder):
-    path = getNormalizedPathOf((folder, subFolder))
-    job = "Request: Get the folder '{}'.".format(path)
+    path = createPathOf(folder, subFolder)
+    name = str(path)
+    job  = "Request: Get the folder '{}'.".format(name)
 
-    if doesFolderExist(path):
-        files         = getFileNamesOfPath(path, "txt")              #! Burnt-in txt suffix: filtered by it, but chopped
-        parent        = normalizeFolderPath(folder)
-        folderLink    = "{}{}".format(_hostLink, path[1:])
-        folderRawLink = "{}{}".format(_rawLink, path[1:])
+    if assertPath(path, True, True):
+        files         = getFileNameList(path, "txt")              #! Burnt-in txt suffix: filtered by it, but chopped
+        parentName    = name[:-len(subFolder) - 1]
+        folderLink    = "{}{}".format(_hostLink, name)
+        folderRawLink = "{}{}".format(_rawLink,  name)
 
         return "200 OK", job, {
             "name": subFolder,
@@ -495,40 +548,39 @@ def _createJsonSubFolderInstance(folder, subFolder):
 
             "parent": {"name": folder,
                        "type": "folder",
-                       "href": "{}{}".format(_hostLink, parent[1:]),
-                       "raw":  "{}{}".format(_rawLink, parent[1:])},
+                       "href": "{}{}".format(_hostLink, parentName),
+                       "raw":  "{}{}".format(_rawLink,  parentName)},
 
             "children": [{"name": file,
                           "type": "file",
                           "href": "{}{}".format(folderLink, file),
                           "raw":  "{}{}.txt".format(folderRawLink, file)} for file in files]}     #! Burnt-in txt suffix
     else:
-        return "404 Not Found", job + " Cause: The folder doesn't exist.", {}
+        return "404 Not Found", job + " Cause: The folder does not exist.", {} #! If it exists as a file, doesn't matter
 
 
 def _createJsonFileInstance(folder, subFolder, file):
-    _file  = normalizeTxtFilename(logger.normalizeLogTitle(file) if folder == "log" else file)
-    path   = getNormalizedPathOf((folder, subFolder), _file)
-    parent = getNormalizedPathOf((folder, subFolder))
-    job = "Request: Get the file '{}'.".format(path)
+    path   = createPathOf(folder, subFolder, logger.normalizeLogTitle(file) if folder == "log" else file)
+    name   = str(path)
+    parent, fileName = name.rsplit("/", 1)
+    parent = "{}/".format(parent)
 
-    if doesFolderExist(parent):
-        if doesFileExist(path):
-            isJson = True if folder in config.get("data", "json_folders") else None
-            return "200 OK", job, {
-                "name": _file,
-                "type": "file",
-                "href": "{}{}".format(_hostLink, path[1:path.rindex(".")]),
-                "raw":  "{}{}".format(_rawLink, path[1:]),
-                "parent": {
-                    "name": subFolder,
-                    "type": "folder",
-                    "href": "{}{}".format(_hostLink, parent[1:]),
-                    "raw":  "{}{}".format(_rawLink, parent[1:])
-                },
-                "children": [],
-                "value": getFile(path, isJson)}
-        else:
-            return "404 Not Found", job + " Cause: The file doesn't exist.", {}
+    job = "Request: Get the file '{}'.".format(name)
+
+    if assertPath(path, True, False, True):
+        isJson = True if folder in config.get("data", "json_folders") else None
+        return "200 OK", job, {
+            "name": fileName,
+            "type": "file",
+            "href": "{}{}".format(_hostLink, name[:name.rindex(".")]),
+            "raw":  "{}{}".format(_rawLink,  name),
+            "parent": {
+                "name": subFolder,
+                "type": "folder",
+                "href": "{}{}".format(_hostLink, parent),
+                "raw":  "{}{}".format(_rawLink,  parent)
+            },
+            "children": [],
+            "value": getFile(path, isJson)}
     else:
-        return "403 Forbidden", job + " Cause: Invalid path in the URL.", {}
+        return "404 Not Found", job + " Cause: The file does not exist.", {}

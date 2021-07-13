@@ -39,12 +39,12 @@ from machine import RTC
 
 def getModules():
     """ Returns a tuple consists all available modules, or an empty tuple. """
-    return data.getFoldersOf("etc")
+    return data.getFoldersOf(MAIN_FOLDER)
 
 
 def getAttributesOf(module):
     """ Returns a tuple consists all available attributes, or an empty tuple. """
-    return data.getFileNamesOf("etc", module, "txt")
+    return data.getFileNameListOf("etc", module, "txt")
 
 
 def get(module, attribute):
@@ -176,3 +176,5 @@ logger.append("System RTC has been set. Source: {}".format(dateTimeSource))
 logger.append("'Power on count' has been set. Source: {}".format(powerOnsSource))
 
 import ubot_data as data
+
+MAIN_FOLDER = data.Path("etc")

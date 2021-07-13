@@ -37,6 +37,8 @@ import ubot_logger as logger
 import ubot_motor  as motor
 import ubot_data   as data
 
+
+MAIN_FOLDER    = data.Path("program")
 _powerOns      = config.get("system", "power_ons")
 _namedFolder   = config.get("turtle", "named_folder")
 _turtleFolder  = config.get("turtle", "turtle_folder")
@@ -150,32 +152,33 @@ def getProgramsCount():
 
 
 def getProgramFolders():
-    return data.getFoldersOf("program")
+    return data.getFoldersOf(MAIN_FOLDER)
 
 
-def doesFolderExist(folder):
-    return data.doesFolderExist(getNormalizedPathOf(folder))
+def doesFolderExist(folder: str) -> bool:
+    path = getPathOf(folder)
+    return path.isExist and path.isFolder
 
 
-def createFolder(folder):
-    return data.createFolderOf("program", folder)
+def createFolder(folder: str) -> bool:
+    return data.createFolder(getPathOf("program", folder))
 
 
 def getProgramListOf(folder):
-    return data.getFileNamesOf("program", folder, "txt")
+    return data.getFileNameListOf("program", folder, "txt")
 
 
 def doesProgramExist(folder, title):
-    return data.doesFileExist(getNormalizedPathOf(folder, title))
+    path = getPathOf(folder, title)
+    return path.isExist and path.isFile
 
 
-def getProgramCode(folder, title):
-    result = data.getFile(getNormalizedPathOf(folder, title), False)
-    return result[0] if 0 < len(result) else ""
+def getProgramCode(folder: str, title: str) -> str:
+    return "".join(data.getFile(getPathOf(folder, title), False))
 
 
-def getNormalizedPathOf(folder, title = ""):
-    return data.getNormalizedPathOf(("program", folder), data.normalizeTxtFilename(title))
+def getPathOf(folder: str, title = "") -> data.Path:
+    return data.createPathOf("program", folder, title)
 
 
 def runProgram(folder, title):
@@ -216,29 +219,23 @@ def saveLoadedProgram(folder = "", title = ""):
     return saveProgram(_namedFolder if folder == "" else folder, title, getProgramArray())
 
 
-def saveProgram(folder = "", title = "", program = ""):
+def saveProgram(folder: str = "", title: str = "", program: str = "") -> str:
     global _savedCount
 
-    folder  = _namedFolder if folder == "" else folder.lower()
-    title   = data.normalizeTxtFilename(title)
-    path    = _generateFullPathForAutoSave() if title == "" else "/program/{}/{}".format(folder, title)
-    dirPath = path[:path.rindex("/")]
+    folder = _namedFolder if folder == "" else folder.lower()
+    path   = _generateFullPathForAutoSave() if title == "" else data.createPathOf("program", folder, title)
+    result = data.saveFile(path, program, True)
 
-    if not doesFolderExist(folder):
-        data.createFolderOfPath(dirPath)
-
-    isSaved = data.saveFileOfPath(path, program)
-
-    if not isSaved and title is None:
+    if not result and title == "":
         _savedCount -= 1
 
-    return path if isSaved else ""
+    return str(path) if result else ""
 
 
-def _generateFullPathForAutoSave():
+def _generateFullPathForAutoSave() -> data.Path:
     global _savedCount
     _savedCount += 1
-    return "/program/{}/{:010d}_{:03d}.txt".format(_turtleFolder, _powerOns, _savedCount)
+    return data.createPathOf("program", _turtleFolder, "{:010d}_{:03d}.txt".format(_powerOns, _savedCount))
 
 
 def getCommandArray():

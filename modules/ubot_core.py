@@ -322,10 +322,10 @@ def _jsonPostFile():
     title = data.normalizeTxtFilename(title)
 
     job = "Request: Save the file '{}' ({}).".format(title, folder)
-    path = data.getNormalizedPathOf((category, folder), title)
+    path = data.createPathOf(category, folder, title)
 
-    if not data.doesExist(path):
-        if data.canWrite(path):             # The existence checked, so data#canCreate is overkill.
+    if not path.isExist:
+        if data.canCreate(path):
             return _jsonWriteFile(job, path)
         else:
             return "403 Forbidden", "{} Cause: Missing write permission.".format(job), {}
@@ -342,7 +342,7 @@ def _jsonWriteFile(path, job, isJson = None):
     isJson = isJson is True or body.get("isJson") is True
 
     file = ujson.dumps(body.get("value")) if isJson else body.get("value")
-    path = path if data.saveFileOfPath(path, file, True) else ""
+    path = str(path) if data.saveFile(path, file, True) else ""
 
     return _jsonReplyWithFileInstance(path, job)
 
@@ -439,11 +439,11 @@ def _executeJsonPut():                                                          
 def _jsonPutFile():
     category, folder, title = _jsonRequest.get("path")[0:3]
     title = data.normalizeTxtFilename(title)
-    path = data.getNormalizedPathOf((category, folder), title)
+    path = data.createPathOf(category, folder, title)
 
     job = "Request: Modify the file '{}' ({}).".format(title, folder)
 
-    if data.doesExist(path):
+    if path.isExist:
         if data.canWrite(path) or data.canModify(path):
             return _jsonWriteFile(path, job, True if category == "etc" else None)
         else:
@@ -469,16 +469,16 @@ def _jsonDeleteEntity():
     descriptor = "'{}' ({}).".format(title, folder) if isFile else "'{}'.".format(folder)
     job = "Request: Delete the {} {}".format(entity, descriptor)
 
-    path = data.getNormalizedPathOf((category, folder), title)
+    path = data.createPathOf(category, folder, title)
 
-    if data.doesExist(path):
+    if path.isExist:
         if data.canDelete(path):
             if isFile:
                 result = data.deleteFileOfPath(path)
             else:
                 result = data.deleteFolderOfPath(path)
 
-            if result and not data.doesExist(path):
+            if result and not path.isExist:
                 return "200 OK", job, {}
             else:
                 return "500 Internal Server Error", "{} Cause: The file system is not available.".format(job), {}
