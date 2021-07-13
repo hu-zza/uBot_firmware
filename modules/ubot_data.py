@@ -52,7 +52,7 @@ def _initializePath(pathObject):
         if doesExist(path):
             pathObject.isExist = True
 
-            if uos.stat(path)[0] == 0x4000:
+            if uos.stat(path)[0] == 0x4000:     # Folder
                 pathObject.isFile = False
                 pathObject.isTxt  = False
 
@@ -60,10 +60,12 @@ def _initializePath(pathObject):
                     path = "{}/".format(path)
             else:
                 pathObject.isFile = True
-                pathObject.isTxt = True
-
-                if not path.endswith(".txt"):
-                    path = "{}.txt".format(path)
+                pathObject.isTxt = path.endswith(".txt")
+        elif doesExist("{}.txt".format(path)):
+            path = "{}.txt".format(path)
+            pathObject.isExist = True
+            pathObject.isFile  = True
+            pathObject.isTxt   = True
         else:
             pathObject.isExist = False
             pathObject.isFile  = False
@@ -83,7 +85,7 @@ def _initializePath(pathObject):
 
 def doesExist(path):
     try:
-        uos.stat(normalizePath(path))
+        uos.stat(path)
         return True
     except:
         return False
