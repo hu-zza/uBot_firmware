@@ -47,9 +47,9 @@ class Path:
         self.isFile   = False
         self.isTxt    = False
         self.description = "[invalid]"
-        self.canWrite  = None
-        self.canDelete = None
-        self.canModify = None
+        self.isWritable  = None
+        self.isDeletable = None
+        self.isModifiable = None
 
         _initializePath(self)
 
@@ -70,13 +70,11 @@ def _initializePath(path: Path) -> None:
 
             if typeInt == 0x4000:
                 path.isFolder = True
-                description = "folder '{}' ({})"
 
                 if not pathString.endswith("/"):
                     pathString = "{}/".format(pathString)
             elif typeInt == 0x8000:
                 path.isFile = True
-                description = "file '{}' ({})"
                 path.isTxt = pathString.endswith(".txt")
             else:
                 raise AttributeError("ubot_data#_initializePath\r\nPath '{}' should represent a folder or a file.\r\n"
@@ -90,15 +88,13 @@ def _initializePath(path: Path) -> None:
             path.isExist = True
             path.isFile  = True
             path.isTxt   = True
-            description  = "file '{}' ({})"
-        else:
-            description = "[non-existent] '{}' ({})"
 
         array = tuple(item for item in pathString.split("/") if item != "")
-        path.description = description.format(array[-1], "/{}".format("/".join(array[:-1])))
         path.path  = pathString
         path.array = array
         path.size  = len(array)
+        _refreshPathDescription(path)
+
 
     except Exception as e:
         logger.append(e)
@@ -107,18 +103,41 @@ def _initializePath(path: Path) -> None:
         _invalidatePath(path)
 
 
+def _refreshPathDescription(path: Path) -> None:
+    if path.isExist:
+        if path.isFile:
+            template = "file '{}' ({})"
+        elif path.isFolder:
+            template = "folder '{}' ({})"
+        else:
+            template = "[invalid]"
+    else:
+        template = "[non-existent] '{}' ({})"
+
+    path.description = template.format(path.array[-1], "/{}".format("/".join(path.array[:-1])))
+
+
 def _invalidatePath(path: Path) -> None:
     path.path  = ""
     path.array = ()
     path.size  = 0
+    path.description = "[invalid]"
+    _deletePathFlags(path)
+
+
+def _makePathNonExistent(path: Path) -> None:
+    _deletePathFlags(path)
+    _refreshPathDescription(path)
+
+
+def _deletePathFlags(path: Path) -> None:
     path.isExist  = False
     path.isFolder = False
     path.isFile   = False
     path.isTxt    = False
-    path.description = "[invalid]"
-    path.canWrite  = False
-    path.canDelete = False
-    path.canModify = False
+    path.isWritable   = False
+    path.isDeletable  = False
+    path.isModifiable = False
 
 
 def _doesExist(path: str) -> bool:
@@ -254,15 +273,96 @@ def assertPathIsFile(path: Path, isFile = True) -> bool:
         return False
 
 
-def assertPathCan(path: Path, can = True) -> bool:
-    if path.can != can:
-        _logAssertionException("Can", path, "is ." if path.can else "does not .")
+def assertPathIsTxt(path: Path, isTxt = True) -> bool:
+    if path.isTxt != isTxt:
+        _logAssertionException("IsTxt", path, "has '.txt' suffix." if path.isTxt else "has no '.txt' suffix.")
+        return False
+
+
+def assertPathIsCreatable(path: Path, isCreatable = True) -> bool:
+    property = canCreate(path)
+    if property != isCreatable:
+        _logAssertionException("IsCreatable", path, "is creatable." if property else "is not creatable.")
+        return False
+
+
+def assertPathIsWritable(path: Path, isWritable = True) -> bool:
+    property = canWrite(path)
+    if property != isWritable:
+        _logAssertionException("IsWritable", path, "is writable." if property else "is not writable.")
+        return False
+
+
+def assertPathIsDeletable(path: Path, isDeletable = True) -> bool:
+    property = canDelete(path)
+    if property != isDeletable:
+        _logAssertionException("IsDeletable", path, "is deletable." if property else "is not deletable.")
+        return False
+
+
+def assertPathIsReadable(path: Path, isReadable = True) -> bool:
+    property = canRead(path)
+    if property != isReadable:
+        _logAssertionException("IsReadable", path, "is readable." if property else "is not readable.")
+        return False
+
+
+def assertPathIsSavable(path: Path, isSavable = True) -> bool:
+    property = canWrite(path) or canModify(path)
+    if property != isSavable:
+        _logAssertionException("IsSavable", path, "is savable." if property else "is not savable.")
+        return False
+
+
+def assertPathIsModifiable(path: Path, isModifiable = True) -> bool:
+    property = canModify(path)
+    if property != isModifiable:
+        _logAssertionException("IsModifiable", path, "is modifiable." if property else "is not modifiable.")
         return False
 
 
 def _logAssertionException(assertionNameSuffix: str, path: Path, message: str) -> None:
     logger.append(AttributeError("ubot_data#assertPath{}\r\nPath '{}' {}\r\n"
                                  .format(assertionNameSuffix, path, message)))
+
+
+def canRead(path: Path) -> bool:
+    return path.isExist and path.isFile
+
+
+def canCreate(path: Path) -> bool:
+    if path.isWritable is None:
+        path.isWritable = _checkPermission(path.path, "write_rights")
+
+    return path.isWritable and not path.isExist
+
+
+def canWrite(path: Path) -> bool:
+    if path.isWritable is None:
+        path.isWritable = _checkPermission(path.path, "write_rights")
+
+    return path.isWritable
+
+
+def canDelete(path: Path) -> bool:
+    if path.isDeletable is None:
+        path.isDeletable = _checkPermission(path.path, "delete_rights")
+
+    return path.isDeletable and path.isExist
+
+
+def canModify(path: Path) -> bool:
+    if path.isModifiable is None:
+        path.isModifiable = _checkPermission(path.path, "modify_rights")
+
+    return path.isModifiable and path.isExist
+
+
+def _checkPermission(path: str, nameOfPrefixSet: str) -> bool:
+    for prefix in config.get("data", nameOfPrefixSet):
+        if path.find(prefix) == 0 and len(prefix) < len(path):
+            return True
+    return False
 
 
 def doesFolderExist(path: Path) -> bool:
@@ -322,7 +422,7 @@ def getFileList(path: Path, suffix = "") -> tuple:
 
 
 def getFile(path: Path, isJson: bool = None) -> tuple:
-    if _assertPath(path, True, False, True):
+    if assertPathIsReadable(path):
         try:
             likelyJson = isJson is True or isJson is not False and getLineCountOfFile(path) == 1
             with open(path.path, "r") as file:
@@ -335,7 +435,8 @@ def getFile(path: Path, isJson: bool = None) -> tuple:
             logger.append(AttributeError("ubot_data#getFile\r\nCan not process '{}'.\r\n".format(path)))
             return ()
     else:
-        logger.append(AttributeError("ubot_data#getFile\r\nPath '{}' does not meet the requirements.\r\n".format(path)))
+        logger.append(AttributeError("ubot_data#getFile\r\nCan not open '{}' because of breach of preconditions.\r\n"
+                                     .format(path)))
         return ()
 
 
@@ -347,56 +448,21 @@ def __loadsJsonSoftly(line: str) -> object:
 
 
 def getLineCountOfFile(path: Path) -> int:
-    if path.isFile:
+    if assertPathIsReadable(path):
         return sum(1 for _ in open(path.path))
     else:
         return 0
 
 
 def getEntityCountOfFolder(path: Path) -> int:
-    if doesFolderExist(path):
+    if assertPathIsFolder(path):
         return len(uos.listdir(path))
     else:
         return 0
 
 
-def canCreate(path: Path) -> bool:
-    if path.canWrite is None:
-        path.canWrite = _checkPermission(path.path, "write_rights")
-
-    return path.canWrite and not path.isExist
-
-
-def canWrite(path: Path) -> bool:
-    if path.canWrite is None:
-        path.canWrite = _checkPermission(path.path, "write_rights")
-
-    return path.canWrite
-
-
-def canDelete(path: Path) -> bool:
-    if path.canDelete is None:
-        path.canDelete = _checkPermission(path.path, "delete_rights")
-
-    return path.canDelete and path.isExist
-
-
-def canModify(path: Path) -> bool:
-    if path.canModify is None:
-        path.canModify = _checkPermission(path.path, "modify_rights")
-
-    return path.canModify and path.isExist
-
-
-def _checkPermission(path: str, nameOfPrefixSet: str) -> bool:
-    for prefix in config.get("data", nameOfPrefixSet):
-        if path.find(prefix) == 0 and len(prefix) < len(path):
-            return True
-    return False
-
-
 def saveFile(path: Path, lines: object, isRecursive: bool = False) -> bool:
-    if canWrite(path) or canModify(path):
+    if assertPathIsSavable(path):
         written = 0
         try:
             if isRecursive:
@@ -413,13 +479,16 @@ def saveFile(path: Path, lines: object, isRecursive: bool = False) -> bool:
                 else:
                     return False
 
+            path.isExist = True
+            _refreshPathDescription(path)
             return written == 0
         except Exception as e:
             logger.append(e)
             logger.append(AttributeError("ubot_data#saveFile\r\nCan not process '{}'.\r\n".format(path)))
             return False
     else:
-        logger.append(AttributeError("ubot_data#saveFile\r\nCan not process '{}'.\r\n".format(path)))
+        logger.append(AttributeError("ubot_data#saveFile\r\nCan not save '{}' because of breach of preconditions.\r\n"
+                                     .format(path)))
         return False
 
 
@@ -428,47 +497,25 @@ def _writeOut(file: object, line: object, isJson: bool = False) -> int:
     return file.write(toWrite) - len(toWrite)
 
 
-def deleteFileOfPath(path: Path) -> bool:
-    if canDelete(path):
-        if path.isFile:
-            try:
+def delete(path: Path) -> bool:
+    if assertPathIsDeletable(path):
+        try:
+            if path.isFile:
                 uos.remove(path.path)
-                path.isExist = False
-                return True
-            except Exception as e:
-                logger.append(e)
-                logger.append(AttributeError("ubot_data#deleteFileOfPath\r\nCan not delete '{}'.\r\n".format(path)))
-                return False
-        else:
-            logger.append(AttributeError("ubot_data#deleteFileOfPath\r\n'{}' is not a file.\r\n".format(path)))
-            return False
-    else:
-        if path.isExist:
-            logger.append(AttributeError("ubot_data#deleteFileOfPath\r\nMissing delete permission.\r\n"))
-        else:
-            logger.append(AttributeError("ubot_data#deleteFileOfPath\r\nPath '{}' doesn't exist.\r\n".format(path)))
-        return False
-
-
-def deleteFolderOfPath(path: Path) -> bool:
-    if canDelete(path):
-        if path.isFolder:
-            try:
+            elif path.isFolder:
                 uos.rmdir(path.path)
-                path.isExist = False
-                return True
-            except Exception as e:
-                logger.append(e)
-                logger.append(AttributeError("ubot_data#deleteFolderOfPath\r\nCan not delete '{}'.\r\n".format(path)))
+            else:
                 return False
-        else:
-            logger.append(AttributeError("ubot_data#deleteFolderOfPath\r\n'{}' is not a folder.\r\n".format(path)))
+
+            _makePathNonExistent(path)
+            return True
+        except Exception as e:
+            logger.append(e)
+            logger.append(AttributeError("ubot_data#delete\r\nCan not delete '{}'.\r\n".format(path)))
             return False
     else:
-        if _doesExist(path):
-            logger.append(AttributeError("ubot_data#deleteFolderOfPath\r\nMissing delete permission.\r\n"))
-        else:
-            logger.append(AttributeError("ubot_data#deleteFolderOfPath\r\nPath '{}' doesn't exist.\r\n".format(path)))
+        logger.append(AttributeError("ubot_data#delete\r\nCan not delete '{}' because of breach of preconditions. \r\n"
+                                     .format(path)))
         return False
 
 
@@ -542,7 +589,7 @@ def _createJsonSubFolderInstance(folder, subFolder):
     name = str(path)
     job  = "Request: Get the folder '{}'.".format(name)
 
-    if _assertPath(path, True, True):
+    if assertPathIsFolder(path):
         files         = getFileNameList(path, "txt")              #! Burnt-in txt suffix: filtered by it, but chopped
         parentName    = name[:-len(subFolder) - 1]
         folderLink    = "{}{}".format(_hostLink, name)
@@ -575,7 +622,7 @@ def _createJsonFileInstance(folder, subFolder, file):
 
     job = "Request: Get the file '{}'.".format(name)
 
-    if _assertPath(path, True, False, True):
+    if assertPathIsFile(path):
         isJson = True if folder in config.get("data", "json_folders") else None
         return "200 OK", job, {
             "name": fileName,

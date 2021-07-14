@@ -473,12 +473,7 @@ def _jsonDeleteEntity():
 
     if path.isExist:
         if data.canDelete(path):
-            if isFile:
-                result = data.deleteFileOfPath(path)
-            else:
-                result = data.deleteFolderOfPath(path)
-
-            if result and not path.isExist:
+            if data.delete(path):
                 return "200 OK", job, {}
             else:
                 return "500 Internal Server Error", "{} Cause: The file system is not available.".format(job), {}
