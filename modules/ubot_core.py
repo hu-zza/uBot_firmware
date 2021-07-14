@@ -154,30 +154,23 @@ def extractCharTupleFromString(tupleString, enabledCharsSet):
 ## PRIVATE METHODS FOR REST/JSON
 
 _jsonRequest = {                                                                        ########## JSON REQUEST HANDLING
-    "path": tuple(),
-    "present": 0,
+    "path": data.INVALID_PATH,
     "body": "",
     "parsed": False,
     "exception": []
 }
 
 
-def _updateJsonRequest(path = "", body = ""):
+def _updateJsonRequest(path: str = "", body: str = "") -> None:
     global _jsonRequest
 
-    array = [item for item in path.split("/") if item != ""]
-
-    _jsonRequest["present"] = len(array)
-
-    array += [""] * (10 - len(array))           # add placeholders to prevent IndexError
-
-    _jsonRequest["path"] = tuple(array)
+    _jsonRequest["path"] = data.createPathOf(path)
     _jsonRequest["body"] = body
     _jsonRequest["parsed"] = False
     _jsonRequest["exception"] = []
 
 
-def _parseJsonRequestBody():
+def _parseJsonRequestBody() -> None:
     try:
         _jsonRequest["body"] = ujson.loads(_jsonRequest.get("body"))
         _jsonRequest["parsed"] = True
@@ -187,7 +180,7 @@ def _parseJsonRequestBody():
         _jsonRequest["parsed"] = False
 
 
-def _jsonBodyValidator(job, obligatoryParameters = ("value",)):                               ########## GENERAL HELPERS
+def _jsonBodyValidator(job: str, obligatoryParameters: tuple = ("value",)) -> tuple:          ########## GENERAL HELPERS
     if _jsonRequest.get("parsed"):
         body = _jsonRequest.get("body")
         if all(body.get(item) is not None for item in obligatoryParameters):
@@ -198,12 +191,11 @@ def _jsonBodyValidator(job, obligatoryParameters = ("value",)):                 
         return "400 Bad Request", "{} Cause: The request body could not be parsed.".format(job), {}
 
 
-def _jsonReplyWithFileInstance(path, job):
-    if path != "":
-        pathArray = path.split("/")
+def _jsonReplyWithFileInstance(path: data.Path, job: str) -> tuple:
+    if path.isExist:
         jobGist = job[:job.find("'")]
-        job = "{}'{}' ({}).".format(jobGist, pathArray[3], pathArray[2])
-        savedProgram = _jsonGetFileOfPath(pathArray[1:4])
+        job = "{}{}".format(jobGist, path.description)
+        savedProgram = data.createRestReply(path)
 
         if savedProgram[0] == "200 OK":
             return "200 OK", job, savedProgram[2]
@@ -213,17 +205,13 @@ def _jsonReplyWithFileInstance(path, job):
         return "422 Unprocessable Entity", "{} Cause: Semantic error in JSON.".format(job), {}
 
 
-def _jsonGetFileOfPath(path):
-    return data.createRestReplyOf(path[0], path[1], path[2])
+def _executeJsonGet() -> tuple:                                                              ########## JSON GET HANDLER
+    pathSize = _jsonRequest.get("path").size
 
+    if pathSize < 5:
+        category = _jsonRequest.get("path").array[0]
 
-def _executeJsonGet():                                                                       ########## JSON GET HANDLER
-    presentArgs = _jsonRequest.get("present")
-
-    if presentArgs < 5:
-        category = _jsonRequest.get("path")[0]
-
-        if category == "program" and presentArgs == 4:
+        if category == "program" and pathSize == 4:
             return _jsonGetProgramActionStarting()
         else:
             result = _jsonGetFunctions.setdefault(category, _jsonGetFileByJsonLink)()
@@ -233,8 +221,8 @@ def _executeJsonGet():                                                          
     return "403 Forbidden", "Request: REST GET. Cause: The format of the URL is invalid.", {}
 
 
-def _jsonGetProgramActionStarting():
-    folder, title, action = _jsonRequest.get("path")[1:4]
+def _jsonGetProgramActionStarting() -> tuple:
+    folder, title, action = _jsonRequest.get("path").array[1:4]
     
     job = "Request: Starting action '{}' of program '{}' ({}).".format(action, title, folder)
 
@@ -249,16 +237,16 @@ def _jsonGetProgramActionStarting():
         return "404 Not Found", "{} Cause: No such program.".format(job), {}
 
 
-def _jsonGetFileByRawLink():                                                                  # TODO: real raw for files
-    return _jsonGetFileOfPath(_jsonRequest.get("path")[1:4])
+def _jsonGetFileByRawLink() -> tuple:                                                         # TODO: real raw for files
+    return data.getFile(data.createPath(_jsonRequest.get("path").array[1:4]))
 
 
-def _jsonGetFileByJsonLink():
-    return _jsonGetFileOfPath(_jsonRequest.get("path")[0:3])
+def _jsonGetFileByJsonLink() -> tuple:
+    return data.getFile(_jsonRequest.get("path"))
 
 
-def _jsonGetCommandExecution():
-    command = _jsonRequest.get("path")[1].upper()
+def _jsonGetCommandExecution() -> tuple:
+    command = _jsonRequest.get("path").array[1].upper()
     job = "Request: Starting command '{}' execution.".format(command)
     try:
         if executeCommand(command):
@@ -275,36 +263,38 @@ _jsonGetFunctions = {
 }
 
 
-def _executeJsonPost():                                                                     ########## JSON POST HANDLER
-    present = _jsonRequest.get("present")
+def _executeJsonPost() -> tuple:                                                            ########## JSON POST HANDLER
+    pathSize = _jsonRequest.get("path").size
 
-    if 0 < present < 4:
+    if 0 < pathSize < 4:
         _parseJsonRequestBody()
-        category = _jsonRequest.get("path")[0]
+        category = _jsonRequest.get("path").array[0]
 
         if category == "program":
             return _jsonPostProgram()
-        elif present == 3:
+        elif pathSize == 3:
             return _jsonPostFile()
-        elif present == 1:
+        elif pathSize == 1:
             if category in _jsonPostFunctions.keys():
                 return _jsonPostFunctions.get(category)()
 
     return "403 Forbidden", "Request: REST POST. Cause: The format of the URL is invalid.", {}
 
 
-def _jsonPostProgram():
-    folder, title = _jsonRequest.get("path")[1:3]
-    title = data.normalizeTxtFilename(title)
+def _jsonPostProgram() -> tuple:
+    path = _jsonRequest.get("path")
 
-    job = "Request: Save the program '{}' ({}).".format(title, folder)
+    job = "Request: Save the {}.".format(path.description)
+
+    folder = path.array[1]
+    title  = path.array[2]
     if not turtle.doesProgramExist(folder, title):
         return _jsonWriteProgram(folder, title, job)
     else:
         return "403 Forbidden", "{} Cause: The program already exists.".format(job), {}
 
 
-def _jsonWriteProgram(folder, title, job):
+def _jsonWriteProgram(folder, title, job) -> tuple:
     body = _jsonRequest.get("body")
     if body == "":
         path = turtle.saveLoadedProgram(folder, title)
@@ -313,27 +303,24 @@ def _jsonWriteProgram(folder, title, job):
         if result[0] != "200 OK":
             return result
 
-        path = turtle.saveProgram(folder, title, body.get("value"))
+        path = data.createPathOf(turtle.saveProgram(folder, title, body.get("value")))
     return _jsonReplyWithFileInstance(path, job)
 
 
-def _jsonPostFile():
-    category, folder, title = _jsonRequest.get("path")[0:3]
-    title = data.normalizeTxtFilename(title)
-
-    job = "Request: Save the file '{}' ({}).".format(title, folder)
-    path = data.createPathOf(category, folder, title)
+def _jsonPostFile() -> tuple:
+    path = _jsonRequest.get("path")
+    job = "Request: Save the {}.".format(path.description)
 
     if not path.isExist:
         if data.canCreate(path):
-            return _jsonWriteFile(job, path)
+            return _jsonWriteFile(path, job)
         else:
             return "403 Forbidden", "{} Cause: Missing write permission.".format(job), {}
     else:
         return "403 Forbidden", "{} Cause: The file already exists.".format(job), {}
 
 
-def _jsonWriteFile(path, job, isJson = None):
+def _jsonWriteFile(path: data.Path, job: str, isJson: bool = None) -> tuple:
     result = _jsonBodyValidator(job)
     if result[0] != "200 OK":
         return result
@@ -342,12 +329,12 @@ def _jsonWriteFile(path, job, isJson = None):
     isJson = isJson is True or body.get("isJson") is True
 
     file = ujson.dumps(body.get("value")) if isJson else body.get("value")
-    path = str(path) if data.saveFile(path, file, True) else ""
+    data.saveFile(path, file, True)
 
     return _jsonReplyWithFileInstance(path, job)
 
 
-def _jsonPostCommand():
+def _jsonPostCommand() -> tuple:
     job = "Request: Starting commands execution."
 
     result = _jsonBodyValidator(job)
@@ -369,7 +356,7 @@ def _jsonPostCommand():
         return "422 Unprocessable Entity", "{} Cause: Semantic error in JSON.".format(job), {}
 
 
-def _jsonPostLog():
+def _jsonPostLog() -> tuple:
     job = "Request: Send log for processing."
 
     if config.get("logger", "active"):
@@ -382,7 +369,8 @@ def _jsonPostLog():
         logFile = "event" if isinstance(log, str) else "object"
         if logFile in config.get("logger", "active_logs"):
             logger.append(log)
-            status, message, json = _jsonGetFileOfPath(("log", logFile, config.get("system", "power_ons")))
+            status, message, json = data.getFile(
+                data.createPathOf("log", logFile, str(config.get("system", "power_ons"))), False)
 
             if status == "200 OK":
                 return "200 OK", job, json
@@ -394,7 +382,7 @@ def _jsonPostLog():
         return "403 Forbidden", "{} Cause: The logger module is inactive.".format(job), {}
 
 
-def _jsonPostRoot():
+def _jsonPostRoot() -> tuple:
     if config.get("system", "root"):
         job = "Request: Starting MicroPython commands execution."
 
@@ -428,24 +416,22 @@ _jsonPostFunctions = {
 }
 
 
-def _executeJsonPut():                                                                       ########## JSON PUT HANDLER
-    if _jsonRequest.get("present") == 3:
+def _executeJsonPut() -> tuple:                                                              ########## JSON PUT HANDLER
+    if _jsonRequest.get("path").size == 3:
         _parseJsonRequestBody()
         return _jsonPutFile()
 
     return "403 Forbidden", "Request: REST PUT. Cause: The format of the URL is invalid.", {}
 
 
-def _jsonPutFile():
-    category, folder, title = _jsonRequest.get("path")[0:3]
-    title = data.normalizeTxtFilename(title)
-    path = data.createPathOf(category, folder, title)
+def _jsonPutFile() -> tuple:
+    path = _jsonRequest.get("path")
 
-    job = "Request: Modify the file '{}' ({}).".format(title, folder)
+    job = "Request: Modify the {}.".format(path.description)
 
     if path.isExist:
         if data.canWrite(path) or data.canModify(path):
-            return _jsonWriteFile(path, job, True if category == "etc" else None)
+            return _jsonWriteFile(path, job, None)
         else:
             return "403 Forbidden", "{} Cause: Missing write / modify permission.".format(job), {}
     else:
@@ -453,23 +439,16 @@ def _jsonPutFile():
 
 
 
-def _executeJsonDelete():                                                                 ########## JSON DELETE HANDLER
-    if 1 < _jsonRequest.get("present") < 4:
+def _executeJsonDelete() -> tuple:                                                        ########## JSON DELETE HANDLER
+    if 1 < _jsonRequest.get("path").size < 4:
         return _jsonDeleteEntity()
 
     return "403 Forbidden", "Request: REST DELETE. Cause: The format of the URL is invalid.", {}
 
 
-def _jsonDeleteEntity():
-    category, folder, title = _jsonRequest.get("path")[0:3]
-    title = data.normalizeTxtFilename(title)
-    isFile = title != ""
-
-    entity = "file" if isFile else "folder"
-    descriptor = "'{}' ({}).".format(title, folder) if isFile else "'{}'.".format(folder)
-    job = "Request: Delete the {} {}".format(entity, descriptor)
-
-    path = data.createPathOf(category, folder, title)
+def _jsonDeleteEntity() -> tuple:
+    path = _jsonRequest.get("path")
+    job  = "Request: Delete the {}".format(path.description)
 
     if path.isExist:
         if data.canDelete(path):
@@ -478,12 +457,12 @@ def _jsonDeleteEntity():
             else:
                 return "500 Internal Server Error", "{} Cause: The file system is not available.".format(job), {}
         else:
-            if not isFile and 0 < data.getEntityCountOfFolder(path):
-                return "403 Forbidden", "{} Cause: The folder '{}' is not empty.".format(job, folder), {}
+            if path.isFolder and 0 < data.getEntityCountOfFolder(path):
+                return "403 Forbidden", "{} Cause: The folder '{}' is not empty.".format(job, path), {}
             else:
                 return "403 Forbidden", "{} Cause: Missing delete permission.".format(job), {}
     else:
-        return "403 Forbidden", "{} Cause: The {} doesn't exist.".format(job, entity), {}
+        return "403 Forbidden", "{} Cause: The {} doesn't exist.".format(job, path.description), {}
 
 
 

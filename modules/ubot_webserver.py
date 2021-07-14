@@ -386,22 +386,11 @@ def _processJsonQuery():
         result = _unavailableSupplierFunction()
         _reply(result[0], result[1], result[2])
     elif isAllowed(_request.get("method"), allowedJsonMethods):
-        if _isSpecialJsonRequest():
-            _handleSpecialJsonRequest()
-        else:
-            _startJsonProcessing()
+        _startJsonProcessing()
     else:
         methods = ", ".join(allowedJsonMethods)
         _reply("405 Method Not Allowed", "The following HTTP request methods are allowed with application/json "
                                          "content type: {}.".format(methods))
-
-
-def _isSpecialJsonRequest():
-    return False
-
-
-def _handleSpecialJsonRequest():
-    pass
 
 
 def _startJsonProcessing():

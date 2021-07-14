@@ -40,7 +40,6 @@ _pwm          = PWM(Pin(15), 0, 0)
 _defaultState = 0
 
 
-
 ################################
 ## PUBLIC METHODS
 
@@ -90,7 +89,6 @@ def setDefaultState(value = 0):
 
     _defaultState = value
     _setDutyByDefaultState()
-
 
 
 ################################

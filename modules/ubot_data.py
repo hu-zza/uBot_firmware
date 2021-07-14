@@ -245,16 +245,6 @@ def createFoldersAlongPath(path: Path) -> None:
                 createFolder(createPath(elements))
 
 
-def normalizeTxtFilename(filename: str) -> str:
-    if isinstance(filename, str):
-        filename = filename.lower()
-        return filename if filename.endswith(".txt") or filename == "" else "{}.txt".format(filename)
-    else:
-        logger.append(AttributeError("ubot_data#normalizeTxtFilename\r\n'{}' is not a string representing a filename.\r\n"
-                                     .format(filename)))
-        return "Exception @ ubot_data#normalizeTxtFilename"
-
-
 def assertPathIsExist(path: Path, isExist = True) -> bool:
     if path.isExist != isExist:
         _logAssertionException("IsExist", path, "exist." if path.isExist else "does not exist.")

@@ -207,12 +207,12 @@ def getSystemPanel():
             "                <tr><td> <strong>System RTC:</strong> </td><td colspan='2'>{year}. {month:02d}. {day:02d}.&nbsp;&nbsp;&nbsp;{hour:02d} : {minute:02d} : {second:02d}</td></tr>\r\n"
             "                <tr><td> <strong>μBot ID:</strong> </td><td colspan='2'>{idA}<br>{idB}</td></tr>"
             "            </table>\r\n").format(powerOns = config.get("system", "power_ons"),
-                                             savedPrograms = turtle.getProgramsCount(),
-                                             major = major, minor = minor, patch = patch,
-                                             freeMemoryPercent = freeMemoryPercent, freeMemory = freeMemory, allMemory = allMemory,
-                                             freeSpacePercent = freeSpacePercent, freeSpace = freeSpace, allSpace = allSpace,
-                                             year = year, month = month, day = day, hour = hour, minute = minute, second = second,
-                                             idA = idA, idB = idB)
+                                               savedPrograms = turtle.getProgramsCount(),
+                                               major = major, minor = minor, patch = patch,
+                                               freeMemoryPercent = freeMemoryPercent, freeMemory = freeMemory, allMemory = allMemory,
+                                               freeSpacePercent = freeSpacePercent, freeSpace = freeSpace, allSpace = allSpace,
+                                               year = year, month = month, day = day, hour = hour, minute = minute, second = second,
+                                               idA = idA, idB = idB)
 
 
 def getServiceStatusPanel():
@@ -240,13 +240,13 @@ def getApPanel():
             "                <tr><td> <strong>Gateway:</strong> </td><td>{gateway}</td><td> </td></tr>"
             "                <tr><td> <strong>DNS:</strong> </td><td>{dns}</td><td> </td></tr>"
             "            </table>\r\n").format(isApUp = config.get("ap", "active"),
-                                             ssid = config.get("ap", "ssid"),
-                                             uBot_pwd = config.get("ap", "password"),
-                                             macAddress = config.get("ap", "mac").replace(":", " : "),
-                                             ipAddress = config.get("ap", "ip"),
-                                             subnetMask = config.get("ap", "netmask"),
-                                             gateway = config.get("ap", "gateway"),
-                                             dns = config.get("ap", "dns"))
+                                               ssid = config.get("ap", "ssid"),
+                                               uBot_pwd = config.get("ap", "password"),
+                                               macAddress = config.get("ap", "mac").replace(":", " : "),
+                                               ipAddress = config.get("ap", "ip"),
+                                               subnetMask = config.get("ap", "netmask"),
+                                               gateway = config.get("ap", "gateway"),
+                                               dns = config.get("ap", "dns"))
 
 
 def getDrivePanel():
