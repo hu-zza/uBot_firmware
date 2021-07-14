@@ -214,7 +214,7 @@ def _jsonReplyWithFileInstance(path, job):
 
 
 def _jsonGetFileOfPath(path):
-    return data.createRestReplyFrom(path[0], path[1], path[2])
+    return data.createRestReplyOf(path[0], path[1], path[2])
 
 
 def _executeJsonGet():                                                                       ########## JSON GET HANDLER

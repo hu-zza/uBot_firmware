@@ -533,40 +533,40 @@ _hostLink = "http://{}".format(config.get("ap", "ip"))
 _rawLink  = "{}/raw".format(_hostLink)
 
 
-def createRestReplyFrom(*path):
-    clearPath = _deleteSpaceholders(path)
-    clearPathLen = len(clearPath)
+def createRestReplyOf(*pathArray: str) -> tuple:
+    try:
+        return createRestReply(createPath(pathArray))
+    except Exception as e:
+        logger.append(e)
+        return "403 Forbidden", "Request: Get JSON reply of path array '{}'. Cause: It is not acceptable."\
+            .format(pathArray), {}
 
-    if clearPathLen < 2:
-        return _createJsonFolderInstance(path[0], path[0] == "")    # Using path with placeholders, maybe it's [""] * 11
-    elif clearPathLen == 2:
-        return _createJsonSubFolderInstance(clearPath[0], clearPath[1])
-    elif clearPathLen == 3:
-        return _createJsonFileInstance(clearPath[0], clearPath[1], clearPath[2])
+
+def createRestReply(path: Path) -> tuple:
+    length = path.size
+
+    if length < 2:
+        return _createJsonFolderInstance(path)
+    elif length == 2:
+        return _createJsonSubFolderInstance(path)
+    elif length == 3:
+        return _createJsonFileInstance(path)
     else:
-        return ()
+        return "403 Forbidden", "Request: Get JSON reply of path array '{}'. Cause: It is too long.".format(path), {}
 
 
-def _deleteSpaceholders(path):
-    return [attribute for attribute in path if not _isBlank(attribute)]
+def _createJsonFolderInstance(path: Path) -> tuple:
+    name   = str(path)
+    isRoot = path.size == 1
+    job    = "Request: Get the folder '{}'.".format(name)
 
-
-def _isBlank(text):
-    return text is None or text == ""
-
-
-def _createJsonFolderInstance(folder, isRoot = False):
-    path = Path(folder)
-    name = str(path)
-    job  = "Request: Get the folder '{}'.".format(name)
-
-    if isRoot or path.isExist:
+    if assertPathIsFolder(path):
         subFolders    = getFoldersOf(path)
         folderLink    = "{}{}".format(_hostLink, name)
         folderRawLink = "{}{}".format(_rawLink,  name)
 
         return "200 OK", job, {
-            "name": "root" if isRoot else folder,
+            "name": "root" if isRoot else path.array[0],
             "type": "folder",
             "href": folderLink,
             "raw":  folderRawLink,
@@ -584,56 +584,55 @@ def _createJsonFolderInstance(folder, isRoot = False):
         return "404 Not Found", job + " Cause: The folder doesn't exist.", {}
 
 
-def _createJsonSubFolderInstance(folder, subFolder):
-    path = createPathOf(folder, subFolder)
+def _createJsonSubFolderInstance(path: Path) -> tuple:
     name = str(path)
     job  = "Request: Get the folder '{}'.".format(name)
 
     if assertPathIsFolder(path):
-        files         = getFileNameList(path, "txt")              #! Burnt-in txt suffix: filtered by it, but chopped
-        parentName    = name[:-len(subFolder) - 1]
+        files         = getFileNameList(path, "txt")                 #! Burnt-in txt suffix: filtered by it, but chopped
+        array         = path.array
+        parentName    = array[0]
         folderLink    = "{}{}".format(_hostLink, name)
         folderRawLink = "{}{}".format(_rawLink,  name)
 
         return "200 OK", job, {
-            "name": subFolder,
+            "name": array[1],
             "type": "folder",
             "href": folderLink,
             "raw":  folderRawLink,
 
-            "parent": {"name": folder,
+            "parent": {"name": parentName,
                        "type": "folder",
-                       "href": "{}{}".format(_hostLink, parentName),
-                       "raw":  "{}{}".format(_rawLink,  parentName)},
+                       "href": "{}/{}/".format(_hostLink, parentName),
+                       "raw":  "{}/{}/".format(_rawLink,  parentName)},
 
             "children": [{"name": file,
                           "type": "file",
                           "href": "{}{}".format(folderLink, file),
                           "raw":  "{}{}.txt".format(folderRawLink, file)} for file in files]}     #! Burnt-in txt suffix
     else:
-        return "404 Not Found", job + " Cause: The folder does not exist.", {} #! If it exists as a file, doesn't matter
+        return "404 Not Found", job + " Cause: The folder does not exist.", {}
 
 
-def _createJsonFileInstance(folder, subFolder, file):
-    path   = createPathOf(folder, subFolder, logger.normalizeLogTitle(file) if folder == "log" else file)
+def _createJsonFileInstance(path: Path) -> tuple:
     name   = str(path)
-    parent, fileName = name.rsplit("/", 1)
-    parent = "{}/".format(parent)
+    array  = path.array
+    parent = array[1]
 
     job = "Request: Get the file '{}'.".format(name)
 
     if assertPathIsFile(path):
-        isJson = True if folder in config.get("data", "json_folders") else None
+        isJson = True if array[0] in config.get("data", "json_folders") else None
         return "200 OK", job, {
-            "name": fileName,
+            "name": array[2],
             "type": "file",
             "href": "{}{}".format(_hostLink, name[:name.rindex(".")]),
             "raw":  "{}{}".format(_rawLink,  name),
             "parent": {
-                "name": subFolder,
+                "name": parent,
                 "type": "folder",
-                "href": "{}{}".format(_hostLink, parent),
-                "raw":  "{}{}".format(_rawLink,  parent)
+                "href": "{}/{}/".format(_hostLink, parent),
+                "raw":  "{}/{}/".format(_rawLink,  parent)
             },
             "children": [],
             "value": getFile(path, isJson)}
