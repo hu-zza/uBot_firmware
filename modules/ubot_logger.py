@@ -32,12 +32,8 @@
 import usys
 
 import ubot_config as config
-import ubot_turtle as turtle
-import ubot_data   as data
 
-MAIN_FOLDER = data.Path("log")
-_filename   = 0
-_enabled    = config.get("logger", "active")
+_enabled  = config.get("logger", "active")
 
         # Name        | List  | Path  | Enabled
 _logs = (
@@ -52,16 +48,13 @@ _logs = (
 
 def append(item, logIndex = None):
     if _enabled:
-        if _filename != 0:
-            try:
-                logIndex = _defineIndex(item) if logIndex is None else logIndex
-                if 0 <= logIndex:
-                    with open(_logs[logIndex][2], "a") as file:
-                        _writeOutItem(config.datetime(), file, item)
-            except Exception as e:
-                _appendToList(e)
-                _appendToList(item)
-        else:
+        try:
+            logIndex = _defineIndex(item) if logIndex is None else logIndex
+            if 0 <= logIndex:
+                with open(_logs[logIndex][2], "a") as file:
+                    _writeOutItem(config.datetime(), file, item)
+        except Exception as e:
+            _appendToList(e)
             _appendToList(item)
 
 
@@ -116,9 +109,6 @@ def _appendToList(item):
 
 def _saveFromList(logFile, fallback = False):
     if _enabled and logFile[3] and 0 < len(logFile[1]):             # Logger and log is active and log list has item(s).
-
-        if _filename == 0:                                          # If filename is undefined.
-            fallback = True
 
         filename = "0000000000.txt" if fallback else _filename
         try:
@@ -206,3 +196,13 @@ for _logFile in _logs:
             _saveFromList(_logFile)
     except Exception as e:
         _appendToList(e)
+
+
+# Preventing circular dependency
+
+import ubot_data as data
+
+MAIN_FOLDER = data.Path("log")
+
+import ubot_turtle as turtle
+

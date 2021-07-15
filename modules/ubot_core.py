@@ -35,8 +35,8 @@ from utime   import sleep_ms
 
 import ubot_config as config
 import ubot_logger as logger
-import ubot_buzzer as buzzer
 import ubot_data   as data
+import ubot_buzzer as buzzer
 
 buzzer.keyBeep("started")
 

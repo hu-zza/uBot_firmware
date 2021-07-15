@@ -40,13 +40,13 @@ printJob("CHANGE DIR: {}".format(microPythonPath))
 os.chdir(microPythonPath)
 
 printJob("BUILD SUBMODULES")
-printResult(os.system("docker run --rm -ti -v $PWD:$PWD -w $PWD larsks/esp-open-sdk make -C ports/esp8266 submodules V=1"))
+printResult(os.system("sudo docker run --rm -ti -v $PWD:$PWD -w $PWD larsks/esp-open-sdk make -C ports/esp8266 submodules V=1"))
 
 printJob("COMPILE WITH MPY-CROSS")
-printResult(os.system("docker run --rm -ti -v $PWD:$PWD -w $PWD larsks/esp-open-sdk make -C mpy-cross V=1"))
+printResult(os.system("sudo docker run --rm -ti -v $PWD:$PWD -w $PWD larsks/esp-open-sdk make -C mpy-cross V=1"))
 
 printJob("BUILD ARTIFACT")
-printResult(os.system("docker run --rm -ti -v $PWD:$PWD -w $PWD larsks/esp-open-sdk make -C ports/esp8266 V=1"))
+printResult(os.system("sudo docker run --rm -ti -v $PWD:$PWD -w $PWD larsks/esp-open-sdk make -C ports/esp8266 V=1"))
 
 printJob("DELETE OLD ARTIFACT")
 artifacts = [name for name in os.listdir(sandboxPath) if name.endswith(".bin")]
@@ -58,10 +58,10 @@ printJob("COPY ARTIFACT")
 shutil.copyfile(artifactPath, "{}/{}".format(sandboxPath, filename))
 
 printJob("ERASE FLASH")
-printResult(os.system("esptool.py --port /dev/ttyUSB0 erase_flash"))
+printResult(os.system("sudo esptool.py --port /dev/ttyUSB0 erase_flash"))
 
 printJob("FLASH FIRMWARE")
-printResult(os.system("esptool.py --port /dev/ttyUSB0 --baud 460800 write_flash --flash_size=detect 0 {}/{}"
+printResult(os.system("sudo esptool.py --port /dev/ttyUSB0 --baud 460800 write_flash --flash_size=detect 0 {}/{}"
                       .format(sandboxPath, filename)))
 
 printJob("CHANGE DIR: {}".format(oldCwd))

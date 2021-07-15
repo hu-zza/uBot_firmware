@@ -105,12 +105,16 @@ def _initializePath(path: Path) -> None:
 
 def _refreshPathDescription(path: Path) -> None:
     if path.isExist:
-        if path.isFile:
-            template = "file '{}' ({})"
-        elif path.isFolder:
-            template = "folder '{}' ({})"
+        if path.size == 0:
+            path.description = "root folder '/'"
+            return
         else:
-            template = "[invalid]"
+            if path.isFile:
+                template = "file '{}' ({})"
+            elif path.isFolder:
+                template = "folder '{}' ({})"
+            else:
+                template = "[invalid]"
     else:
         template = "[non-existent] '{}' ({})"
 
@@ -217,7 +221,7 @@ def createPath(pathArray: tuple) -> Path:
                                      .format(pathArray)))
     return INVALID_PATH
 
-INVALID_PATH = Path("")
+INVALID_PATH = Path("/")
 _invalidatePath(INVALID_PATH)
 
 

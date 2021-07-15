@@ -403,7 +403,7 @@ def _reply(responseStatus, message, result = None):
     """ Try to reply with a text/html or application/json
         if the connection is alive, then closes it. """
     try:
-        reply = _replyMap.get(_request.get("processing"))(responseStatus, message, result)
+        reply = _replyMap.setdefault(_request.get("processing"), _createHtmlReply)(responseStatus, message, result)
 
         _sendHeader(responseStatus, len(reply))
         _connection.write(reply)                                                        # TODO: written bytes check, etc
