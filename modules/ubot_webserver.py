@@ -86,6 +86,7 @@ _denyJson = not config.get("web_server", "json_enabled")
 _log_event    = config.get("web_server", "log_event")
 _log_request  = config.get("web_server", "log_request")
 _log_response = config.get("web_server", "log_response")
+_log_reset    = config.get("web_server", "log_reset")
 
 allowedMethods     = {"GET", "POST", "PUT", "DELETE"}
 allowedHtmlMethods = {"GET", "POST"}
@@ -419,7 +420,8 @@ def _reply(responseStatus, message, result = None):
 
         _logResponse(_response)
     except Exception as e:
-        logger.append(e)
+        if _log_reset:
+            logger.append(e)
 
 
 def _createHtmlReply(responseStatus, message, result = None):

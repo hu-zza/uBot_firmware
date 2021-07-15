@@ -64,7 +64,7 @@ def logCommandsAndProgram():
 
 
 def getLogCategories():
-    return data.getFoldersOf(MAIN_FOLDER)
+    return data.getFoldersOf(data.LOG)
 
 
 def getCategoryLogs(category):
@@ -79,7 +79,7 @@ def doesLogExist(category, title):
     return normalizeLogTitle(title) in getCategoryLogs(category)
 
 
-def normalizeLogTitle(title):
+def normalizeLogTitle(title) -> str:
     return "{:010d}".format(int(title)) if isinstance(title, int) or title.isdigit() else title
 
 
@@ -200,9 +200,6 @@ for _logFile in _logs:
 
 # Preventing circular dependency
 
-import ubot_data as data
-
-MAIN_FOLDER = data.Path("log")
-
+import ubot_data   as data
 import ubot_turtle as turtle
 

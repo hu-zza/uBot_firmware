@@ -31,7 +31,6 @@
 
 import ujson, uos
 
-import ubot_config as config
 import ubot_logger as logger
 
 
@@ -41,6 +40,7 @@ class Path:
     def __init__(self, path: str) -> None:
         self.path  = path
         self.array = ()
+        self.args  = ()
         self.size  = 0
         self.isExist  = False
         self.isFolder = False
@@ -53,6 +53,7 @@ class Path:
 
         _initializePath(self)
 
+
     def __repr__(self) -> str:
         return self.path
 
@@ -62,45 +63,42 @@ def _initializePath(path: Path) -> None:
     """ Firstly tries to initialize Path object from the original path string,
     if it fails, appends the suffix ".txt" and tries again. """
     try:
-        pathString = _normalizePathOrThrow(path.path)
+        path.path = _normalizePathOrThrow(path.path)
 
-        if _doesExist(pathString):
-            path.isExist = True
-            typeInt = uos.stat(pathString)[0]
+        _refreshMainFlags(path)
 
-            if typeInt == 0x4000:
-                path.isFolder = True
-
-                if not pathString.endswith("/"):
-                    pathString = "{}/".format(pathString)
-            elif typeInt == 0x8000:
-                path.isFile = True
-                path.isTxt = pathString.endswith(".txt")
-            else:
-                raise AttributeError("ubot_data#_initializePath\r\nPath '{}' should represent a folder or a file.\r\n"
-                                     .format(path))
-        elif _doesExist("{}.txt".format(pathString)):                                             #! Burnt-in txt suffix
-            pathString = "{}.txt".format(pathString)
-
-            if uos.stat(pathString)[0] != 0x8000:
-                raise AttributeError("ubot_data#_initializePath\r\nPath '{}' should represent a file.\r\n".format(path))
-
-            path.isExist = True
-            path.isFile  = True
-            path.isTxt   = True
-
-        array = tuple(item for item in pathString.split("/") if item != "")
-        path.path  = pathString
+        array = tuple(item for item in path.path.split("/") if item != "")
         path.array = array
         path.size  = len(array)
         _refreshPathDescription(path)
-
 
     except Exception as e:
         logger.append(e)
         logger.append(AttributeError("ubot_data#_initializePath\r\nCan not initialize Path object with path '{}'.\r\n"
                                      .format(path)))
         _invalidatePath(path)
+
+
+def _refreshMainFlags(path: Path) -> None:
+    pathString = path.path
+
+    if _doesExist(pathString):
+        path.isExist = True
+        typeInt = uos.stat(pathString)[0]
+
+        if typeInt == 0x4000:
+            path.isFolder = True
+
+            if not pathString.endswith("/"):
+                path.path = "{}/".format(pathString)
+        elif typeInt == 0x8000:
+            path.isFile = True
+            path.isTxt = pathString.endswith(".txt")
+        else:
+            raise AttributeError("ubot_data#_refreshMainFlags\r\nPath '{}' should represent a folder or a file.\r\n"
+                                 .format(path))
+    else:
+        _deletePathFlags(path)
 
 
 def _refreshPathDescription(path: Path) -> None:
@@ -124,6 +122,7 @@ def _refreshPathDescription(path: Path) -> None:
 def _invalidatePath(path: Path) -> None:
     path.path  = ""
     path.array = ()
+    path.args  = ()
     path.size  = 0
     path.description = "[invalid]"
     _deletePathFlags(path)
@@ -211,13 +210,23 @@ def _replaceWhileFound(path: str, old: str, new: str) -> str:
 
 INVALID_PATH = Path("/")
 _invalidatePath(INVALID_PATH)
+ROOT    = Path("/")
+ETC     = Path("/etc")
+HOME    = Path("/home")
+LOG     = Path("/log")
+PROGRAM = Path("/program")
 
-def createPathOf(*pathArray: str) -> Path:
+
+def createPathOf(*pathEnumeration: str) -> Path:
+    return createPathFrom(pathEnumeration)
+
+
+def createPathFrom(pathArray: tuple) -> Path:
     try:
         return createPath("/" if pathArray is None or len(pathArray) == 0 else "/".join(pathArray))
     except Exception as e:
         logger.append(e)
-        logger.append(AttributeError("ubot_data#createPathOf\r\n'{}' does not represent a valid path.\r\n"
+        logger.append(AttributeError("ubot_data#createPathFrom\r\n'{}' is not a string iterable representing a path.\r\n"
                                      .format(pathArray)))
         return INVALID_PATH
 
@@ -232,8 +241,12 @@ def createPath(rawPath: str) -> Path:
         return INVALID_PATH
 
 
-def createFolderOf(*pathArray: str) -> bool:
-    return createFolder(createPathOf(pathArray))
+def createFolderOf(*pathEnumeration: str) -> bool:
+    return createFolderFrom(pathEnumeration)
+
+
+def createFolderFrom(pathArray: tuple) -> bool:
+    return createFolder(createPathFrom(pathArray))
 
 
 def createFolder(path: Path) -> bool:
@@ -253,7 +266,7 @@ def createFoldersAlongPath(path: Path) -> None:
             elements.append(pathArray[i])
             path = "/{}".format("/".join(elements))
             if not _doesExist(path):
-                createFolder(createPathOf(elements))
+                createFolderFrom(elements)
 
 
 def assertPathIsExist(path: Path, isExist = True) -> bool:
@@ -550,17 +563,46 @@ def dumpException(exception):
 ################################
 ## REST/JSON related methods
 
-_hostLink = "http://{}".format(config.get("ap", "ip"))
-_rawLink  = "{}/raw".format(_hostLink)
+
+def preparePathIfSpecial(path: Path) -> None:
+    array = list(path.array)
+    size  = path.size
+
+    if array[0] == "raw":                                                 # TODO: real raw instead of the alias behavior
+        del array[0]
+
+    if array[0] == "command":
+        path.args = array[1:]
+        del array[1:]
+    elif 2 < size:
+        if array[0]  == "program":
+            array[2] = turtle.normalizeProgramTitle(array[2])
+        elif array[0] == "log":
+            array[2] = logger.normalizeLogTitle(array[2])
+        elif not array[2].endswith(".txt"):
+            array[2] = "{}.txt".format(array[2])
+
+        path.args = array[3:]
+        del array[3:]
+
+    path.path  = "/".join(array)
+    path.array = tuple(array)
+    path.size  = len(array)
+    _refreshMainFlags(path)
+    _refreshPathDescription(path)
 
 
-def createRestReplyOf(*pathArray: str) -> tuple:
+def createRestReplyOf(*pathEnumeration: str) -> tuple:
+    return createRestReplyFrom(pathEnumeration)
+
+
+def createRestReplyFrom(pathArray: tuple) -> tuple:
     try:
-        return createRestReply(createPathOf(pathArray))
+        return createRestReply(createPathFrom(pathArray))
     except Exception as e:
         logger.append(e)
-        return "403 Forbidden", "Request: Get JSON reply of path array '{}'. Cause: It is not acceptable."\
-            .format(pathArray), {}
+        return "403 Forbidden", \
+               "Request: Get JSON reply of path array '{}'. Cause: It is not acceptable.".format(pathArray), {}
 
 
 def createRestReply(path: Path) -> tuple:
@@ -659,3 +701,12 @@ def _createJsonFileInstance(path: Path) -> tuple:
             "value": getFile(path, isJson)}
     else:
         return "404 Not Found", job + " Cause: The file does not exist.", {}
+
+
+# Preventing circular dependency
+
+import ubot_config as config
+import ubot_turtle as turtle
+
+_hostLink = "http://{}".format(config.get("ap", "ip"))
+_rawLink  = "{}/raw".format(_hostLink)

@@ -38,7 +38,6 @@ import ubot_motor  as motor
 import ubot_data   as data
 
 
-MAIN_FOLDER    = data.Path("program")
 _powerOns      = config.get("system", "power_ons")
 _namedFolder   = config.get("turtle", "named_folder")
 _turtleFolder  = config.get("turtle", "turtle_folder")
@@ -147,12 +146,13 @@ def skipSignal(stepCount = 1, endCount = 0):
     _stepSignalSkipCount += stepCount
     _endSignalSkipCount += endCount
 
+
 def getProgramsCount():
     return sum(len(getProgramListOf(folder)) for folder in getProgramFolders())
 
 
 def getProgramFolders():
-    return data.getFoldersOf(MAIN_FOLDER)
+    return data.getFoldersOf(data.PROGRAM)
 
 
 def doesFolderExist(folder: str) -> bool:
@@ -175,6 +175,10 @@ def doesProgramExist(folder, title):
 
 def getProgramCode(folder: str, title: str) -> str:
     return "".join(data.getFile(getPathOf(folder, title), False))
+
+
+def normalizeProgramTitle(title) -> str:
+    return "{:010d}".format(int(title)) if isinstance(title, int) or title.isdigit() else title
 
 
 def getPathOf(folder: str, title = "") -> data.Path:
