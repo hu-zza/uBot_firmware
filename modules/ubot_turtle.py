@@ -219,7 +219,7 @@ def saveLoadedProgram(folder = "", title = ""):
     return saveProgram(_namedFolder if folder == "" else folder, title, getProgramArray())
 
 
-def saveProgram(folder: str = "", title: str = "", program: str = "") -> str:
+def saveProgram(folder: str = "", title: str = "", program: str = "") -> data.Path:
     global _savedCount
 
     folder = _namedFolder if folder == "" else folder.lower()
@@ -229,7 +229,7 @@ def saveProgram(folder: str = "", title: str = "", program: str = "") -> str:
     if not result and title == "":
         _savedCount -= 1
 
-    return str(path) if result else ""
+    return path if result else data.INVALID_PATH
 
 
 def _generateFullPathForAutoSave() -> data.Path:

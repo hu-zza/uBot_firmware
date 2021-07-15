@@ -156,27 +156,28 @@ def extractCharTupleFromString(tupleString, enabledCharsSet):
 _jsonRequest = {                                                                        ########## JSON REQUEST HANDLING
     "path": data.INVALID_PATH,
     "body": "",
-    "parsed": False,
-    "exception": []
+    "parsed": False
 }
 
 
-def _updateJsonRequest(path: str = "", body: str = "") -> None:
+def _updateJsonRequest(path: data.Path, body: str = "") -> None:
     global _jsonRequest
 
-    _jsonRequest["path"] = data.createPathOf(path)
+    _jsonRequest["path"] = path
     _jsonRequest["body"] = body
     _jsonRequest["parsed"] = False
-    _jsonRequest["exception"] = []
 
 
 def _parseJsonRequestBody() -> None:
     try:
-        _jsonRequest["body"] = ujson.loads(_jsonRequest.get("body"))
-        _jsonRequest["parsed"] = True
+        body = _jsonRequest.get("body")
+        if body == "":
+            _jsonRequest["parsed"] = False
+        else:
+            _jsonRequest["body"] = ujson.loads(body)
+            _jsonRequest["parsed"] = True
     except Exception as e:
         logger.append(e)
-        _jsonRequest["exception"].append(data.dumpException(e))
         _jsonRequest["parsed"] = False
 
 
@@ -208,15 +209,16 @@ def _jsonReplyWithFileInstance(path: data.Path, job: str) -> tuple:
 def _executeJsonGet() -> tuple:                                                              ########## JSON GET HANDLER
     pathSize = _jsonRequest.get("path").size
 
-    if pathSize < 5:
+    if pathSize == 0:
+        return _jsonGetFileByJsonLink()
+    elif pathSize < 5:
         category = _jsonRequest.get("path").array[0]
 
         if category == "program" and pathSize == 4:
             return _jsonGetProgramActionStarting()
         else:
             result = _jsonGetFunctions.setdefault(category, _jsonGetFileByJsonLink)()
-            if result is not None and result != ():
-                return result
+            return result
 
     return "403 Forbidden", "Request: REST GET. Cause: The format of the URL is invalid.", {}
 
@@ -238,11 +240,11 @@ def _jsonGetProgramActionStarting() -> tuple:
 
 
 def _jsonGetFileByRawLink() -> tuple:                                                         # TODO: real raw for files
-    return data.getFile(data.createPath(_jsonRequest.get("path").array[1:4]))
+    return data.createRestReply(data.createPathOf(_jsonRequest.get("path").array[1:4]))
 
 
 def _jsonGetFileByJsonLink() -> tuple:
-    return data.getFile(_jsonRequest.get("path"))
+    return data.createRestReply(_jsonRequest.get("path"))
 
 
 def _jsonGetCommandExecution() -> tuple:
@@ -303,7 +305,7 @@ def _jsonWriteProgram(folder, title, job) -> tuple:
         if result[0] != "200 OK":
             return result
 
-        path = data.createPathOf(turtle.saveProgram(folder, title, body.get("value")))
+        path = turtle.saveProgram(folder, title, body.get("value"))
     return _jsonReplyWithFileInstance(path, job)
 
 
@@ -369,8 +371,7 @@ def _jsonPostLog() -> tuple:
         logFile = "event" if isinstance(log, str) else "object"
         if logFile in config.get("logger", "active_logs"):
             logger.append(log)
-            status, message, json = data.getFile(
-                data.createPathOf("log", logFile, str(config.get("system", "power_ons"))), False)
+            status, message, json = data.createRestReplyOf("log", logFile, str(config.get("system", "power_ons")))
 
             if status == "200 OK":
                 return "200 OK", job, json

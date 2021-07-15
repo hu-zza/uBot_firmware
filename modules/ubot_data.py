@@ -47,13 +47,13 @@ class Path:
         self.isFile   = False
         self.isTxt    = False
         self.description = "[invalid]"
-        self.isWritable  = None
-        self.isDeletable = None
+        self.isWritable   = None
+        self.isDeletable  = None
         self.isModifiable = None
 
         _initializePath(self)
 
-    def __str__(self) -> str:
+    def __repr__(self) -> str:
         return self.path
 
 
@@ -191,7 +191,6 @@ def _normalizePathOrThrow(path: str) -> str:
         return "/"
     else:
         path = path.strip().lower()
-        path = path if path[0] == "/" else "/{}".format(path)
         path = _sanitizePath(path)
         return "/" if path == "" else path
 
@@ -200,7 +199,8 @@ def _sanitizePath(path: str) -> str:
     path = path.strip(".")
     path = _replaceWhileFound(path, "/../", "/")
     path = _replaceWhileFound(path, "/./", "/")
-    return _replaceWhileFound(path, "//", "/")
+    path = _replaceWhileFound(path, "//", "/")
+    return "/{}".format(path.strip("/"))
 
 
 def _replaceWhileFound(path: str, old: str, new: str) -> str:
@@ -209,24 +209,31 @@ def _replaceWhileFound(path: str, old: str, new: str) -> str:
     return path
 
 
-def createPathOf(*pathArray: str) -> Path:
-    return createPath(pathArray)
-
-
-def createPath(pathArray: tuple) -> Path:
-    try:
-        return Path("/" if pathArray is None or len(pathArray) == 0 else "/".join(pathArray))
-    except Exception as e:
-        logger.append(AttributeError("ubot_data#createPath\r\n'{}' is not a string iterable representing a path.\r\n"
-                                     .format(pathArray)))
-    return INVALID_PATH
-
 INVALID_PATH = Path("/")
 _invalidatePath(INVALID_PATH)
 
+def createPathOf(*pathArray: str) -> Path:
+    try:
+        return createPath("/" if pathArray is None or len(pathArray) == 0 else "/".join(pathArray))
+    except Exception as e:
+        logger.append(e)
+        logger.append(AttributeError("ubot_data#createPathOf\r\n'{}' does not represent a valid path.\r\n"
+                                     .format(pathArray)))
+        return INVALID_PATH
+
+
+def createPath(rawPath: str) -> Path:
+    try:
+        return Path(rawPath)
+    except Exception as e:
+        logger.append(e)
+        logger.append(AttributeError("ubot_data#createPath\r\n'{}' does not represent a valid path.\r\n"
+                                     .format(rawPath)))
+        return INVALID_PATH
+
 
 def createFolderOf(*pathArray: str) -> bool:
-    return createFolder(createPath(pathArray))
+    return createFolder(createPathOf(pathArray))
 
 
 def createFolder(path: Path) -> bool:
@@ -246,31 +253,39 @@ def createFoldersAlongPath(path: Path) -> None:
             elements.append(pathArray[i])
             path = "/{}".format("/".join(elements))
             if not _doesExist(path):
-                createFolder(createPath(elements))
+                createFolder(createPathOf(elements))
 
 
 def assertPathIsExist(path: Path, isExist = True) -> bool:
     if path.isExist != isExist:
         _logAssertionException("IsExist", path, "exist." if path.isExist else "does not exist.")
         return False
+    else:
+        return True
 
 
 def assertPathIsFolder(path: Path, isFolder = True) -> bool:
     if path.isFolder != isFolder:
         _logAssertionException("IsFolder", path, "represents a folder." if path.isFolder else "does not represent a folder.")
         return False
+    else:
+        return True
 
 
 def assertPathIsFile(path: Path, isFile = True) -> bool:
     if path.isFile != isFile:
         _logAssertionException("IsFile", path, "represents a file." if path.isFile else "does not represent a file.")
         return False
+    else:
+        return True
 
 
 def assertPathIsTxt(path: Path, isTxt = True) -> bool:
     if path.isTxt != isTxt:
         _logAssertionException("IsTxt", path, "has '.txt' suffix." if path.isTxt else "has no '.txt' suffix.")
         return False
+    else:
+        return True
 
 
 def assertPathIsCreatable(path: Path, isCreatable = True) -> bool:
@@ -278,6 +293,8 @@ def assertPathIsCreatable(path: Path, isCreatable = True) -> bool:
     if property != isCreatable:
         _logAssertionException("IsCreatable", path, "is creatable." if property else "is not creatable.")
         return False
+    else:
+        return True
 
 
 def assertPathIsWritable(path: Path, isWritable = True) -> bool:
@@ -285,6 +302,8 @@ def assertPathIsWritable(path: Path, isWritable = True) -> bool:
     if property != isWritable:
         _logAssertionException("IsWritable", path, "is writable." if property else "is not writable.")
         return False
+    else:
+        return True
 
 
 def assertPathIsDeletable(path: Path, isDeletable = True) -> bool:
@@ -292,6 +311,8 @@ def assertPathIsDeletable(path: Path, isDeletable = True) -> bool:
     if property != isDeletable:
         _logAssertionException("IsDeletable", path, "is deletable." if property else "is not deletable.")
         return False
+    else:
+        return True
 
 
 def assertPathIsReadable(path: Path, isReadable = True) -> bool:
@@ -299,6 +320,8 @@ def assertPathIsReadable(path: Path, isReadable = True) -> bool:
     if property != isReadable:
         _logAssertionException("IsReadable", path, "is readable." if property else "is not readable.")
         return False
+    else:
+        return True
 
 
 def assertPathIsSavable(path: Path, isSavable = True) -> bool:
@@ -306,6 +329,8 @@ def assertPathIsSavable(path: Path, isSavable = True) -> bool:
     if property != isSavable:
         _logAssertionException("IsSavable", path, "is savable." if property else "is not savable.")
         return False
+    else:
+        return True
 
 
 def assertPathIsModifiable(path: Path, isModifiable = True) -> bool:
@@ -313,6 +338,8 @@ def assertPathIsModifiable(path: Path, isModifiable = True) -> bool:
     if property != isModifiable:
         _logAssertionException("IsModifiable", path, "is modifiable." if property else "is not modifiable.")
         return False
+    else:
+        return True
 
 
 def _logAssertionException(assertionNameSuffix: str, path: Path, message: str) -> None:
@@ -529,7 +556,7 @@ _rawLink  = "{}/raw".format(_hostLink)
 
 def createRestReplyOf(*pathArray: str) -> tuple:
     try:
-        return createRestReply(createPath(pathArray))
+        return createRestReply(createPathOf(pathArray))
     except Exception as e:
         logger.append(e)
         return "403 Forbidden", "Request: Get JSON reply of path array '{}'. Cause: It is not acceptable."\
@@ -551,7 +578,7 @@ def createRestReply(path: Path) -> tuple:
 
 def _createJsonFolderInstance(path: Path) -> tuple:
     name   = str(path)
-    isRoot = path.size == 1
+    isRoot = path.size == 0
     job    = "Request: Get the folder '{}'.".format(name)
 
     if assertPathIsFolder(path):
@@ -560,12 +587,12 @@ def _createJsonFolderInstance(path: Path) -> tuple:
         folderRawLink = "{}{}".format(_rawLink,  name)
 
         return "200 OK", job, {
-            "name": "root" if isRoot else path.array[0],
+            "name": "/" if isRoot else path.array[0],
             "type": "folder",
             "href": folderLink,
             "raw":  folderRawLink,
 
-            "parent": {} if isRoot else {"name": "root",
+            "parent": {} if isRoot else {"name": "/",
                                          "type": "folder",
                                          "href": "{}/".format(_hostLink),
                                          "raw":  "{}/".format(_rawLink)},

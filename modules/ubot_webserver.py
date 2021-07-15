@@ -41,7 +41,6 @@ import ubot_template as template
 
 
 _connection = 0
-_address = 0
 
 _started = False
 _period = config.get("web_server", "period")
@@ -56,8 +55,10 @@ _poller.register(_socket, uselect.POLLIN)
 
 _incoming = ""
 _request = {
+    "address": None,
     "method": "",
-    "path": "",
+    "rawPath": "",
+    "path": data.INVALID_PATH,
     "contentLength": 0,
     "contentType": "",
     "accept": "",
@@ -139,7 +140,7 @@ def isAllowed(methodName, methodSet = None):
 
 def _logRequest():
     if _log_event:
-        logger.append("{}\t{}".format(_request.get("method"), _request.get("path")))
+        logger.append("{}\t{}".format(_request.get("method"), _request.get("rawPath")))
 
     if _log_request:
         logger.append(_request)
@@ -170,7 +171,8 @@ def _clearOldRequestData():
     global _request
 
     _request["method"] = ""
-    _request["path"] = ""
+    _request["rawPath"] = ""
+    _request["path"] = data.INVALID_PATH
     _request["contentLength"] = 0
     _request["contentType"] = ""
     _request["accept"] = ""
@@ -179,20 +181,24 @@ def _clearOldRequestData():
 
 
 def _processIncoming(incoming):
-    global _incoming
+    global _incoming, _connection
     _incoming = incoming
 
     try:
         _readIncoming()
         _processBody()
+    except Exception as e:
+        logger.append(e)
+        _reply("400 Bad Request", "The server could not understand the request due to invalid syntax.")
     finally:
         _connection.close()
+        _connection = 0
 
 
 def _readIncoming():
-    global _connection, _address, _request
+    global _connection, _request
 
-    _connection, _address = _incoming.accept()
+    _connection, _request["address"] = _incoming.accept()
     _socketFile = _connection.makefile("rwb", 0)
 
     while True:
@@ -218,9 +224,12 @@ def _processHeaderLine(line):
         firstSpace = line.find(" ")
         pathEnd = line.find(" http")
 
-        _request["method"] = line[0:firstSpace].upper()
-        _request["path"] = line[firstSpace + 1:pathEnd]
-        
+        _request["method"]  = line[0:firstSpace].upper()
+
+        rawPath = line[firstSpace + 1:pathEnd]
+        _request["rawPath"] = rawPath
+        _request["path"] = data.createPath(rawPath)
+
     if 0 <= line.find("content-length:"):
         lengthString = line[15:].strip()
         _request["contentLength"] = int(lengthString) if lengthString.isdigit() else 0
@@ -282,19 +291,18 @@ def _unavailableSupplierFunction(a = None, b = None, c = None):
 
 
 def _processHtmlGetQuery():
-    path = _request.get("path")
+    path = _request.get("path").path
 
     if path in template.title:
-        _replyWithHtmlTemplate()
+        _replyWithHtmlTemplate(path)
     elif path.startswith("/raw/"):
-        _replyWithHtmlRaw()
+        _replyWithHtmlRaw(path)
     else:
         _reply("404 Not Found", "Request: Get the page / file '{}'.".format(path))
 
 
-def _replyWithHtmlTemplate():
+def _replyWithHtmlTemplate(path: str):
     _sendHeader()
-    path = _request.get("path")
     _connection.write(template.getPageHeadStart().format(template.title.get(path)))
 
     for style in template.style.get(path):
@@ -338,10 +346,10 @@ def _replyWithHtmlTemplate():
     _logResponse(_getBasicReplyMap("200 OK", "Request: Get the page '{}'.".format(path)))
 
 
-def _replyWithHtmlRaw():
-    filePath = _request.get("path")[4:]
+def _replyWithHtmlRaw(path: str):
+    filePath = path[4:]
     _sendHeader()
-    _connection.write(template.getPageHeadStart().format("&microBot Raw &nbsp;| &nbsp; " + filePath))
+    _connection.write(template.getPageHeadStart().format("μBot Raw &nbsp;| &nbsp; " + filePath))
     _connection.write(template.getGeneralStyle())
     _connection.write(template.getRawStyle())
     _connection.write(template.getPageHeadEnd())
@@ -405,12 +413,13 @@ def _reply(responseStatus, message, result = None):
     try:
         reply = _replyMap.setdefault(_request.get("processing"), _createHtmlReply)(responseStatus, message, result)
 
-        _sendHeader(responseStatus, len(reply))
-        _connection.write(reply)                                                        # TODO: written bytes check, etc
+        if _connection != 0:
+            _sendHeader(responseStatus, len(reply))
+            _connection.write(reply)                                                    # TODO: written bytes check, etc
+
         _logResponse(_response)
     except Exception as e:
         logger.append(e)
-        logger.append("E104\tECONNRESET @ webserver#_reply")
 
 
 def _createHtmlReply(responseStatus, message, result = None):
