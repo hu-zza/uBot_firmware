@@ -59,26 +59,26 @@ if config.get("web_server", "active"):
 
 def executeCommand(command):
     if command[:5] == "PRESS":                                      # PRESS_1_1_16_64
-        pressedList = extractIntTupleFromString(command[5:])
+        pressedList = data.extractIntTupleFromString(command[5:])
         for pressed in pressedList:
             turtle.press(pressed)
 
     elif command[:4] == "STEP":                                     # STEP_FFR
-        commands = extractCharTupleFromString(command[4:], turtle.getValidMoveChars())
+        commands = data.extractCharTupleFromString(command[4:], turtle.getValidMoveChars())
         for char in commands:
             turtle.move(char)
 
     elif command[:5] == "DRIVE":                                    # DRIVE_FFR
         breath = motor.getBreath()
         motor.setBreath(0)
-        commands = extractCharTupleFromString(command[5:], turtle.getValidMoveChars())
+        commands = data.extractCharTupleFromString(command[5:], turtle.getValidMoveChars())
         turtle.skipSignal(len(commands), 1)
         for char in commands:
             turtle.move(char)
         motor.setBreath(breath)
 
     elif command[:4] == "BEEP":                                     # BEEP_440_100_100_1
-        beepArray = extractIntTupleFromString(command[4:])
+        beepArray = data.extractIntTupleFromString(command[4:])
         size = len(beepArray)
         buzzer.beep(float(beepArray[0]) if size > 0 else 440.0,
                     int(beepArray[1]) if size > 1 else 100,
@@ -86,7 +86,7 @@ def executeCommand(command):
                     int(beepArray[3]) if size > 3 else 1)
 
     elif command[:4] == "MIDI":                                     # MIDI_69_100_100_1
-        beepArray = extractIntTupleFromString(command[4:])
+        beepArray = data.extractIntTupleFromString(command[4:])
         size = len(beepArray)
         buzzer.midiBeep(int(beepArray[0]) if size > 0 else 69,
                         int(beepArray[1]) if size > 1 else 100,
@@ -94,11 +94,11 @@ def executeCommand(command):
                         int(beepArray[3]) if size > 3 else 1)
 
     elif command[:4] == "REST":                                     # REST_1000
-        inp = extractIntTupleFromString(command[4:])
+        inp = data.extractIntTupleFromString(command[4:])
         buzzer.rest(inp[0] if inp != () else 1000)
 
     elif command[:3] == "MOT":                                      # MOT_1_1000
-        inp = extractIntTupleFromString(command[3:])
+        inp = data.extractIntTupleFromString(command[3:])
         length = len(inp)
         direction = inp[0] if 0 < length else 1
         length = inp[1] if 1 < length else 1000
@@ -106,7 +106,7 @@ def executeCommand(command):
         motor.move(direction, length)
 
     elif command[:5] == "SLEEP":                                    # SLEEP_1000
-        inp = extractIntTupleFromString(command[5:])
+        inp = data.extractIntTupleFromString(command[5:])
         sleep_ms(inp[0] if inp != () else 1000)
 
     else:
@@ -122,31 +122,6 @@ def doProgramAction(folder, title, action):
     except Exception as e:
         logger.append(e)
     return False, {}
-
-
-def extractIntTupleFromString(tupleString):
-    result = []
-    current  = 0
-    unsaved  = False
-
-    for char in tupleString:
-        if char.isdigit():
-            current *= 10
-            current += int(char)
-            unsaved = True
-        elif unsaved:
-            result.append(current)
-            current = 0
-            unsaved = False
-
-    if unsaved:
-        result.append(current)
-
-    return tuple(result)
-
-
-def extractCharTupleFromString(tupleString, enabledCharsSet):
-    return tuple(char for char in tupleString if char in enabledCharsSet)
 
 
 
@@ -211,21 +186,25 @@ def _executeJsonGet() -> tuple:                                                 
 
     if pathSize == 0:
         return _jsonGetFileByJsonLink()
-    elif pathSize < 5:
+    else:
         category = _jsonRequest.get("path").array[0]
 
-        if category == "program" and pathSize == 4:
-            return _jsonGetProgramActionStarting()
-        else:
-            result = _jsonGetFunctions.setdefault(category, _jsonGetFileByJsonLink)()
-            return result
+        if category == "command":
+            return _jsonGetCommandExecution()
+        elif pathSize < 5:
+
+            if category == "program" and pathSize == 4:
+                return _jsonGetProgramActionStarting()
+            else:
+                return _jsonGetFileByJsonLink()
 
     return "403 Forbidden", "Request: REST GET. Cause: The format of the URL is invalid.", {}
 
 
 def _jsonGetProgramActionStarting() -> tuple:
-    folder, title, action = _jsonRequest.get("path").array[1:4]
-    
+    folder, title = _jsonRequest.get("path").array[1:3]
+    action = _jsonRequest.get("path").args[0]
+
     job = "Request: Starting action '{}' of program '{}' ({}).".format(action, title, folder)
 
     if turtle.doesProgramExist(folder, title):
@@ -239,16 +218,12 @@ def _jsonGetProgramActionStarting() -> tuple:
         return "404 Not Found", "{} Cause: No such program.".format(job), {}
 
 
-def _jsonGetFileByRawLink() -> tuple:                                                         # TODO: real raw for files
-    return data.createRestReply(data.createPathOf(_jsonRequest.get("path").array[1:4]))
-
-
 def _jsonGetFileByJsonLink() -> tuple:
     return data.createRestReply(_jsonRequest.get("path"))
 
 
 def _jsonGetCommandExecution() -> tuple:
-    command = _jsonRequest.get("path").array[1].upper()
+    command = _jsonRequest.get("path").args[0].upper()
     job = "Request: Starting command '{}' execution.".format(command)
     try:
         if executeCommand(command):
@@ -258,11 +233,6 @@ def _jsonGetCommandExecution() -> tuple:
         pass
     return "403 Forbidden", "{} Cause: Semantic error in the URL.".format(job), {}
 
-
-_jsonGetFunctions = {
-    "command": _jsonGetCommandExecution,
-    "raw":     _jsonGetFileByRawLink,
-}
 
 
 def _executeJsonPost() -> tuple:                                                            ########## JSON POST HANDLER
@@ -331,7 +301,7 @@ def _jsonWriteFile(path: data.Path, job: str, isJson: bool = None) -> tuple:
     isJson = isJson is True or body.get("isJson") is True
 
     file = ujson.dumps(body.get("value")) if isJson else body.get("value")
-    data.saveFile(path, file, True)
+    data.saveFile(path, file)
 
     return _jsonReplyWithFileInstance(path, job)
 

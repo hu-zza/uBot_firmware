@@ -177,12 +177,17 @@ def getProgramCode(folder: str, title: str) -> str:
     return "".join(data.getFile(getPathOf(folder, title), False))
 
 
-def normalizeProgramTitle(title) -> str:
-    return "{:010d}".format(int(title)) if isinstance(title, int) or title.isdigit() else title
-
-
 def getPathOf(folder: str, title = "") -> data.Path:
-    return data.createPathOf("program", folder, title)
+    return data.createPathOf("program", folder, normalizeProgramTitle(title))
+
+
+def normalizeProgramTitle(title: str) -> str:
+    turtleTuple = data.extractIntTupleFromString(title)
+
+    if len(turtleTuple) == 2:
+        return "{:010d}_{:03d}.txt".format(turtleTuple[0], turtleTuple[1])
+    else:
+        return title if title.endswith(".txt") else "{}.txt".format(title)
 
 
 def runProgram(folder, title):

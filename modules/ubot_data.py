@@ -495,6 +495,27 @@ def getEntityCountOfFolder(path: Path) -> int:
         return 0
 
 
+def printFile(path: Path, isJson: bool = None) -> tuple:    # Exactly same as getFile... TODO: Make it elegant.
+    if assertPathIsReadable(path):
+        try:
+            likelyJson = isJson is True or isJson is not False and getLineCountOfFile(path) == 1
+            with open(path.path, "r") as file:
+                if likelyJson:
+                    for line in file:
+                        print(__loadsJsonSoftly(line), end = "")
+                else:
+                    for line in file:
+                        print(line, end = "")
+        except Exception as e:
+            logger.append(e)
+            logger.append(AttributeError("ubot_data#printFile\r\nCan not process '{}'.\r\n".format(path)))
+            return ()
+    else:
+        logger.append(AttributeError("ubot_data#printFile\r\nCan not open '{}' because of breach of preconditions.\r\n"
+                                     .format(path)))
+        return ()
+
+
 def saveFile(path: Path, lines: object, isRecursive: bool = False) -> bool:
     if assertPathIsSavable(path):
         written = 0
@@ -560,36 +581,68 @@ def dumpException(exception):
     return "{} {}".format(exception.__class__, exception.args)
 
 
+def extractIntTupleFromString(tupleString: str) -> tuple:
+    result = []
+    current  = 0
+    unsaved  = False
+
+    for char in tupleString:
+        if char.isdigit():
+            current *= 10
+            current += int(char)
+            unsaved = True
+        elif unsaved:
+            result.append(current)
+            current = 0
+            unsaved = False
+
+    if unsaved:
+        result.append(current)
+
+    return tuple(result)
+
+
+def extractCharTupleFromString(tupleString: str, enabledCharsSet: set) -> tuple:
+    return tuple(char for char in tupleString if char in enabledCharsSet)
+
+
 ################################
 ## REST/JSON related methods
-
 
 def preparePathIfSpecial(path: Path) -> None:
     array = list(path.array)
     size  = path.size
+    if 0 < size:
+        if array[0] == "raw":                                             # TODO: real raw instead of the alias behavior
+            path.args = ["raw"]
+            del array[0]
+            size -= 1
 
-    if array[0] == "raw":                                                 # TODO: real raw instead of the alias behavior
-        del array[0]
+        if size == 0:
+            path.path = "/"
+            path.size = 0
+        else:
+            if size == 1:
+                if array[0] == "command":
+                    path.args = array[1:]
+                    del array[1:]
+            elif 2 < size:
+                if array[0]  == "program":
+                    array[2] = turtle.normalizeProgramTitle(array[2])
+                elif array[0] == "log":
+                    array[2] = logger.normalizeLogTitle(array[2])
+                elif not array[2].endswith(".txt"):
+                    array[2] = "{}.txt".format(array[2])
 
-    if array[0] == "command":
-        path.args = array[1:]
-        del array[1:]
-    elif 2 < size:
-        if array[0]  == "program":
-            array[2] = turtle.normalizeProgramTitle(array[2])
-        elif array[0] == "log":
-            array[2] = logger.normalizeLogTitle(array[2])
-        elif not array[2].endswith(".txt"):
-            array[2] = "{}.txt".format(array[2])
+                path.args += array[3:]
+                del array[3:]
 
-        path.args = array[3:]
-        del array[3:]
+            path.path  = "/{}".format("/".join(array))
+            path.array = tuple(array)
+            path.size  = len(array)
 
-    path.path  = "/".join(array)
-    path.array = tuple(array)
-    path.size  = len(array)
-    _refreshMainFlags(path)
-    _refreshPathDescription(path)
+        _refreshMainFlags(path)
+        _refreshPathDescription(path)
 
 
 def createRestReplyOf(*pathEnumeration: str) -> tuple:

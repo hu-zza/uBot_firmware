@@ -230,6 +230,7 @@ def _processHeaderLine(line):
         rawPath = line[firstSpace + 1:pathEnd]
         _request["rawPath"] = rawPath
         _request["path"] = data.createPath(rawPath)
+        data.preparePathIfSpecial(_request.get("path"))
 
     if 0 <= line.find("content-length:"):
         lengthString = line[15:].strip()
@@ -292,17 +293,20 @@ def _unavailableSupplierFunction(a = None, b = None, c = None):
 
 
 def _processHtmlGetQuery():
-    path = _request.get("path").path
+    path = _request.get("rawPath")
 
     if path in template.title:
         _replyWithHtmlTemplate(path)
-    elif path.startswith("/raw/"):
-        _replyWithHtmlRaw(path)
     else:
-        _reply("404 Not Found", "Request: Get the page / file '{}'.".format(path))
+        path = _request.get("path")
+
+        if "raw" in path.args:
+            _replyWithHtmlRaw(path)
+        else:
+            _reply("404 Not Found", "Request: Get the page / file '{}'.".format(path))
 
 
-def _replyWithHtmlTemplate(path: str):
+def _replyWithHtmlTemplate(path: str) -> None:
     _sendHeader()
     _connection.write(template.getPageHeadStart().format(template.title.get(path)))
 
@@ -347,27 +351,22 @@ def _replyWithHtmlTemplate(path: str):
     _logResponse(_getBasicReplyMap("200 OK", "Request: Get the page '{}'.".format(path)))
 
 
-def _replyWithHtmlRaw(path: str):
-    filePath = path[4:]
+def _replyWithHtmlRaw(path: data.Path) -> None:
     _sendHeader()
-    _connection.write(template.getPageHeadStart().format("μBot Raw &nbsp;| &nbsp; " + filePath))
+    _connection.write(template.getPageHeadStart().format("μBot Raw &nbsp;| &nbsp; {}".format(path)))
     _connection.write(template.getGeneralStyle())
     _connection.write(template.getRawStyle())
     _connection.write(template.getPageHeadEnd())
-    _sendRaw(filePath)
+    _sendRaw(path.path)
     _connection.write(template.getPageFooter())
-    _logResponse(_getBasicReplyMap("200 OK", "Request: Get the file '{}'.".format(filePath)))
+    _logResponse(_getBasicReplyMap("200 OK", "Request: Get the file '{}'.".format(path)))
 
 
 def _sendHeader(status = "200 OK", length = None, allow = None):
-    reply = "text/plain"
-    allowSet = ", ".join(allowedMethods)
+    reply = "text/html"
+    allowSet = ", ".join(allowedHtmlMethods)
 
-    returnFormat = _request.get("processing")
-    if returnFormat == "HTML":
-        reply = "text/html"
-        allowSet = ", ".join(allowedHtmlMethods)
-    elif returnFormat == "JSON":
+    if _request.get("processing") == "JSON":
         reply = "application/json"
         allowSet = ", ".join(allowedJsonMethods)
 

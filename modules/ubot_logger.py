@@ -68,19 +68,27 @@ def getLogCategories():
 
 
 def getCategoryLogs(category):
-    return data.getFileNameListOf("log", category, "txt")
+    return data.getFileListOf("log", category, "txt")
 
 
-def getLog(category, title):
-    return data.getFile(data.createPathOf("log", category, normalizeLogTitle(title)), False)
+def getLog(category: str, title) -> tuple:
+    return data.getFile(getPathOf(category, title), False)
+
+
+def printLog(category: str, title) -> None:
+    data.printFile(getPathOf(category, title), False)
 
 
 def doesLogExist(category, title):
     return normalizeLogTitle(title) in getCategoryLogs(category)
 
 
+def getPathOf(category: str, title = "") -> data.Path:
+    return data.createPathOf("log", category, normalizeLogTitle(title))
+
+
 def normalizeLogTitle(title) -> str:
-    return "{:010d}".format(int(title)) if isinstance(title, int) or title.isdigit() else title
+    return "{:010d}.txt".format(int(title)) if isinstance(title, int) or title.isdigit() else title
 
 
 ################################
