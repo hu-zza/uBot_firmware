@@ -29,7 +29,7 @@
     SOFTWARE.
 """
 
-import ujson, uos, uselect, usocket
+import ubinascii, ujson, uos, uselect, usocket
 
 from machine import Timer
 
@@ -87,7 +87,7 @@ _denyJson = not config.get("web_server", "json_enabled")
 _log_event    = config.get("web_server", "log_event")
 _log_request  = config.get("web_server", "log_request")
 _log_response = config.get("web_server", "log_response")
-_log_reset    = config.get("web_server", "log_reset")
+_log__reply   = config.get("web_server", "log__reply")
 
 allowedMethods     = {"GET", "POST", "PUT", "DELETE"}
 allowedHtmlMethods = {"GET", "POST"}
@@ -253,7 +253,7 @@ def _chooseProcessingMethod():
     union = accept + contentType
 
     if "text/html" in union:
-        _request["processing"] = "HTML"
+        _request["processing"] = "FILE" if _request.get("rawPath") in template.files else "HTML"
     elif "application/json" in union or "*/*" in accept:
         _request["processing"] = "JSON"
     else:
@@ -320,37 +320,42 @@ def _replyWithHtmlTemplate(path: str) -> None:
     for part in template.parts.get(path):
         _connection.write(part())
 
-    if path.startswith("/debug"):                                                                     # TODO: Extracting
-        _connection.write("        <h3>Information panels</h3>\r\n")
+    if path.startswith("/debug"):
+        _includeDebugDashboard()
 
-        for panelTitle in sorted(template.debugPanels.keys()):
-            _connection.write("            <a href='http://{0}{1}' target='_blank'>{2}</a><br>\r\n"
-                              .format(config.get("ap", "ip"), template.debugPanels.get(panelTitle), panelTitle))
-
-        _connection.write("        <br><br><hr><hr>\r\n")
-        _connection.write("        <h3>Log files</h3>\r\n")
-
-        _powerOns     = config.get("system", "power_ons")
-        _host         = "http://{}/raw".format(config.get("ap", "ip"))
-        _filenameBase = "/log/{{}}/{:010d}.txt".format(config.get("system", "power_ons"))
-        _fallbackBase = "/log/{}/0000000000.txt"
-
-        _connection.write("            <table class='data'>\r\n")
-        for category in logger.getLogCategories():
-            _connection.write("                <tr><td><strong>{}:</strong></td>".format(category))
-
-            _currentLog = _filenameBase.format(category)
-            _fallbackLog = _fallbackBase.format(category)
-
-            _connection.write("<td><a href='{}{}' target='_blank'>current ({} B)</a></td>"
-                              .format(_host, _currentLog, uos.stat(_currentLog)[6]))
-
-            _connection.write("<td><a href='{}{}' target='_blank'>fallback ({} B)</a></td></tr>\r\n"
-                              .format(_host, _fallbackLog, uos.stat(_fallbackLog)[6]))
-
-        _connection.write("            </table>\r\n")
     _connection.write(template.getPageFooter())
     _logResponse(_getBasicReplyMap("200 OK", "Request: Get the page '{}'.".format(path)))
+
+
+def _includeDebugDashboard():
+    _connection.write("        <h3>Information panels</h3>\r\n")
+    for panelTitle in sorted(template.debugPanels.keys()):
+        _connection.write("            <a href='http://{0}{1}' target='_blank'>{2}</a><br>\r\n"
+                          .format(config.get("ap", "ip"), template.debugPanels.get(panelTitle), panelTitle))
+    _connection.write("        <br><br><hr><hr>\r\n")
+    _connection.write("        <h3>Log files</h3>\r\n")
+    _powerOns = config.get("system", "power_ons")
+    _host = "http://{}/raw".format(config.get("ap", "ip"))
+    _filenameBase = "/log/{{}}/{:010d}.txt".format(config.get("system", "power_ons"))
+    _fallbackBase = "/log/{}/0000000000.txt"
+    _connection.write("            <table class='data'>\r\n")
+    for category in logger.getLogCategories():
+        _connection.write("                <tr><td><strong>{}:</strong></td>".format(category))
+
+        _currentLog = _filenameBase.format(category)
+        _fallbackLog = _fallbackBase.format(category)
+
+        _connection.write("<td><a href='{}{}' target='_blank'>current ({} B)</a></td>"
+                          .format(_host, _currentLog, uos.stat(_currentLog)[6]))
+
+        _connection.write("<td><a href='{}{}' target='_blank'>fallback ({} B)</a></td></tr>\r\n"
+                          .format(_host, _fallbackLog, uos.stat(_fallbackLog)[6]))
+    _connection.write("            </table>\r\n")
+
+
+def _processHtmlFileQuery() -> None:
+    path = _request.get("rawPath")
+    _reply("200 OK", template.files.get(path))
 
 
 def _replyWithHtmlRaw(path: data.Path) -> None:
@@ -368,12 +373,15 @@ def _sendHeader(status = "200 OK", length = None, allow = None):
     global _headerSent
 
     if not _headerSent:
-        reply = "text/html"
+        reply = "text/html; charset=UTF-8"
         allowSet = ", ".join(allowedHtmlMethods)
 
         if _request.get("processing") == "JSON":
-            reply = "application/json"
+            reply = "application/json; charset=UTF-8"
             allowSet = ", ".join(allowedJsonMethods)
+        if _request.get("processing") == "FILE":
+            reply = template.files.get(_request.get("rawPath"))[0]
+            allowSet = "GET"
 
         if allow is None:
             allow = allowSet
@@ -381,7 +389,7 @@ def _sendHeader(status = "200 OK", length = None, allow = None):
         _connection.write("HTTP/1.1 {}\r\n".format(status))
         if length is not None:
             _connection.write("Content-Length: {}\r\n".format(length))
-        _connection.write("Content-Type: {}; charset=UTF-8\r\n".format(reply))
+        _connection.write("Content-Type: {}\r\n".format(reply))
         _connection.write("Content-Encoding: identity\r\n")
         _connection.write("Transfer-Encoding: identity\r\n")
         _connection.write("Server: {}\r\n".format(_server))
@@ -420,12 +428,17 @@ def _reply(responseStatus, message, result = None):
         reply = _replyMap.setdefault(_request.get("processing"), _createHtmlReply)(responseStatus, message, result)
 
         if _connection != 0:
+
             _sendHeader(responseStatus, len(reply))
-            _connection.write(reply)                                                    # TODO: written bytes check, etc
+
+            if isinstance(reply, bytes):                                                # TODO: short-writes with check?
+                _connection.sendall(reply)
+            else:
+                _connection.write(reply)
 
         _logResponse(_response)
     except Exception as e:
-        if _log_reset:
+        if _log__reply:
             logger.append(e)
 
 
@@ -443,6 +456,10 @@ def _createJsonReply(responseStatus, message, result = None):
     _updateReply(responseStatus, message, result)
     return ujson.dumps(_response)
 
+
+def _createHtmlFileReply(responseStatus, message, result = None):
+    _updateReply(responseStatus, "Request: Get the file '{}'.".format(_request.get("rawPath")), result)
+    return ubinascii.a2b_base64(message[1]())
 
 
 def _updateReply(responseStatus, message, result = None):
@@ -471,18 +488,18 @@ def _getBasicReplyMap(responseStatus, message, result = None):
 
 
 def _getMessageWithFlags(message, statusCode):
-    result = message
+    flags = "{}"
 
     if 100 <= statusCode < 200:
-        result = "[INFO] " + message
+        flags = "[INFO] {}"
     elif 200 <= statusCode < 300:
-        result = "[DONE] " + message
+        flags = "[DONE] {}"
     elif 300 <= statusCode < 400:
-        result = "[LINK] " + message
+        flags = "[LINK] {}"
     elif 400 <= statusCode < 600:
-        result = "[FAIL] {}  // More info: {}".format(message, config.get("constant", "api_link"))
+        flags = "[FAIL] {{}}  // More info: {}".format(config.get("constant", "api_link"))
 
-    return result
+    return flags.format(message)
 
 
 def _getHelperLinks():
@@ -557,23 +574,25 @@ def _sendRaw(path):
 ## MAPPINGS
 
 _htmlFunctionMap = {
-    "GET":  _processHtmlGetQuery,
-    "POST": _processHtmlPostQuery
+    "GET"    : _processHtmlGetQuery,
+    "POST"   : _processHtmlPostQuery
 }
 
 _jsonFunctionMap = {
-    "GET":    _unavailableSupplierFunction,
-    "POST":   _unavailableSupplierFunction,
-    "PUT":    _unavailableSupplierFunction,
-    "DELETE": _unavailableSupplierFunction
+    "GET"    : _unavailableSupplierFunction,
+    "POST"   : _unavailableSupplierFunction,
+    "PUT"    : _unavailableSupplierFunction,
+    "DELETE" : _unavailableSupplierFunction
 }
 
 _processingMap = {
-    "HTML": _processHtmlQuery,
-    "JSON": _processJsonQuery
+    "HTML"   : _processHtmlQuery,
+    "JSON"   : _processJsonQuery,
+    "FILE"   : _processHtmlFileQuery,
 }
 
 _replyMap = {
-    "HTML": _createHtmlReply,
-    "JSON": _createJsonReply
+    "HTML"   : _createHtmlReply,
+    "JSON"   : _createJsonReply,
+    "FILE"   : _createHtmlFileReply
 }
