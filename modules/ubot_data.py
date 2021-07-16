@@ -54,7 +54,7 @@ class Path:
         _initializePath(self)
 
 
-    def __repr__(self) -> str:
+    def __str__(self) -> str:
         return self.path
 
 
@@ -622,7 +622,7 @@ def preparePathIfSpecial(path: Path) -> None:
             path.path = "/"
             path.size = 0
         else:
-            if size == 1:
+            if 1 < size:
                 if array[0] == "command":
                     path.args = array[1:]
                     del array[1:]

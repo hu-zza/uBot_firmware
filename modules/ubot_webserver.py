@@ -41,6 +41,7 @@ import ubot_template as template
 
 
 _connection = 0
+_headerSent = False
 
 _started = False
 _period = config.get("web_server", "period")
@@ -182,7 +183,7 @@ def _clearOldRequestData():
 
 
 def _processIncoming(incoming):
-    global _incoming, _connection
+    global _incoming, _connection, _headerSent
     _incoming = incoming
 
     try:
@@ -194,6 +195,7 @@ def _processIncoming(incoming):
     finally:
         _connection.close()
         _connection = 0
+        _headerSent = False
 
 
 def _readIncoming():
@@ -363,26 +365,30 @@ def _replyWithHtmlRaw(path: data.Path) -> None:
 
 
 def _sendHeader(status = "200 OK", length = None, allow = None):
-    reply = "text/html"
-    allowSet = ", ".join(allowedHtmlMethods)
+    global _headerSent
 
-    if _request.get("processing") == "JSON":
-        reply = "application/json"
-        allowSet = ", ".join(allowedJsonMethods)
+    if not _headerSent:
+        reply = "text/html"
+        allowSet = ", ".join(allowedHtmlMethods)
 
-    if allow is None:
-        allow = allowSet
+        if _request.get("processing") == "JSON":
+            reply = "application/json"
+            allowSet = ", ".join(allowedJsonMethods)
 
-    _connection.write("HTTP/1.1 {}\r\n".format(status))
-    if length is not None:
-        _connection.write("Content-Length: {}\r\n".format(length))
-    _connection.write("Content-Type: {}; charset=UTF-8\r\n".format(reply))
-    _connection.write("Content-Encoding: identity\r\n")
-    _connection.write("Transfer-Encoding: identity\r\n")
-    _connection.write("Server: {}\r\n".format(_server))
-    _connection.write("Allow: {}\r\n".format(allow))
-    _connection.write("Cache-Control: no-cache\r\n")                                       # TODO: Make caching possible
-    _connection.write("Connection: close\r\n\r\n")
+        if allow is None:
+            allow = allowSet
+
+        _connection.write("HTTP/1.1 {}\r\n".format(status))
+        if length is not None:
+            _connection.write("Content-Length: {}\r\n".format(length))
+        _connection.write("Content-Type: {}; charset=UTF-8\r\n".format(reply))
+        _connection.write("Content-Encoding: identity\r\n")
+        _connection.write("Transfer-Encoding: identity\r\n")
+        _connection.write("Server: {}\r\n".format(_server))
+        _connection.write("Allow: {}\r\n".format(allow))
+        _connection.write("Cache-Control: no-cache\r\n")                                   # TODO: Make caching possible
+        _connection.write("Connection: close\r\n\r\n")
+        _headerSent = True
 
 
 def _processHtmlPostQuery():
@@ -460,6 +466,7 @@ def _getBasicReplyMap(responseStatus, message, result = None):
             }},
         "result": result
     }
+    replyMap["meta"]["request"]["path"] = str(_request.get("path"))
     return replyMap
 
 

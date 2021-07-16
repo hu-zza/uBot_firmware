@@ -330,8 +330,8 @@ def getSettingsPanel():
     return ("        <ul class='links'>\r\n"
             "            <li>Settings</li>\r\n"
             "            <li><a href='_datetime'>Date & Time</a></li>\r\n"
-            "            <li><a href='_webrepl'>WebREPL</a></li>\r\n"
-            "            <li><a href='_calibration'>Calibration</a></li>\r\n"
+            "            <li><a href=''></a></li>\r\n"
+            "            <li><a href=''></a></li>\r\n"
             "        </ul>\r\n")
 
 
@@ -344,47 +344,6 @@ def getDateTimePanel():
             "            <li><a href='_datetime' onclick='send(1)'>Save</a></li>\r\n"
             "            <li><a href='_settings'>Back to settings</a></li>\r\n"
             "        </ul>\r\n").format(dt[0], dt[1], dt[2], dt[4], dt[5], dt[6])
-
-
-def getWebReplPanel():
-    if config.get("web_repl", "active"):
-        str0 = ""
-        str1 = "STOP"
-        str2 = "Stop"
-    else:
-        str0 = "in"
-        str1 = "START"
-        str2 = "Start"
-
-    return ("        <ul class='links'>\r\n"
-            "            <li>WebREPL</li>\r\n"
-            "            <li>This service is {}active.</li>\r\n"
-            "            <li><a href='_webrepl' onclick='send(\"{} WEBREPL\")'>{} WebREPL</a></li>\r\n"
-            "            <li><a href='_settings'>Back to settings</a></li>\r\n"
-            "        </ul>\r\n").format(str0, str1, str2)
-
-
-def getCalibrationPanel():
-    mag = [(), ()]
-
-    if mag[0] == ():
-        mag[0] = ("-", "-", "-")
-    else:
-        mag[0] = tuple(round(v, 2) for v in mag[0])
-
-    if mag[1] == ():
-        mag[1] = ("-", "-", "-")
-    else:
-        mag[1] = tuple(round(v, 2) for v in mag[1])
-
-    return ("        <ul class='links'>\r\n"
-            "            <li>Calibration</li>\r\n"
-            "            <li>Min. X: {}, Y: {}, Z: {}</li>\r\n"
-            "            <li>Max. X: {}, Y: {}, Z: {}</li>\r\n"
-            "            <li><a href='_calibration' onclick='send(\"CALIBRATE FEEDBACK\")'>Calibrate feedback</a></li>\r\n"
-            "            <li><a href='_settings'>Back to settings</a></li>\r\n"
-            "        </ul>\r\n"
-            ).format(mag[0][0], mag[0][1], mag[0][2], mag[1][0], mag[1][1], mag[1][2])
 
 
 _sender =  ("\r\n"
@@ -406,13 +365,9 @@ def getButtonPressSender():
     return _sender.format("PRESS_' + value")
 
 
-def getServiceRequestSender(): # TODO: refactor
-    return _sender.format(title = "Service request | μBot Settings", logging = "true", body = "\"service\" : [ value ]\r\n")
-
-
-def getDateTimeSender(): # TODO: refactor
-    getters = "document.getElementById(\"date\").value, document.getElementById(\"time\").value"
-    return _sender.format(title = "DateTime setting | μBot Settings", body = "\"dateTime\" : [ {} ]\r\n".format(getters))
+def getDateTimeSender():
+    return _sender.format("TIME_' + document.getElementById(\"date\").value +"
+                          " \"_\" + document.getElementById(\"time\").value")
 
 
 
@@ -494,9 +449,7 @@ def linkPathToExistingPath(path, existingPath):
 
 title = {
     "/_settings"    : "μBot Settings",
-    "/_datetime"    : "μBot Date & Time",
-    "/_webrepl"     : "μBot WebREPL",
-    "/_calibration" : "μBot Calibration",
+    "/_datetime"    : "μBot Settings - Date & Time",
     "/debug"        : "μBot Debug - Dashboard",
     "/_system"      : "μBot Debug - System info",
     "/_services"    : "μBot Debug - Service status",
@@ -512,8 +465,6 @@ title = {
 style = {
     "/_settings"    : (getGeneralStyle, getSimpleStyle),
     "/_datetime"    : (getGeneralStyle, getSimpleStyle),
-    "/_webrepl"     : (getGeneralStyle, getSimpleStyle),
-    "/_calibration" : (getGeneralStyle, getSimpleStyle),
     "/debug"        : (getGeneralStyle, getDebugStyle),
     "/_system"      : (getGeneralStyle, getDebugStyle),
     "/_services"    : (getGeneralStyle, getDebugStyle),
@@ -527,10 +478,8 @@ style = {
 }
 
 parts = {
-    "/_settings"    : (getSettingsPanel, getServiceRequestSender),
+    "/_settings"    : (getSettingsPanel,),
     "/_datetime"    : (getDateTimePanel, getDateTimeSender),
-    "/_webrepl"     : (getWebReplPanel, getServiceRequestSender),
-    "/_calibration" : (getCalibrationPanel, getServiceRequestSender),
     "/debug"        : (),
     "/_system"      : (getSystemPanel,),
     "/_services"    : (getServiceStatusPanel,),

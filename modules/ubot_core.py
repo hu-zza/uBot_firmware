@@ -56,6 +56,23 @@ if config.get("web_server", "active"):
 ################################
 ## PUBLIC METHODS
 
+powerOns = config.get("system", "power_ons")
+
+def printEvents(nr: int = -1) -> None:
+    logger.printLog("event", powerOns if nr < 0 else nr)
+
+
+def printExceptions(nr: int = -1) -> None:
+    logger.printLog("exception", powerOns if nr < 0 else nr)
+
+
+def printObjects(nr: int = -1) -> None:
+    logger.printLog("object", powerOns if nr < 0 else nr)
+
+
+def printRuns(nr: int = -1) -> None:
+    logger.printLog("run", powerOns if nr < 0 else nr)
+
 
 def executeCommand(command):
     if command[:5] == "PRESS":                                      # PRESS_1_1_16_64
@@ -108,6 +125,10 @@ def executeCommand(command):
     elif command[:5] == "SLEEP":                                    # SLEEP_1000
         inp = data.extractIntTupleFromString(command[5:])
         sleep_ms(inp[0] if inp != () else 1000)
+
+    elif command[:4] == "TIME":                                     # TIME_2020-02-02_20:20
+        inp = data.extractIntTupleFromString(command[4:])
+        config.datetime((inp[0], inp[1], inp[2], 0, inp[3], inp[4], 0 if len(inp) < 6 else inp[5], 0))
 
     else:
         return False
@@ -229,8 +250,8 @@ def _jsonGetCommandExecution() -> tuple:
         if executeCommand(command):
             return "200 OK", job, {"name": command, "type": "command", "result": "started",
                                    "href": "http://{}/command/{}".format(config.get("ap", "ip"), command)}
-    except Exception:
-        pass
+    except Exception as e:
+        logger.append(e)
     return "403 Forbidden", "{} Cause: Semantic error in the URL.".format(job), {}
 
 
@@ -341,7 +362,7 @@ def _jsonPostLog() -> tuple:
         logFile = "event" if isinstance(log, str) else "object"
         if logFile in config.get("logger", "active_logs"):
             logger.append(log)
-            status, message, json = data.createRestReplyOf("log", logFile, str(config.get("system", "power_ons")))
+            status, message, json = data.createRestReplyOf("log", logFile, str(powerOns))
 
             if status == "200 OK":
                 return "200 OK", job, json
