@@ -37,6 +37,7 @@ import ubot_config as config
 import ubot_logger as logger
 import ubot_data   as data
 import ubot_buzzer as buzzer
+import ubot_future as future
 
 buzzer.keyBeep("started")
 
@@ -156,12 +157,12 @@ _jsonRequest = {                                                                
 }
 
 
-def _updateJsonRequest(path: data.Path, body: str = "") -> None:
+def _updateJsonRequest(path: data.Path, body: str = "", parsed: bool = False) -> None:
     global _jsonRequest
 
     _jsonRequest["path"] = path
     _jsonRequest["body"] = body
-    _jsonRequest["parsed"] = False
+    _jsonRequest["parsed"] = parsed
 
 
 def _parseJsonRequestBody() -> None:
@@ -190,8 +191,6 @@ def _jsonBodyValidator(job: str, obligatoryParameters: tuple = ("value",)) -> tu
 
 def _jsonReplyWithFileInstance(path: data.Path, job: str) -> tuple:
     if path.isExist:
-        jobGist = job[:job.find("'")]
-        job = "{}{}".format(jobGist, path.description)
         savedProgram = data.createRestReply(path)
 
         if savedProgram[0] == "200 OK":
@@ -214,7 +213,7 @@ def _executeJsonGet() -> tuple:                                                 
             return _jsonGetCommandExecution()
         elif pathSize < 5:
 
-            if category == "program" and pathSize == 4:
+            if category == "program" and "run" in _jsonRequest.get("path").args:
                 return _jsonGetProgramActionStarting()
             else:
                 return _jsonGetFileByJsonLink()
@@ -223,20 +222,28 @@ def _executeJsonGet() -> tuple:                                                 
 
 
 def _jsonGetProgramActionStarting() -> tuple:
-    folder, title = _jsonRequest.get("path").array[1:3]
-    action = _jsonRequest.get("path").args[0]
+    path = _jsonRequest.get("path")
+    folder, title = path.array[1:3]
 
-    job = "Request: Starting action '{}' of program '{}' ({}).".format(action, title, folder)
+    job = "Request: Starting action '{}' of program '{}' ({}).".format(path.args[0], title, folder)
 
     if turtle.doesProgramExist(folder, title):
-        result = doProgramAction(folder, title, action)
-
-        if result[0]:
-            return "200 OK", job, result[1]
-        else:
-            return "403 Forbidden", "{} Cause: Semantic error in the URL.".format(job), {}
+        return future.getJsonTicket(future.add(_jsonRequest, _jsonExecuteProgramAction), job)
     else:
         return "404 Not Found", "{} Cause: No such program.".format(job), {}
+
+
+def _jsonExecuteProgramAction() -> tuple:
+    folder, title = _jsonRequest.get("path").array[1:3]
+    action = _jsonRequest.get("path").args[0]
+    job = "Request: Executing action '{}' of program '{}' ({}).".format(action, title, folder)
+
+    result = doProgramAction(folder, title, action)
+
+    if result[0]:
+        return "200 OK", job, result[1]
+    else:
+        return "403 Forbidden", "{} Cause: Semantic error in the URL.".format(job), {}
 
 
 def _jsonGetFileByJsonLink() -> tuple:
@@ -279,12 +286,15 @@ def _jsonPostProgram() -> tuple:
 
     job = "Request: Save the {}.".format(path.description)
 
-    folder = path.array[1]
-    title  = path.array[2]
-    if not turtle.doesProgramExist(folder, title):
-        return _jsonWriteProgram(folder, title, job)
+    if path.size < 3:
+        _jsonWriteProgram("", "", job)
     else:
-        return "403 Forbidden", "{} Cause: The program already exists.".format(job), {}
+        folder, title = path.array[1:3]
+
+        if not turtle.doesProgramExist(folder, title):
+            return _jsonWriteProgram(folder, title, job)
+        else:
+            return "403 Forbidden", "{} Cause: The program already exists.".format(job), {}
 
 
 def _jsonWriteProgram(folder, title, job) -> tuple:
@@ -423,7 +433,7 @@ def _jsonPutFile() -> tuple:
 
     if path.isExist:
         if data.canWrite(path) or data.canModify(path):
-            return _jsonWriteFile(path, job, None)
+            return _jsonWriteFile(path, job)
         else:
             return "403 Forbidden", "{} Cause: Missing write / modify permission.".format(job), {}
     else:
@@ -548,6 +558,7 @@ if config.get("web_server", "active"):
             webserver.setJsonCallback("POST", _executeJsonPost)
             webserver.setJsonCallback("PUT", _executeJsonPut)
             webserver.setJsonCallback("DELETE", _executeJsonDelete)
+            future.setJsonSender(_updateJsonRequest)
         webserver.start()
     except Exception as e:
         logger.append(e)

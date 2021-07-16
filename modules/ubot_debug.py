@@ -199,7 +199,7 @@ def stopSignal():
 ################################
 ## PRIVATE, HELPER METHODS
 
-def _periodicalChecks(timer):
+def _periodicalChecks(timer) -> None:
     if _uartState < 2:
         _checkButtonPress()
     _stopSignalAtLogin()

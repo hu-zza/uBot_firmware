@@ -235,10 +235,10 @@ def isProcessing():
 def _startProcessing():
     global _processing
 
-    if 0 < len(_resumeList):
+    if _resumeList:
         _resumeList.clear()
 
-    if not _processing and 0 < len(_moveList):
+    if not _processing and _moveList:
         _processing = True
         _processMove(_moveList.pop(0))
 
@@ -248,7 +248,7 @@ def _stopProcessing():
     _processing = False
 
 
-def _processMove(move):       # ((direction, duration))
+def _processMove(move: tuple) -> None:
     """
     Part of a recursive loop: _processMove(move) - _stopAndInitNext() - _processNext() - _processMove(move) ...
 
@@ -274,7 +274,7 @@ def _processMove(move):       # ((direction, duration))
     )
 
 
-def _stopAndInitNext(timer):
+def _stopAndInitNext(timer) -> None:
     """
     Part of a recursive loop: _processMove(move) - _stopAndInitNext() - _processNext() - _processMove(move) ...
 
@@ -293,14 +293,14 @@ def _stopAndInitNext(timer):
         )
 
 
-def _processNext(timer = None):
+def _processNext(timer = None) -> None:
     """
     Part of a recursive loop: _processMove(move) - _stopAndInitNext() - _processNext() - _processMove(move) ...
 
     Checks if processing is active and there is any task waiting for processing.
     If it finds task(s), pops the first and call _processMove(move). If not, loop stops.
     """
-    if _processing and 0 < len(_moveList):
+    if _processing and _moveList:
         _processMove(_moveList.pop(0))
     else:
         _stopProcessing()

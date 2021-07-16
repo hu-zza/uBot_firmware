@@ -38,15 +38,17 @@ import ubot_data     as data
 import ubot_logger   as logger
 import ubot_motor    as motor
 import ubot_template as template
+import ubot_future   as future
 
 
 _connection = 0
+_connected  = False
 _headerSent = False
 
 _started = False
-_period = config.get("web_server", "period")
+_period  = config.get("web_server", "period")
 _timeout = config.get("web_server", "timeout")
-_timer = Timer(-1)
+_timer  = Timer(-1)
 _socket = usocket.socket(usocket.AF_INET, usocket.SOCK_STREAM)
 _poller = uselect.poll()
 
@@ -80,8 +82,6 @@ _response = {
         "result": {}
 }
 
-_jsonSender = None
-
 _denyHtml = not config.get("web_server", "html_enabled")
 _denyJson = not config.get("web_server", "json_enabled")
 _log_event    = config.get("web_server", "log_event")
@@ -99,10 +99,15 @@ _hasJsonBody       = {"POST", "PUT"}
 ################################
 ## CONFIG
 
+def _unavailableJsonSender(*args):
+    raise Exception("ubot_webserver#_unavailableJsonSender\r\nThe '_jsonSender' is unavailable, processing had stopped.")
+
+_jsonSender = _unavailableJsonSender
 
 def setJsonSender(method):
     global _jsonSender
     _jsonSender = method
+
 
 def setJsonCallback(method, jsonFunction):
     global _jsonFunctionMap
@@ -137,6 +142,10 @@ def isAllowed(methodName, methodSet = None):
     return methodName in methodSet
 
 
+def isProcessing() -> bool:
+    return _connected
+
+
 ################################
 ## PRIVATE, HELPER METHODS
 
@@ -157,16 +166,29 @@ def _logResponse(response):
         logger.append(response)
 
 
-def _poll(timer):
-    try:
-        if not motor.isProcessing():
-            result = _poller.poll(_timeout)
+def _poll(timer) -> None:
+    global _connected
 
-            if result:
-                _clearOldRequestData()
-                _processIncoming(result[0][0])
+    try:
+        if _canWork():
+            _connected = True
+            if _canWork():
+                result = _poller.poll(_timeout)
+
+                if result:
+                    _clearOldRequestData()
+                    _processIncoming(result[0][0])
+            else:
+                _connected = False
     except Exception as e:
         logger.append(e)
+    finally:
+        _connected = False
+
+
+def _canWork() -> bool:
+    return not future.isProcessing() and \
+           not motor.isProcessing()
 
 
 def _clearOldRequestData():
@@ -193,9 +215,8 @@ def _processIncoming(incoming):
         logger.append(e)
         _reply("400 Bad Request", "The server could not understand the request due to invalid syntax.")
     finally:
-        _connection.close()
-        _connection = 0
         _headerSent = False
+        _connection.close()
 
 
 def _readIncoming():
@@ -252,8 +273,10 @@ def _chooseProcessingMethod():
     contentType = _request.get("contentType")
     union = accept + contentType
 
-    if "text/html" in union:
-        _request["processing"] = "FILE" if _request.get("rawPath") in template.files else "HTML"
+    if _request.get("rawPath") in template.files:
+        _request["processing"] = "FILE"
+    elif "text/html" in union:
+        _request["processing"] = "HTML"
     elif "application/json" in union or "*/*" in accept:
         _request["processing"] = "JSON"
     else:
@@ -290,7 +313,7 @@ def _processHtmlQuery():
                                          "content type: {}.".format(", ".join(allowedHtmlMethods)))
 
 
-def _unavailableSupplierFunction(a = None, b = None, c = None):
+def _unavailableSupplierFunction(*args):
     return "503 Service Unavailable", "This service is not yet available.", {}
 
 
@@ -427,8 +450,7 @@ def _reply(responseStatus, message, result = None):
     try:
         reply = _replyMap.setdefault(_request.get("processing"), _createHtmlReply)(responseStatus, message, result)
 
-        if _connection != 0:
-
+        if _connected:
             _sendHeader(responseStatus, len(reply))
 
             if isinstance(reply, bytes):                                                # TODO: short-writes with check?

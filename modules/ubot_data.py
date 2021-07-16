@@ -64,113 +64,16 @@ def _initializePath(path: Path) -> None:
     if it fails, appends the suffix ".txt" and tries again. """
     try:
         path.path = _normalizePathOrThrow(path.path)
-
-        _refreshMainFlags(path)
-
         array = tuple(item for item in path.path.split("/") if item != "")
         path.array = array
         path.size  = len(array)
-        _refreshPathDescription(path)
+        refresh(path)
 
     except Exception as e:
         logger.append(e)
         logger.append(AttributeError("ubot_data#_initializePath\r\nCan not initialize Path object with path '{}'.\r\n"
                                      .format(path)))
         _invalidatePath(path)
-
-
-def _refreshMainFlags(path: Path) -> None:
-    pathString = path.path
-
-    if _doesExist(pathString):
-        path.isExist = True
-        typeInt = uos.stat(pathString)[0]
-
-        if typeInt == 0x4000:
-            path.isFolder = True
-
-            if not pathString.endswith("/"):
-                path.path = "{}/".format(pathString)
-        elif typeInt == 0x8000:
-            path.isFile = True
-            path.isTxt = pathString.endswith(".txt")
-        else:
-            raise AttributeError("ubot_data#_refreshMainFlags\r\nPath '{}' should represent a folder or a file.\r\n"
-                                 .format(path))
-    else:
-        _deletePathFlags(path)
-
-
-def _refreshPathDescription(path: Path) -> None:
-    if path.isExist:
-        if path.size == 0:
-            path.description = "root folder '/'"
-            return
-        else:
-            if path.isFile:
-                template = "file '{}' ({})"
-            elif path.isFolder:
-                template = "folder '{}' ({})"
-            else:
-                template = "[invalid]"
-    else:
-        template = "[non-existent] '{}' ({})"
-
-    path.description = template.format(path.array[-1], "/{}".format("/".join(path.array[:-1])))
-
-
-def _invalidatePath(path: Path) -> None:
-    path.path  = ""
-    path.array = ()
-    path.args  = ()
-    path.size  = 0
-    path.description = "[invalid]"
-    _deletePathFlags(path)
-
-
-def _makePathNonExistent(path: Path) -> None:
-    _deletePathFlags(path)
-    _refreshPathDescription(path)
-
-
-def _deletePathFlags(path: Path) -> None:
-    path.isExist  = False
-    path.isFolder = False
-    path.isFile   = False
-    path.isTxt    = False
-    path.isWritable   = False
-    path.isDeletable  = False
-    path.isModifiable = False
-
-
-def _doesExist(path: str) -> bool:
-    try:
-        uos.stat(path)
-        return True
-    except:
-        return False
-
-
-def _isFolder(path: str) -> bool:
-    try:
-        return _typeIntEqualsExpectedInt(path, 0x4000)
-    except Exception as e:
-        logger.append(e)
-        logger.append(AttributeError("ubot_data#_isFolder\r\nCan not process '{}'.\r\n".format(path)))
-        return False
-
-
-def _isFile(path: str) -> bool:
-    try:
-        return _typeIntEqualsExpectedInt(path, 0x8000)
-    except Exception as e:
-        logger.append(e)
-        logger.append(AttributeError("ubot_data#_isFile\r\nCan not process '{}'.\r\n".format(path)))
-        return False
-
-
-def _typeIntEqualsExpectedInt(path: str, expectedInt: int) -> bool:
-    return uos.stat(path)[0] == expectedInt
 
 
 def _normalizePath(path: str) -> str:
@@ -206,6 +109,113 @@ def _replaceWhileFound(path: str, old: str, new: str) -> str:
     while 0 <= path.find(old):
         path = path.replace(old, new)
     return path
+
+
+def refresh(path: Path) -> None:
+    _refreshFlags(path)
+    _refreshPathDescription(path)
+
+
+def _refreshFlags(path: Path) -> None:
+    _deleteRightsFlags(path)
+
+    pathString = path.path
+
+    if _doesExist(pathString):
+        path.isExist = True
+        typeInt = uos.stat(pathString)[0]
+
+        if typeInt == 0x4000:
+            path.isFolder = True
+
+            if not pathString.endswith("/"):
+                path.path = "{}/".format(pathString)
+        elif typeInt == 0x8000:
+            path.isFile = True
+            path.isTxt = pathString.endswith(".txt")
+        else:
+            raise AttributeError("ubot_data#_refreshFlags\r\nPath '{}' should represent a folder or a file.\r\n"
+                                 .format(path))
+    else:
+        _deleteBaseFlags(path)
+
+
+def _refreshPathDescription(path: Path) -> None:
+    if path.isExist:
+        if path.size == 0:
+            path.description = "root folder '/'"
+            return
+        else:
+            if path.isFile:
+                template = "file '{}' ({})"
+            elif path.isFolder:
+                template = "folder '{}' ({})"
+            else:
+                template = "[invalid]"
+    else:
+        template = "[non-existent] '{}' ({})"
+
+    path.description = template.format(path.array[-1], "/{}".format("/".join(path.array[:-1])))
+
+
+def _invalidatePath(path: Path) -> None:
+    path.path  = ""
+    path.array = ()
+    path.args  = ()
+    path.size  = 0
+    path.description = "[invalid]"
+    _deleteBaseFlags(path)
+    _deleteRightsFlags(path)
+
+
+def _makePathNonExistent(path: Path) -> None:
+    _deleteBaseFlags(path)
+    _deleteRightsFlags(path)
+    _refreshPathDescription(path)
+
+
+def _deleteBaseFlags(path: Path) -> None:
+    path.isExist  = False
+    path.isFolder = False
+    path.isFile   = False
+    path.isTxt    = False
+
+
+def _deleteRightsFlags(path: Path) -> None:
+    path.isWritable   = None
+    path.isDeletable  = None
+    path.isModifiable = None
+
+
+def _doesExist(path: str) -> bool:
+    try:
+        uos.stat(path)
+        return True
+    except:
+        return False
+
+
+def _isFolder(path: str) -> bool:
+    try:
+        return _typeIntEqualsExpectedInt(path, 0x4000)
+    except Exception as e:
+        logger.append(e)
+        logger.append(AttributeError("ubot_data#_isFolder\r\nCan not process '{}'.\r\n".format(path)))
+        return False
+
+
+def _isFile(path: str) -> bool:
+    try:
+        return _typeIntEqualsExpectedInt(path, 0x8000)
+    except Exception as e:
+        logger.append(e)
+        logger.append(AttributeError("ubot_data#_isFile\r\nCan not process '{}'.\r\n".format(path)))
+        return False
+
+
+def _typeIntEqualsExpectedInt(path: str, expectedInt: int) -> bool:
+    return uos.stat(path)[0] == expectedInt
+
 
 
 INVALID_PATH = Path("/")
@@ -250,11 +260,19 @@ def createFolderFrom(pathArray: tuple) -> bool:
 
 
 def createFolder(path: Path) -> bool:
-    if canCreate(path):
-        pathString = path.path[:-1]
-        uos.mkdir(pathString)
-        return _doesExist(pathString)
+    if assertPathIsCreatable(path):
+        try:
+            pathString = path.path.rstrip("/")
+            uos.mkdir(pathString)
+            refresh(path)
+            return path.isExist
+        except Exception as e:
+            logger.append(e)
+            logger.append(AttributeError("ubot_data#createFolder\r\nCan not process '{}'.\r\n".format(path)))
+            return False
     else:
+        logger.append(AttributeError("ubot_data#createFolder\r\nCan not create '{}' because of breach of preconditions.\r\n"
+                                     .format(path)))
         return False
 
 
@@ -262,7 +280,7 @@ def createFoldersAlongPath(path: Path) -> None:
     if canWrite(path):
         pathArray = path.array
         elements = []
-        for i in range(len(pathArray) - (1 if path.isFile else 0)):
+        for i in range(len(pathArray)):
             elements.append(pathArray[i])
             path = "/{}".format("/".join(elements))
             if not _doesExist(path):
@@ -451,7 +469,7 @@ def getFileList(path: Path, suffix = "") -> tuple:
                      if name.endswith(suffix) and _isFile("{}{}".format(pathString, name)))
     except Exception as e:
         logger.append(e)
-        logger.append(AttributeError("ubot_data#getFilesOfPath\r\nPath '{}' doesn't exist.\r\n".format(path)))
+        logger.append(AttributeError("ubot_data#getFileList\r\nPath '{}' doesn't exist.\r\n".format(path)))
         return ()
 
 
@@ -521,7 +539,7 @@ def saveFile(path: Path, lines: object, isRecursive: bool = False) -> bool:
         written = 0
         try:
             if isRecursive:
-                createFoldersAlongPath(path)
+                createFoldersAlongPath(createPathFrom(path.array[:-1]))
 
             with open(path.path, "w") as file:
                 if isinstance(lines, str):
@@ -534,8 +552,7 @@ def saveFile(path: Path, lines: object, isRecursive: bool = False) -> bool:
                 else:
                     return False
 
-            path.isExist = True
-            _refreshPathDescription(path)
+            refresh(path)
             return written == 0
         except Exception as e:
             logger.append(e)
@@ -612,9 +629,11 @@ def extractCharTupleFromString(tupleString: str, enabledCharsSet: set) -> tuple:
 def preparePathIfSpecial(path: Path) -> None:
     array = list(path.array)
     size  = path.size
+    args  = list(path.args)
+
     if 0 < size:
         if array[0] == "raw":                                             # TODO: real raw instead of the alias behavior
-            path.args = ["raw"]
+            args += ["raw"]
             del array[0]
             size -= 1
 
@@ -624,25 +643,25 @@ def preparePathIfSpecial(path: Path) -> None:
         else:
             if 1 < size:
                 if array[0] == "command":
-                    path.args = array[1:]
+                    args = array[1:]
                     del array[1:]
-            elif 2 < size:
-                if array[0]  == "program":
-                    array[2] = turtle.normalizeProgramTitle(array[2])
-                elif array[0] == "log":
-                    array[2] = logger.normalizeLogTitle(array[2])
-                elif not array[2].endswith(".txt"):
-                    array[2] = "{}.txt".format(array[2])
+                elif 2 < size:
+                    if array[0]  == "program":
+                        array[2] = turtle.normalizeProgramTitle(array[2])
+                    elif array[0] == "log":
+                        array[2] = logger.normalizeLogTitle(array[2])
+                    elif not array[2].endswith(".txt"):
+                        array[2] = "{}.txt".format(array[2])
 
-                path.args += array[3:]
-                del array[3:]
+                    args += array[3:]
+                    del array[3:]
 
             path.path  = "/{}".format("/".join(array))
             path.array = tuple(array)
             path.size  = len(array)
+            path.args  = tuple(args)
 
-        _refreshMainFlags(path)
-        _refreshPathDescription(path)
+        refresh(path)
 
 
 def createRestReplyOf(*pathEnumeration: str) -> tuple:
@@ -742,7 +761,7 @@ def _createJsonFileInstance(path: Path) -> tuple:
         return "200 OK", job, {
             "name": array[2],
             "type": "file",
-            "href": "{}{}".format(_hostLink, name[:name.rindex(".")]),
+            "href": "{}{}".format(_hostLink, name[:-4] if name.endswith(".txt") else name),
             "raw":  "{}{}".format(_rawLink,  name),
             "parent": {
                 "name": parent,

@@ -265,7 +265,7 @@ def getApPanel():
 
 
 def getDrivePanel():
-    return ("        <table class = 'drive panel'>\r\n"
+    return ("        <table class='drive panel'>\r\n"
             "            <tr>\r\n"
             "                <td><svg onclick='send(\"K\")' style='transform: rotate(-45deg);'><use xlink:href='#arrow'></use></svg></td>\r\n"
             "                <td><svg onclick='send(\"F\")'><use xlink:href='#arrow'></use></svg></td>\r\n"
@@ -280,7 +280,7 @@ def getDrivePanel():
 
 
 def getSimplePanel():
-    return ("        <table class = 'simple panel'>\r\n"
+    return ("        <table class='simple panel'>\r\n"
             "            <tr>\r\n"
             "                <td></td>\r\n"
             "                <td><svg onclick='send(1)'><use xlink:href='#arrow'></use></svg></td>\r\n"
@@ -308,7 +308,7 @@ def getSimplePanel():
 
 
 def getProPanel():
-    return ("        <table class = 'pro panel'>\r\n"
+    return ("        <table class='pro panel'>\r\n"
             "            <tr>\r\n"
             "                <td><svg onclick='send(128)' style='transform: rotate(-45deg);'><use xlink:href='#arrow'></use></svg></td>\r\n"
             "                <td><svg onclick='send(1)'><use xlink:href='#arrow'></use></svg></td>\r\n"
@@ -449,7 +449,7 @@ def getCrossSymbol():
             "                 </symbol>\r\n")
 
 
-def linkPathToExistingPath(path, existingPath):
+def linkSitePathToExistingPath(path, existingPath):
     title[path] = title.get(existingPath)
     style[path] = style.get(existingPath)
     parts[path] = parts.get(existingPath)
@@ -523,6 +523,6 @@ debugPanels = {
     "Access point"   : "/_ap"
 }
 
-linkPathToExistingPath("/", "/simple")
-linkPathToExistingPath("/professional", "/pro")
-linkPathToExistingPath("/turtlecode", "/turtle")
+linkSitePathToExistingPath("/", "/simple")
+linkSitePathToExistingPath("/professional", "/pro")
+linkSitePathToExistingPath("/turtlecode", "/turtle")

@@ -3,8 +3,8 @@ import network, ujson, uos
 from flashbdev import bdev
 from ubinascii import hexlify
 
-firmware = (0, 1, 177)
-initDatetime = (2021, 7, 16, 0, 16, 40, 0, 0)
+firmware = (0, 1, 178)
+initDatetime = (2021, 7, 17, 0, 1, 15, 0, 0)
 
 AP  = network.WLAN(network.AP_IF)
 mac = hexlify(AP.config("mac"), ":").decode()
@@ -63,13 +63,19 @@ data = {
     "modify_rights" : ("/etc/ap/", "/etc/buzzer/", "/etc/feedback/", "/etc/i2c/", "/etc/logger/", "/etc/motor/",
                        "/etc/turtle/", "/etc/uart/", "/etc/web_repl/", "/etc/web_server"),
     "write_rights"  : ("/home/", "/program/"),
-    "delete_rights" : ("/home/", "/log/exception/", "/log/event/", "/log/object/", "/log/run/", "/program/"),
+    "delete_rights" : ("/future/", "/home/", "/log/exception/", "/log/event/", "/log/object/", "/log/run/", "/program/"),
     "has_action"    : ("/etc/", "/program/")
 }
 
 feedback = {
     "name"          : "Motion feedback",
     "active"        : False
+}
+
+future = {
+    "name"          : "Async manager",
+    "active"        : True,     # Should be always active
+    "period"        : 2500
 }
 
 i2c = {
@@ -146,8 +152,8 @@ web_repl = {
 web_server = {
     "name"          : "Web server",
     "active"        : True,
-    "period"        : 1000,
-    "timeout"       : 750,
+    "period"        : 500,
+    "timeout"       : 100,
     "html_enabled"  : True,
     "json_enabled"  : True,
     "log_event"     : True,
@@ -166,6 +172,7 @@ configModules = {
     "constant"      : constant,
     "data"          : data,
     "feedback"      : feedback,
+    "future"        : future,
     "i2c"           : i2c,
     "logger"        : logger,
     "motor"         : motor,
@@ -178,11 +185,6 @@ configModules = {
 
 
 ########################################################################################################################
-
-def wifi():
-    AP.ifconfig((ap.get("ip"), ap.get("netmask"), ap.get("gateway"), ap.get("dns")))
-    AP.config(essid = ap.get("ssid"), authmode = network.AUTH_WPA_WPA2_PSK, password = ap.get("password"))
-
 
 def check_bootsec():
     buf = bytearray(bdev.SEC_SIZE)
@@ -214,27 +216,28 @@ programming).
         time.sleep(3)
 
 
-def setup():
-    check_bootsec()
-    wifi()
-    uos.VfsLfs2.mkfs(bdev)
-    vfs = uos.VfsLfs2(bdev)
-    uos.mount(vfs, "/")
+def setWifi() -> None:
+    AP.ifconfig((ap.get("ip"), ap.get("netmask"), ap.get("gateway"), ap.get("dns")))
+    AP.config(essid = ap.get("ssid"), authmode = network.AUTH_WPA_WPA2_PSK, password = ap.get("password"))
 
+
+def createFolders() -> None:
     uos.mkdir("/etc")
+    uos.mkdir("/future")
     uos.mkdir("/home")
 
     uos.mkdir("/log")
-    uos.mkdir("/log/event")
-    uos.mkdir("/log/exception")
-    uos.mkdir("/log/object")
-    uos.mkdir("/log/run")
+    for folder in logger.get("folders"):
+        uos.mkdir("/log/{}".format(folder))
 
     uos.mkdir("/program")
-    uos.mkdir("/program/turtle")
-    uos.mkdir("/program/named")
+    uos.mkdir("/program/{}".format(turtle.get("turtle_folder")))
+    uos.mkdir("/program/{}".format(turtle.get("named_folder")))
 
+
+def createBaseFiles():
     firmware = system.get("firmware")
+
     firmwareComment = "# μBot firmware {}.{}.{}\r\n\r\n".format(
         firmware[0], firmware[1], firmware[2]
     )
@@ -272,9 +275,8 @@ def setup():
                     "core = usys.modules.get('ubot_core')\r\n\r\n"))
         file.write(footerComment)
 
-    with open("/etc/datetime.py", "w") as file:
-        file.write("DT = {}".format(system.get("init_datetime")))
 
+def createLogs():
     with open("/log/datetime.txt", "w") as file:
         file.write("{}\r\n0000000000.txt\r\n\r\n".format(system.get("init_datetime")))
 
@@ -283,12 +285,43 @@ def setup():
             file.write("{}     \tFallback {} log initialised successfully.\r\n\r\n\r\n"
                        .format(system.get("init_datetime"), folder))
 
+
+def createConfigFoldersAndFiles():
+    with open("/etc/datetime.py", "w") as file:
+        file.write("DT = {}".format(system.get("init_datetime")))
+
     for moduleName, module in configModules.items():
         uos.mkdir("/etc/{}".format(moduleName))
+
         for attrName, attrValue in module.items():
             with open("/etc/{}/{}.txt".format(moduleName, attrName), "w") as file:
                 file.write("{}\r\n".format(ujson.dumps(attrValue)))
             with open("/etc/{}/{}.def".format(moduleName, attrName), "w") as file:
                 file.write("{}\r\n".format(ujson.dumps(attrValue)))
+
+
+def deleteDictionaries() -> None:
+    global configModules
+
+    for _, module in configModules.items():
+        module.clear()
+
+    configModules.clear()
+    del configModules
+
+
+def setup():
+    check_bootsec()
+    setWifi()
+
+    uos.VfsLfs2.mkfs(bdev)
+    vfs = uos.VfsLfs2(bdev)
+    uos.mount(vfs, "/")
+
+    createFolders()
+    createBaseFiles()
+    createLogs()
+    createConfigFoldersAndFiles()
+    deleteDictionaries()
 
     return vfs
