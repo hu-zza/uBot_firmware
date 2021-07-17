@@ -83,8 +83,10 @@ def set(module, attribute, value):
 
 def datetime(newDateTime = None):
     if newDateTime is not None:
+        logger.append("Set new datetime: {}".format(newDateTime))
         dateTime.datetime(newDateTime)
         saveDateTime()
+        logger.append("The new datetime: {}".format(dateTime.datetime()))
 
     return dateTime.datetime()
 

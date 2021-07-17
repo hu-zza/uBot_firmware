@@ -222,6 +222,7 @@ INVALID_PATH = Path("/")
 _invalidatePath(INVALID_PATH)
 ROOT    = Path("/")
 ETC     = Path("/etc")
+FUTURE  = Path("/future")
 HOME    = Path("/home")
 LOG     = Path("/log")
 PROGRAM = Path("/program")
@@ -594,8 +595,12 @@ def delete(path: Path) -> bool:
 ################################
 ## Other data related helpers
 
-def dumpException(exception):
+def dumpException(exception: Exception) -> str:
     return "{} {}".format(exception.__class__, exception.args)
+
+
+def isStringWithContent(string: str) -> bool:
+    return isinstance(string, str) and string != ""
 
 
 def extractIntTupleFromString(tupleString: str) -> tuple:

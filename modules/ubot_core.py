@@ -38,6 +38,7 @@ import ubot_logger as logger
 import ubot_data   as data
 import ubot_buzzer as buzzer
 import ubot_future as future
+import ubot_turtle as turtle
 
 buzzer.keyBeep("started")
 
@@ -75,7 +76,7 @@ def printRuns(nr: int = -1) -> None:
     logger.printLog("run", powerOns if nr < 0 else nr)
 
 
-def executeCommand(command):
+def executeCommand(command: str) -> bool:
     if command[:5] == "PRESS":                                      # PRESS_1_1_16_64
         pressedList = data.extractIntTupleFromString(command[5:])
         for pressed in pressedList:
@@ -129,21 +130,15 @@ def executeCommand(command):
 
     elif command[:4] == "TIME":                                     # TIME_2020-02-02_20:20
         inp = data.extractIntTupleFromString(command[4:])
-        config.datetime((inp[0], inp[1], inp[2], 0, inp[3], inp[4], 0 if len(inp) < 6 else inp[5], 0))
+        if 2 < len(inp):
+            inp = list(inp)
+            inp.insert(3, 0)   # Insert week day nr at position 3, it's calculated by MicroPython either way, so 0 is OK
+            inp += [0] * (8 - len(inp))
+            config.datetime(inp)
 
     else:
         return False
     return True
-
-
-def doProgramAction(folder, title, action):
-    action = action.lower()
-    try:
-        if action == "run":
-            return turtle.runProgram(folder, title), {}
-    except Exception as e:
-        logger.append(e)
-    return False, {}
 
 
 
@@ -238,7 +233,7 @@ def _jsonExecuteProgramAction() -> tuple:
     action = _jsonRequest.get("path").args[0]
     job = "Request: Executing action '{}' of program '{}' ({}).".format(action, title, folder)
 
-    result = doProgramAction(folder, title, action)
+    result = turtle.doProgramAction(folder, title, action)
 
     if result[0]:
         return "200 OK", job, result[1]

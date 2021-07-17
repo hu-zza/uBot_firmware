@@ -164,7 +164,7 @@ def createFolder(folder: str) -> bool:
     return data.createFolder(getPathOf("program", folder))
 
 
-def getProgramListOf(folder):
+def getProgramListOf(folder: str) -> tuple:
     return data.getFileNameListOf("program", folder, "txt")
 
 
@@ -179,6 +179,10 @@ def getProgramCode(folder: str, title: str) -> str:
 
 def getPathOf(folder: str, title = "") -> data.Path:
     return data.createPathOf("program", folder, normalizeProgramTitle(title))
+
+
+def getLastTurtleProgramTitle() -> str:
+    return sorted(getProgramListOf(_turtleFolder))[-1]
 
 
 def normalizeProgramTitle(title: str) -> str:
@@ -225,17 +229,20 @@ def loadProgramFromString(turtleCode):
 
 
 def saveLoadedProgram(folder = "", title = ""):
-    return saveProgram(_namedFolder if folder == "" else folder, title, getProgramArray())
+    return saveProgram(folder if data.isStringWithContent(folder) else _namedFolder, title, getProgramArray())
 
 
 def saveProgram(folder: str = "", title: str = "", program: str = "") -> data.Path:
     global _savedCount
 
-    folder = _namedFolder if folder == "" else folder.lower()
-    path   = _generateFullPathForAutoSave() if title == "" else data.createPathOf("program", folder, title)
+    folder = folder if data.isStringWithContent(folder) else _namedFolder
+
+    isTitleValid = data.isStringWithContent(title)
+    path = data.createPathOf("program", folder, title) if isTitleValid else _generateFullPathForAutoSave()
+
     result = data.saveFile(path, program, True)
 
-    if not result and title == "":
+    if not result and not isTitleValid:
         _savedCount -= 1
 
     return path if result else data.INVALID_PATH
@@ -245,6 +252,42 @@ def _generateFullPathForAutoSave() -> data.Path:
     global _savedCount
     _savedCount += 1
     return data.createPathOf("program", _turtleFolder, "{:010d}_{:03d}.txt".format(_powerOns, _savedCount))
+
+
+def deleteProgram(folder: str = "", title: str = "") -> bool:
+    pass
+
+
+def _unavailableProgramAction(*args) -> bool:
+    return False
+
+
+def _unavailableProgramResultSupplier(*args) -> dict:
+    return {}
+
+
+def doProgramAction(folder: str = "", title: str = "", action: str = "run") -> tuple:
+    folder = folder if data.isStringWithContent(folder) else _turtleFolder
+    title = title if data.isStringWithContent(title) else getLastTurtleProgramTitle()
+    action = action.lower()
+
+    try:
+        return _programActions.setdefault(action, _unavailableProgramAction)(folder, title), \
+               _programResultSupplier.setdefault(action, _unavailableProgramResultSupplier)(folder, title)
+    except Exception as e:
+        logger.append(e)
+    return False, {}
+
+
+_programActions = {
+    "run"   : runProgram,
+    "load"  : loadProgram,
+    "delete": deleteProgram
+}
+
+_programResultSupplier = {
+
+}
 
 
 def getCommandArray():

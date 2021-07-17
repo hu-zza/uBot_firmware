@@ -35,6 +35,7 @@ from machine import Timer
 
 import ubot_config    as config
 import ubot_logger    as logger
+import ubot_data      as data
 import ubot_webserver as server
 import ubot_motor     as motor
 
@@ -97,6 +98,14 @@ def getJsonTicket(ticketNr: int, job: str = "") -> tuple:
 
 def normalizeFutureTitle(title) -> str:
     return "{:010d}.txt".format(int(title)) if isinstance(title, int) or title.isdigit() else title
+
+
+def getFutureFolders():
+    return data.getFoldersOf(data.FUTURE)
+
+
+def getFutureTicketsOf(folder: str) -> tuple:
+    return data.getFileNameListOf("future", folder, "txt")
 
 
 def _work(timer) -> None:
