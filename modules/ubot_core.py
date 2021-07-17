@@ -265,6 +265,47 @@ def _jsonGetFileByJsonLink() -> tuple:
     return data.createRestReply(_jsonRequest.get("path"))
 
 
+def _jsonGetCommandExecutionStarting() -> tuple:
+    return future.getJsonTicket(future.add(_jsonRequest, _jsonExecuteCommand),
+                                "Request: Starting command list ({}) execution.".format(
+                                    len(_jsonRequest.get("path").args[1:])))
+
+
+def _jsonExecuteCommand() -> tuple:
+    commands = tuple(command.upper() for command in _jsonRequest.get("path").args[1:])
+    count = len(commands)
+    job = "Request: Executing command list ({}).".format(count)
+
+    if executeCommandList(commands):
+        return "200 OK", job, {
+            "name": "{} executed commands at {}.".format(count, config.datetime()),
+            "type": "command list",
+            "href": "http://{}/command/{}".format(config.get("ap", "ip"), "/".join(commands)),
+            "raw":  "",
+            "parent": {},
+            "children": [],
+            "value": {
+                "commands": commands
+            }
+        }
+
+    return "403 Forbidden", "{} Cause: Semantic error in the URL.".format(job), {}
+
+
+def _jsonGetQuickCommandStarting() -> tuple:
+    job = "Request: Starting command list execution quickly."
+
+    if future.add(_jsonRequest, _jsonExecuteQuickCommand, False) == -1:
+        return "202 Accepted", job, {}
+    else:
+        return "406 Not Acceptable", "{} Cause: Semantic error in the URL.".format(job), {}
+
+
+def _jsonExecuteQuickCommand() -> tuple:
+    executeCommandList(tuple(command.upper() for command in _jsonRequest.get("path").args[1:]))
+    return "", "", ""
+
+
 def _jsonGetProgramActionStarting() -> tuple:
     path = _jsonRequest.get("path")
     folder, title = path.array[1:3]
@@ -301,35 +342,9 @@ def _jsonExecuteProgramAction() -> tuple:
         return "403 Forbidden", "{} Cause: Semantic error in the URL.".format(job), {}
 
 
-def _jsonGetCommandExecutionStarting() -> tuple:
-    return future.getJsonTicket(future.add(_jsonRequest, _jsonExecuteCommand),
-                                "Request: Starting command list ({}) execution.".format(
-                                    len(_jsonRequest.get("path").args[1:])))
-
-
-def _jsonExecuteCommand() -> tuple:
-    commands = tuple(command.upper() for command in _jsonRequest.get("path").args[1:])
-    count = len(commands)
-    job = "Request: Executing command list ({}).".format(count)
-
-    if executeCommandList(commands):
-        return "200 OK", job, {
-            "name": "{} executed commands at {}.".format(count, config.datetime()),
-            "type": "command list",
-            "href": "http://{}/command/{}".format(config.get("ap", "ip"), "/".join(commands)),
-            "raw":  "",
-            "parent": {},
-            "children": [],
-            "value": {
-                "commands": commands
-            }
-        }
-
-    return "403 Forbidden", "{} Cause: Semantic error in the URL.".format(job), {}
-
-
 _actionFunctions = {
     "command" : _jsonGetCommandExecutionStarting,
+    "quick"   : _jsonGetQuickCommandStarting,
     "program" : _jsonGetProgramActionStarting,
     "raw"     : _jsonGetFileByJsonLink
 }

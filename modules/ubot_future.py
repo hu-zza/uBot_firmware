@@ -69,12 +69,16 @@ def isProcessing() -> bool:
     return _processing
 
 
-def add(request: dict, function) -> int:
+def add(request: dict, function, ticket: bool = True) -> int:
     global _ticketNr
     try:
-        _ticketNr += 1
-        _jobs.append((_ticketNr, request, function))
-        return _ticketNr
+        if ticket:
+            _ticketNr += 1
+            _jobs.append((_ticketNr, request, function))
+            return _ticketNr
+        else:
+            _jobs.append((0, request, function))
+            return 0
     except Exception as e:
         logger.append(e)
         return -1
@@ -116,7 +120,8 @@ def _work(timer) -> None:
             if _canWork():
                 _processing = True
                 if _canWork():
-                    _pollJob()
+                    while _jobs:
+                        _pollJob()
                 else:
                     _processing = False
     except Exception as e:
@@ -133,16 +138,20 @@ def _canWork() -> bool:
 
 
 def _pollJob() -> None:
-    ticketNr, request, function = _jobs.pop(0)
+    ticketNr,  request, function = _jobs.pop(0)
 
     _jsonSender(request.get("path"), request.get("body"), request.get("parsed"))
-    status, message, result = function()
 
-    try:
-        with open("{}{}".format(_writeFolder, normalizeFutureTitle(ticketNr)), "w") as file:
-            file.write("{}\r\n".format(status))
-            file.write("{}\r\n".format(message))
-            file.write("{}\r\n".format(ujson.dumps(result)))
-    except Exception as e:
-        logger.append(e)
-        logger.append(result)
+    if 0 == ticketNr:
+        function()
+    else:
+        status, message, result = function()
+
+        try:
+            with open("{}{}".format(_writeFolder, normalizeFutureTitle(ticketNr)), "w") as file:
+                file.write("{}\r\n".format(status))
+                file.write("{}\r\n".format(message))
+                file.write("{}\r\n".format(ujson.dumps(result)))
+        except Exception as e:
+            logger.append(e)
+            logger.append(result)

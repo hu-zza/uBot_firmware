@@ -3,8 +3,8 @@ import network, ujson, uos
 from flashbdev import bdev
 from ubinascii import hexlify
 
-firmware = (0, 1, 180)
-initDatetime = (2021, 7, 17, 0, 23, 20, 0, 0)
+firmware = (0, 1, 181)
+initDatetime = (2021, 7, 18, 0, 0, 15, 0, 0)
 
 AP  = network.WLAN(network.AP_IF)
 mac = hexlify(AP.config("mac"), ":").decode()
@@ -64,7 +64,8 @@ data = {
                        "/etc/turtle/", "/etc/uart/", "/etc/web_repl/", "/etc/web_server"),
     "write_rights"  : ("/home/", "/program/"),
     "delete_rights" : ("/future/", "/home/", "/log/exception/", "/log/event/", "/log/object/", "/log/run/", "/program/"),
-    "has_action"    : ("/etc/", "/program/")
+    "has_action"    : ("/etc/", "/program/"),
+    "ticket_level"  : 2
 }
 
 feedback = {
@@ -75,7 +76,7 @@ feedback = {
 future = {
     "name"          : "Async manager",
     "active"        : True,     # Should be always active
-    "period"        : 1000
+    "period"        : 300
 }
 
 i2c = {
@@ -153,7 +154,7 @@ web_server = {
     "name"          : "Web server",
     "active"        : True,
     "period"        : 200,
-    "timeout"       : 50,
+    "timeout"       : 100,
     "html_enabled"  : True,
     "json_enabled"  : True,
     "log_event"     : True,

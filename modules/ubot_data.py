@@ -656,7 +656,7 @@ def preparePathIfSpecial(path: Path) -> None:
 
         if 1 < size:
             if array[0] == "command":
-                args = ["command"] + array[1:]
+                args = ["command" if _ticketLevel < len(array) else "quick"] + array[1:]
                 del array[1:]
                 size = 1
 
@@ -797,3 +797,5 @@ import ubot_turtle as turtle
 
 _hostLink = "http://{}".format(config.get("ap", "ip"))
 _rawLink  = "{}/raw".format(_hostLink)
+
+_ticketLevel = config.get("data", "ticket_level")
