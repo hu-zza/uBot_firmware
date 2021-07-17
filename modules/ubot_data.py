@@ -649,15 +649,16 @@ def preparePathIfSpecial(path: Path) -> None:
     args  = list(path.args)
 
     if 0 < size:
+        if array[0] == "raw":                                             # TODO: real raw instead of the alias behavior
+            args = ["raw"]
+            del array[0]
+            size -= 1
+
         if 1 < size:
             if array[0] == "command":
                 args = ["command"] + array[1:]
                 del array[1:]
                 size = 1
-            elif array[0] == "raw":                                       # TODO: real raw instead of the alias behavior
-                args = ["raw"]
-                del array[0]
-                size -= 1
 
             if 2 < size:
                 if array[0]  == "program":
