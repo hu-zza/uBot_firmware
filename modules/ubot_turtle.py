@@ -178,18 +178,25 @@ def getProgramCode(folder: str, title: str) -> str:
 
 
 def getPathOf(folder: str, title = "") -> data.Path:
-    return data.createPathOf("program", folder, normalizeProgramTitle(title))
+    return data.createPathOf("program", folder, normalizeProgramTitleFromFolder(title, folder))
 
 
 def getLastTurtleProgramTitle() -> str:
     return sorted(getProgramListOf(_turtleFolder))[-1]
 
 
-def normalizeProgramTitle(title: str) -> str:
-    turtleTuple = data.extractIntTupleFromString(title)
+def normalizeProgramTitleFromFolder(title: str, folder: str) -> str:
+    return normalizeProgramTitle(title, folder == _turtleFolder)
 
-    if len(turtleTuple) == 2:
-        return "{:010d}_{:03d}.txt".format(turtleTuple[0], turtleTuple[1])
+
+def normalizeProgramTitle(title: str, isTurtle: bool = True) -> str:
+    turtleTuple = data.extractIntTupleFromString(title, 2) if isTurtle else ()
+
+    if 0 < len(turtleTuple):
+        if 1 == len(turtleTuple):
+            return "{:010d}_{:03d}.txt".format(_powerOns, turtleTuple[0])
+        else:
+            return "{:010d}_{:03d}.txt".format(turtleTuple[0], turtleTuple[1])
     else:
         return title if title.endswith(".txt") else "{}.txt".format(title)
 

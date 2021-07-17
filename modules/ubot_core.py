@@ -38,7 +38,6 @@ import ubot_logger as logger
 import ubot_data   as data
 import ubot_buzzer as buzzer
 import ubot_future as future
-import ubot_turtle as turtle
 
 buzzer.keyBeep("started")
 
@@ -46,7 +45,7 @@ if config.get("feedback", "active"):
     import ubot_feedback  as feedback
 
 if config.get("motor", "active"):
-    import ubot_motor as motor
+    import ubot_motor as mot
 
 if config.get("turtle", "active"):
     import ubot_turtle as turtle
@@ -76,70 +75,122 @@ def printRuns(nr: int = -1) -> None:
     logger.printLog("run", powerOns if nr < 0 else nr)
 
 
+def executeCommandList(commands: tuple) -> tuple:
+    counter = 0
+    try:
+        for command in commands:
+            if executeCommand(command):
+                counter += 1
+            else:
+                break
+    except Exception as e:
+        logger.append(e)
+
+    return counter == len(commands), counter
+
+
+_commandsByLength = {
+    5: {"DRIVE", "MOTOR", "PRESS", "SLEEP"},
+    4: {"BEEP", "MIDI", "REST", "STEP", "TIME"}
+}
+
 def executeCommand(command: str) -> bool:
-    if command[:5] == "PRESS":                                      # PRESS_1_1_16_64
-        pressedList = data.extractIntTupleFromString(command[5:])
-        for pressed in pressedList:
-            turtle.press(pressed)
+    try:
+        length = 5
+        while 0 < length:
+            if command[:length] in _commandsByLength.get(length):
+                _commandFunctions.get(command[:length])(command[length:])
+                return True
 
-    elif command[:4] == "STEP":                                     # STEP_FFR
-        commands = data.extractCharTupleFromString(command[4:], turtle.getValidMoveChars())
-        for char in commands:
-            turtle.move(char)
+            length -= 1
 
-    elif command[:5] == "DRIVE":                                    # DRIVE_FFR
-        breath = motor.getBreath()
-        motor.setBreath(0)
-        commands = data.extractCharTupleFromString(command[5:], turtle.getValidMoveChars())
-        turtle.skipSignal(len(commands), 1)
-        for char in commands:
-            turtle.move(char)
-        motor.setBreath(breath)
-
-    elif command[:4] == "BEEP":                                     # BEEP_440_100_100_1
-        beepArray = data.extractIntTupleFromString(command[4:])
-        size = len(beepArray)
-        buzzer.beep(float(beepArray[0]) if size > 0 else 440.0,
-                    int(beepArray[1]) if size > 1 else 100,
-                    int(beepArray[2]) if size > 2 else 100,
-                    int(beepArray[3]) if size > 3 else 1)
-
-    elif command[:4] == "MIDI":                                     # MIDI_69_100_100_1
-        beepArray = data.extractIntTupleFromString(command[4:])
-        size = len(beepArray)
-        buzzer.midiBeep(int(beepArray[0]) if size > 0 else 69,
-                        int(beepArray[1]) if size > 1 else 100,
-                        int(beepArray[2]) if size > 2 else 100,
-                        int(beepArray[3]) if size > 3 else 1)
-
-    elif command[:4] == "REST":                                     # REST_1000
-        inp = data.extractIntTupleFromString(command[4:])
-        buzzer.rest(inp[0] if inp != () else 1000)
-
-    elif command[:3] == "MOT":                                      # MOT_1_1000
-        inp = data.extractIntTupleFromString(command[3:])
-        length = len(inp)
-        direction = inp[0] if 0 < length else 1
-        length = inp[1] if 1 < length else 1000
-
-        motor.move(direction, length)
-
-    elif command[:5] == "SLEEP":                                    # SLEEP_1000
-        inp = data.extractIntTupleFromString(command[5:])
-        sleep_ms(inp[0] if inp != () else 1000)
-
-    elif command[:4] == "TIME":                                     # TIME_2020-02-02_20:20
-        inp = data.extractIntTupleFromString(command[4:])
-        if 2 < len(inp):
-            inp = list(inp)
-            inp.insert(3, 0)   # Insert week day nr at position 3, it's calculated by MicroPython either way, so 0 is OK
-            inp += [0] * (8 - len(inp))
-            config.datetime(inp)
-
-    else:
         return False
-    return True
+    except Exception as e:
+        logger.append(e)
+        return False
 
+
+def beep(args: str):    # BEEP_440_100_100_1
+    beepArray = data.extractIntTupleFromString(args, 4)
+    size = len(beepArray)
+    buzzer.beep(float(beepArray[0]) if size > 0 else 440.0,
+                beepArray[1] if size > 1 else 100,
+                beepArray[2] if size > 2 else 100,
+                beepArray[3] if size > 3 else 1)
+
+
+def drive(args: str):   # DRIVE_FFR
+    breath = mot.getBreath()
+    mot.setBreath(0)
+    commands = data.extractCharTupleFromString(args, turtle.getValidMoveChars())
+    turtle.skipSignal(len(commands), 1)
+    for char in commands:
+        turtle.move(char)
+    mot.setBreath(breath)
+
+
+def midi(args: str):    # MIDI_69_100_100_1
+    beepArray = data.extractIntTupleFromString(args, 4)
+    size = len(beepArray)
+    buzzer.midiBeep(beepArray[0] if size > 0 else 69,
+                    beepArray[1] if size > 1 else 100,
+                    beepArray[2] if size > 2 else 100,
+                    beepArray[3] if size > 3 else 1)
+
+
+def motor(args: str):  # MOT_1_1000
+    inp = data.extractIntTupleFromString(args, 2)
+    length = len(inp)
+    direction = inp[0] if 0 < length else 1
+    length = inp[1] if 1 < length else 1000
+
+    mot.move(direction, length)
+
+
+def press(args: str):   # PRESS_1_1_16_64
+    pressedList = data.extractIntTupleFromString(args)
+    for pressed in pressedList:
+        turtle.press(pressed)
+
+
+def rest(args: str):    # REST_1000
+    inp = data.extractIntTupleFromString(args, 1)
+    buzzer.rest(inp[0] if inp != () else 1000)
+
+
+def sleep(args: str):   # SLEEP_1000
+    inp = data.extractIntTupleFromString(args, 1)
+    sleep_ms(inp[0] if inp != () else 1000)
+
+
+def step(args: str):    # STEP_FFR
+    commands = data.extractCharTupleFromString(args, turtle.getValidMoveChars())
+    for char in commands:
+        turtle.move(char)
+
+
+def time(args: str):    # TIME_2020-02-02_20:20:20:200
+    inp = data.extractIntTupleFromString(args, 7)
+    if 2 < len(inp):
+        inp = list(inp)
+        inp.insert(3, 0)   # Insert week day nr at position 3, it's calculated by MicroPython either way, so 0 is OK
+        inp += [0] * (8 - len(inp))
+        config.datetime(inp)
+    else:
+        config.datetime()
+
+
+_commandFunctions = {
+    "BEEP"  : beep,     # BEEP_440_100_100_1
+    "DRIVE" : drive,    # DRIVE_FFR
+    "MIDI"  : midi,     # MIDI_69_100_100_1
+    "MOTOR" : motor,    # MOT_1_1000
+    "PRESS" : press,    # PRESS_1_1_16_64
+    "REST"  : rest,     # REST_1000
+    "SLEEP" : sleep,    # SLEEP_1000
+    "STEP"  : step,     # STEP_FFR
+    "TIME"  : time      # TIME_2020-02-02_20:20:20:200
+}
 
 
 ################################
@@ -197,30 +248,28 @@ def _jsonReplyWithFileInstance(path: data.Path, job: str) -> tuple:
 
 
 def _executeJsonGet() -> tuple:                                                              ########## JSON GET HANDLER
-    pathSize = _jsonRequest.get("path").size
+    path = _jsonRequest.get("path")
+    args = path.args
 
-    if pathSize == 0:
-        return _jsonGetFileByJsonLink()
+    if 0 < len(path.args):
+        function = _actionFunctions.get(args[0])
+        if function is not None:
+            return _actionFunctions.get(args[0])()
     else:
-        category = _jsonRequest.get("path").array[0]
-
-        if category == "command":
-            return _jsonGetCommandExecution()
-        elif pathSize < 5:
-
-            if category == "program" and "run" in _jsonRequest.get("path").args:
-                return _jsonGetProgramActionStarting()
-            else:
-                return _jsonGetFileByJsonLink()
+        return _jsonGetFileByJsonLink()
 
     return "403 Forbidden", "Request: REST GET. Cause: The format of the URL is invalid.", {}
+
+
+def _jsonGetFileByJsonLink() -> tuple:
+    return data.createRestReply(_jsonRequest.get("path"))
 
 
 def _jsonGetProgramActionStarting() -> tuple:
     path = _jsonRequest.get("path")
     folder, title = path.array[1:3]
 
-    job = "Request: Starting action '{}' of program '{}' ({}).".format(path.args[0], title, folder)
+    job = "Request: Starting action '{}' of program '{}' ({}).".format(path.args[1], title, folder)
 
     if turtle.doesProgramExist(folder, title):
         return future.getJsonTicket(future.add(_jsonRequest, _jsonExecuteProgramAction), job)
@@ -229,32 +278,61 @@ def _jsonGetProgramActionStarting() -> tuple:
 
 
 def _jsonExecuteProgramAction() -> tuple:
-    folder, title = _jsonRequest.get("path").array[1:3]
-    action = _jsonRequest.get("path").args[0]
+    path = _jsonRequest.get("path")
+    folder, title = path.array[1:3]
+    action = path.args[1]
+
     job = "Request: Executing action '{}' of program '{}' ({}).".format(action, title, folder)
 
     result = turtle.doProgramAction(folder, title, action)
 
     if result[0]:
-        return "200 OK", job, result[1]
+        return "200 OK", job, {
+            "name": "Executed action '{}' of program '{}' ({}).".format(action, title, folder),
+            "type": "program action",
+            "href": "http://{}/program/{}".format(config.get("ap", "ip"), "/".join((folder, title, action))),
+            "raw":  "",
+            "parent": {},
+            "children": [],
+            "value": result[1]
+        }
+
     else:
         return "403 Forbidden", "{} Cause: Semantic error in the URL.".format(job), {}
 
 
-def _jsonGetFileByJsonLink() -> tuple:
-    return data.createRestReply(_jsonRequest.get("path"))
+def _jsonGetCommandExecutionStarting() -> tuple:
+    return future.getJsonTicket(future.add(_jsonRequest, _jsonExecuteCommand),
+                                "Request: Starting command list ({}) execution.".format(
+                                    len(_jsonRequest.get("path").args[1:])))
 
 
-def _jsonGetCommandExecution() -> tuple:
-    command = _jsonRequest.get("path").args[0].upper()
-    job = "Request: Starting command '{}' execution.".format(command)
-    try:
-        if executeCommand(command):
-            return "200 OK", job, {"name": command, "type": "command", "result": "started",
-                                   "href": "http://{}/command/{}".format(config.get("ap", "ip"), command)}
-    except Exception as e:
-        logger.append(e)
+def _jsonExecuteCommand() -> tuple:
+    commands = tuple(command.upper() for command in _jsonRequest.get("path").args[1:])
+    count = len(commands)
+    job = "Request: Executing command list ({}).".format(count)
+
+    if executeCommandList(commands):
+        return "200 OK", job, {
+            "name": "{} executed commands at {}.".format(count, config.datetime()),
+            "type": "command list",
+            "href": "http://{}/command/{}".format(config.get("ap", "ip"), "/".join(commands)),
+            "raw":  "",
+            "parent": {},
+            "children": [],
+            "value": {
+                "commands": commands
+            }
+        }
+
     return "403 Forbidden", "{} Cause: Semantic error in the URL.".format(job), {}
+
+
+_actionFunctions = {
+    "command" : _jsonGetCommandExecutionStarting,
+    "program" : _jsonGetProgramActionStarting,
+    "raw"     : _jsonGetFileByJsonLink
+}
 
 
 
@@ -490,7 +568,7 @@ if not config.get("i2c", "active"):
 
 
 if config.get("motor", "active"):
-    motor.config(
+    mot.config(
         (
             (0, 0) if config.get("uart", "active") else (1, 3), # Right motor - T0
             (4, 5)                                              # Left motor  - T1
@@ -499,12 +577,12 @@ if config.get("motor", "active"):
             (config.get("motor", "t0_period"),       config.get("motor", "t0_duration")),
             (config.get("motor", "t1_frequency"),    config.get("motor", "t1_duty")),
             (config.get("motor", "t1_factor"),       config.get("motor", "t1_min_duty"), config.get("motor", "t1_max_duty")),
-            config.get("motor", "breath_length")
+             config.get("motor", "breath_length")
         )
     )
 
 if config.get("turtle", "active"):
-    motor.setBreath(config.get("turtle", "breath_length"))
+    mot.setBreath(config.get("turtle", "breath_length"))
 
 ###########
 ## AP

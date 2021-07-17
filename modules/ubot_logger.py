@@ -88,7 +88,7 @@ def getPathOf(category: str, title = "") -> data.Path:
 
 
 def normalizeLogTitle(title) -> str:
-    return "{:010d}.txt".format(int(title)) if isinstance(title, int) or title.isdigit() else title
+    return "{:010d}.txt".format(data.extractIntTupleFromString(title, 1)[0])
 
 
 ################################

@@ -97,7 +97,7 @@ def getJsonTicket(ticketNr: int, job: str = "") -> tuple:
 
 
 def normalizeFutureTitle(title) -> str:
-    return "{:010d}.txt".format(int(title)) if isinstance(title, int) or title.isdigit() else title
+    return "{:010d}.txt".format(data.extractIntTupleFromString(title, 1)[0])
 
 
 def getFutureFolders():
@@ -136,10 +136,12 @@ def _pollJob() -> None:
     ticketNr, request, function = _jobs.pop(0)
 
     _jsonSender(request.get("path"), request.get("body"), request.get("parsed"))
-    _, _, result = function()
+    status, message, result = function()
 
     try:
         with open("{}{}".format(_writeFolder, normalizeFutureTitle(ticketNr)), "w") as file:
+            file.write("{}\r\n".format(status))
+            file.write("{}\r\n".format(message))
             file.write("{}\r\n".format(ujson.dumps(result)))
     except Exception as e:
         logger.append(e)

@@ -603,10 +603,11 @@ def isStringWithContent(string: str) -> bool:
     return isinstance(string, str) and string != ""
 
 
-def extractIntTupleFromString(tupleString: str) -> tuple:
-    result = []
-    current  = 0
-    unsaved  = False
+def extractIntTupleFromString(tupleString: str, limit: int = -1) -> tuple:
+    result  = []
+    current = 0
+    unsaved = False
+    tupleString = str(tupleString)
 
     for char in tupleString:
         if char.isdigit():
@@ -617,6 +618,8 @@ def extractIntTupleFromString(tupleString: str) -> tuple:
             result.append(current)
             current = 0
             unsaved = False
+            if len(result) == limit:
+                break
 
     if unsaved:
         result.append(current)
@@ -624,8 +627,17 @@ def extractIntTupleFromString(tupleString: str) -> tuple:
     return tuple(result)
 
 
-def extractCharTupleFromString(tupleString: str, enabledCharsSet: set) -> tuple:
-    return tuple(char for char in tupleString if char in enabledCharsSet)
+def extractCharTupleFromString(tupleString: str, enabledCharsSet: set, limit: int = -1) -> tuple:
+    result = []
+    tupleString = str(tupleString)
+
+    for char in tupleString:
+        if char in enabledCharsSet:
+            result.append(char)
+            if len(result) == limit:
+                break
+
+    return tuple(result)
 
 
 ################################
@@ -637,35 +649,32 @@ def preparePathIfSpecial(path: Path) -> None:
     args  = list(path.args)
 
     if 0 < size:
-        if array[0] == "raw":                                             # TODO: real raw instead of the alias behavior
-            args += ["raw"]
-            del array[0]
-            size -= 1
+        if 1 < size:
+            if array[0] == "command":
+                args = ["command"] + array[1:]
+                del array[1:]
+                size = 1
+            elif array[0] == "raw":                                       # TODO: real raw instead of the alias behavior
+                args = ["raw"]
+                del array[0]
+                size -= 1
 
-        if size == 0:
-            path.path = "/"
-            path.size = 0
-        else:
-            if 1 < size:
-                if array[0] == "command":
-                    args = array[1:]
-                    del array[1:]
-                elif 2 < size:
-                    if array[0]  == "program":
-                        array[2] = turtle.normalizeProgramTitle(array[2])
-                    elif array[0] == "log":
-                        array[2] = logger.normalizeLogTitle(array[2])
-                    elif not array[2].endswith(".txt"):
-                        array[2] = "{}.txt".format(array[2])
+            if 2 < size:
+                if array[0]  == "program":
+                    array[2] = turtle.normalizeProgramTitleFromFolder(array[2], array[1])
+                elif array[0] == "log":
+                    array[2] = logger.normalizeLogTitle(array[2])
+                elif not array[2].endswith(".txt"):
+                    array[2] = "{}.txt".format(array[2])
 
-                    args += array[3:]
+                if 3 < size:
+                    args = [array[0]] + array[3:]
                     del array[3:]
 
-            path.path  = "/{}".format("/".join(array))
-            path.array = tuple(array)
-            path.size  = len(array)
-            path.args  = tuple(args)
-
+        path.path  = "/{}".format("/".join(array))
+        path.array = tuple(array)
+        path.size  = len(array)
+        path.args  = tuple(args)
         refresh(path)
 
 

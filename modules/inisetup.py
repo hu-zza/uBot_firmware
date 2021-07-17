@@ -4,7 +4,7 @@ from flashbdev import bdev
 from ubinascii import hexlify
 
 firmware = (0, 1, 179)
-initDatetime = (2021, 7, 17, 0, 12, 10, 0, 0)
+initDatetime = (2021, 7, 17, 0, 21, 30, 0, 0)
 
 AP  = network.WLAN(network.AP_IF)
 mac = hexlify(AP.config("mac"), ":").decode()
@@ -75,7 +75,7 @@ feedback = {
 future = {
     "name"          : "Async manager",
     "active"        : True,     # Should be always active
-    "period"        : 2500
+    "period"        : 1000
 }
 
 i2c = {
@@ -152,8 +152,8 @@ web_repl = {
 web_server = {
     "name"          : "Web server",
     "active"        : True,
-    "period"        : 500,
-    "timeout"       : 100,
+    "period"        : 200,
+    "timeout"       : 50,
     "html_enabled"  : True,
     "json_enabled"  : True,
     "log_event"     : True,
