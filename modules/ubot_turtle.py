@@ -189,8 +189,8 @@ def normalizeProgramTitleFromFolder(title: str, folder: str) -> str:
     return normalizeProgramTitle(title, folder == _turtleFolder)
 
 
-def normalizeProgramTitle(title: str, isTurtle: bool = True) -> str:
-    turtleTuple = data.extractIntTupleFromString(title, 2) if isTurtle else ()
+def normalizeProgramTitle(title: object, isTurtle: bool = True) -> str:
+    turtleTuple = data.extractIntTuple(title, 2) if isTurtle else ()
 
     if 0 < len(turtleTuple):
         if 1 == len(turtleTuple):
@@ -198,7 +198,7 @@ def normalizeProgramTitle(title: str, isTurtle: bool = True) -> str:
         else:
             return "{:010d}_{:03d}.txt".format(turtleTuple[0], turtleTuple[1])
     else:
-        return title if title.endswith(".txt") else "{}.txt".format(title)
+        return title if isinstance(title, str) and title.endswith(".txt") else "{}.txt".format(title)
 
 
 def runProgram(folder, title):

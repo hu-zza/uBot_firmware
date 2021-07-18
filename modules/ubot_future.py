@@ -52,8 +52,9 @@ _ticketNr = 0
 _jobs = []
 
 _hostLink = "http://{}".format(config.get("ap", "ip"))
-_rawLink  = "{}/raw{}".format(_hostLink, _writeFolder)
-_hostLink = "{}{}".format(_hostLink, _writeFolder)
+_rawLink  = "{}/raw".format(_hostLink)
+_futureLink = "{}/future".format(_hostLink)
+_futureRawLink = "{}/future".format(_rawLink)
 
 
 def _unavailableJsonSender(*args) -> None:
@@ -70,39 +71,77 @@ def isProcessing() -> bool:
     return _processing
 
 
-def add(request: dict, function, ticket: bool = True) -> int:
+def add(request: dict, function) -> int:
     global _ticketNr
     try:
-        if _tickets or ticket:
+        if _tickets:
             _ticketNr += 1
-            _jobs.append((_ticketNr, request, function))
+            _jobs.append((_ticketNr, request.copy(), function))
             return _ticketNr
         else:
-            _jobs.append((0, request, function))
+            _jobs.append((0, request.copy(), function))
             return 0
     except Exception as e:
         logger.append(e)
         return -1
 
 
-def getJsonTicket(ticketNr: int, job: str = "") -> tuple:
-    if 0 < ticketNr:
-        name = normalizeFutureTitle(ticketNr)
+def createJsonTicket(folder: int, ticketNr: int, job: str = "") -> tuple:
+    if 0 <= ticketNr:
 
         return "202 Accepted", job, {
-            "name": name,
-            "type": "future",
-            "href": "{}{}".format(_hostLink, name[:name.rindex(".")]),
-            "raw":  "{}{}".format(_rawLink,  name),
+            "name": "Ticket [{}]".format(ticketNr),
+            "type": "future single ticket",
+            "href": "{}/ticket/{:010d}/{:010d}".format(_hostLink, folder, ticketNr),
+            "raw":  "",
             "parent": {},
             "children": [],
-            "value": {}}
+            "value": _createResultDictionary(folder, (ticketNr,))
+            }
     else:
         return "406 Not Acceptable", job, {}
 
 
+def createJsonBlockTicket(folder: int, ticketNrs: tuple, job: str = "") -> tuple:
+    minNr, maxNr = min(ticketNrs), max(ticketNrs)
+    if 0 <= maxNr:
+        return "202 Accepted", job, {
+            "name": "Block ticket [{} - {}]".format(minNr, maxNr),
+            "type": "future block ticket",
+            "href": "{}/ticket/{:010d}/{:010d}/{:010d}".format(_hostLink, folder, minNr, maxNr),
+            "raw":  "",
+            "parent": {},
+            "children": [],
+            "value": _createResultDictionary(folder, ticketNrs)}
+    else:
+        return "406 Not Acceptable", job, {}
+
+
+def _createResultDictionary(folder: int, ticketNrs: tuple) -> dict:
+
+    files = [(ticketNr, "/{:010d}/{:010d}".format(folder, ticketNr)) for ticketNr in ticketNrs]
+
+    return {str(file[0]): {"name": file[1][file[1].rindex("/") + 1:],
+                           "type": "file",
+                           "href": "{}{}".format(_futureLink, file[1]),
+                           "raw":  "{}{}.txt".format(_futureRawLink, file[1]),
+                           "ready": doesFutureContentExist(folder, file[0])} for file in files}
+
+
+def doesFutureContentExist(folder: int, ticketNr: int) -> bool:
+    return data.doesExist("/future/{:010d}/{}".format(folder, normalizeFutureTitle(ticketNr)))
+
+
 def normalizeFutureTitle(title: object) -> str:
-    return "{:010d}.txt".format(data.extractIntTupleFromString(title, 1)[0])
+    if isinstance(title, int):
+        if title < 0:
+            return ""
+
+    ticketTuple = data.extractIntTuple(title, 1)
+    if ticketTuple != ():
+        return "{:010d}.txt".format(ticketTuple[0])
+    else:
+        return ""
 
 
 def getFutureFolders() -> tuple:

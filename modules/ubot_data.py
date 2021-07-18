@@ -37,7 +37,7 @@ import ubot_logger as logger
 class Path:
     """ Represents a path in filesystem. The main characteristic is initialized immediately after construction,
     but rights (create, write, delete, modify) are lazy. """
-    def __init__(self, path: str) -> None:
+    def __init__(self, path: str = "/", initialization: bool = True) -> None:
         self.path  = path
         self.array = ()
         self.args  = ()
@@ -51,7 +51,8 @@ class Path:
         self.isDeletable  = None
         self.isModifiable = None
 
-        _initializePath(self)
+        if initialization:
+            _initializePath(self)
 
 
     def __str__(self) -> str:
@@ -121,7 +122,7 @@ def _refreshFlags(path: Path) -> None:
 
     pathString = path.path
 
-    if _doesExist(pathString):
+    if doesExist(pathString):
         path.isExist = True
         typeInt = uos.stat(pathString)[0]
 
@@ -187,7 +188,7 @@ def _deleteRightsFlags(path: Path) -> None:
     path.isModifiable = None
 
 
-def _doesExist(path: str) -> bool:
+def doesExist(path: str) -> bool:
     try:
         uos.stat(path)
         return True
@@ -217,15 +218,36 @@ def _typeIntEqualsExpectedInt(path: str, expectedInt: int) -> bool:
     return uos.stat(path)[0] == expectedInt
 
 
+def __createPathFromSketch(path: str, array: tuple, args: tuple, size: int, description: str, isZZZ: tuple = None) -> Path:
+    path = Path(path, False)
+    path.array = array
+    path.args  = args
+    path.size  = size
+    path.description = description
 
-INVALID_PATH = Path("/")
+    if isZZZ is None:
+        isZZZ = (True, True, False, False, False, False, False)     # valid, existing folder
+
+    path.isExist  = isZZZ[0]
+    path.isFolder = isZZZ[1]
+    path.isFile   = isZZZ[2]
+    path.isTxt    = isZZZ[3]
+    path.isWritable   = isZZZ[4]
+    path.isDeletable  = isZZZ[5]
+    path.isModifiable = isZZZ[6]
+
+    return path
+
+
+INVALID_PATH = Path("", False)
 _invalidatePath(INVALID_PATH)
-ROOT    = Path("/")
-ETC     = Path("/etc")
-FUTURE  = Path("/future")
-HOME    = Path("/home")
-LOG     = Path("/log")
-PROGRAM = Path("/program")
+
+ROOT    = __createPathFromSketch("/",           (), (), 0, "root folder '/'")
+ETC     = __createPathFromSketch("/etc/",       (), (), 0, "folder 'etc' (/)")
+FUTURE  = __createPathFromSketch("/future/",    (), (), 0, "folder 'future' (/)")
+HOME    = __createPathFromSketch("/home/",      (), (), 0, "folder 'home' (/)")
+LOG     = __createPathFromSketch("/log/",       (), (), 0, "folder 'log' (/)")
+PROGRAM = __createPathFromSketch("/program/",   (), (), 0, "folder 'program' (/)")
 
 
 def createPathOf(*pathEnumeration: str) -> Path:
@@ -250,6 +272,12 @@ def createPath(rawPath: str) -> Path:
         logger.append(AttributeError("ubot_data#createPath\r\n'{}' does not represent a valid path.\r\n"
                                      .format(rawPath)))
         return INVALID_PATH
+
+
+def clonePath(path: Path) -> Path:
+    return __createPathFromSketch(
+        path.path, path.array, path.args, path.size, path.description,
+        (path.isExist, path.isFolder, path.isFile, path.isTxt, path.isWritable, path.isDeletable, path.isModifiable))
 
 
 def createFolderOf(*pathEnumeration: str) -> bool:
@@ -284,7 +312,7 @@ def createFoldersAlongPath(path: Path) -> None:
         for i in range(len(pathArray)):
             elements.append(pathArray[i])
             path = "/{}".format("/".join(elements))
-            if not _doesExist(path):
+            if not doesExist(path):
                 createFolderFrom(elements)
 
 
@@ -603,11 +631,14 @@ def isStringWithContent(string: str) -> bool:
     return isinstance(string, str) and string != ""
 
 
+def extractIntTuple(raw: object, limit: int = -1) -> tuple:
+    return extractIntTupleFromString(str(raw), limit)
+
+
 def extractIntTupleFromString(tupleString: str, limit: int = -1) -> tuple:
     result  = []
     current = 0
     unsaved = False
-    tupleString = str(tupleString)
 
     for char in tupleString:
         if char.isdigit():
@@ -627,9 +658,12 @@ def extractIntTupleFromString(tupleString: str, limit: int = -1) -> tuple:
     return tuple(result)
 
 
+def extractCharTuple(raw: object, enabledCharsSet: set, limit: int = -1) -> tuple:
+    return extractCharTupleFromString(str(raw), enabledCharsSet, limit)
+
+
 def extractCharTupleFromString(tupleString: str, enabledCharsSet: set, limit: int = -1) -> tuple:
     result = []
-    tupleString = str(tupleString)
 
     for char in tupleString:
         if char in enabledCharsSet:
@@ -656,7 +690,7 @@ def preparePathIfSpecial(path: Path) -> None:
 
         if 1 < size:
             if array[0] == "command":
-                args = ["command" if _ticketLevel < len(array) else "quick"] + array[1:]
+                args = ["command"] + array[1:]
                 del array[1:]
                 size = 1
 
@@ -797,5 +831,3 @@ import ubot_turtle as turtle
 
 _hostLink = "http://{}".format(config.get("ap", "ip"))
 _rawLink  = "{}/raw".format(_hostLink)
-
-_ticketLevel = config.get("data", "ticket_level")

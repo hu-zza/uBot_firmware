@@ -87,8 +87,8 @@ def getPathOf(category: str, title = "") -> data.Path:
     return data.createPathOf("log", category, normalizeLogTitle(title))
 
 
-def normalizeLogTitle(title) -> str:
-    return "{:010d}.txt".format(data.extractIntTupleFromString(title, 1)[0])
+def normalizeLogTitle(title: object) -> str:
+    return "{:010d}.txt".format(data.extractIntTuple(title, 1)[0])
 
 
 ################################

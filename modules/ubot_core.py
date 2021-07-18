@@ -58,6 +58,7 @@ if config.get("web_server", "active"):
 ## PUBLIC METHODS
 
 powerOns = config.get("system", "power_ons")
+ip = config.get("ap", "ip")
 
 def printEvents(nr: int = -1) -> None:
     logger.printLog("event", powerOns if nr < 0 else nr)
@@ -103,8 +104,9 @@ def executeCommand(command: str) -> bool:
                 return True
 
             length -= 1
+            if length < 4:
+                return False
 
-        return False
     except Exception as e:
         logger.append(e)
         return False
@@ -266,44 +268,49 @@ def _jsonGetFileByJsonLink() -> tuple:
 
 
 def _jsonGetCommandExecutionStarting() -> tuple:
-    return future.getJsonTicket(future.add(_jsonRequest, _jsonExecuteCommand),
-                                "Request: Starting command list ({}) execution.".format(
-                                    len(_jsonRequest.get("path").args[1:])))
+    basePath = _jsonRequest.get("path")
+    commands = tuple(command.upper() for command in basePath.args[1:])
+
+    request = {"path": data.INVALID_PATH,
+               "body": "",
+               "parsed": False}
+
+    tickets = []
+
+    for command in commands:
+        path = data.clonePath(basePath)
+        path.args = ("command", command)
+        request["path"] = path
+        tickets.append(future.add(request, _jsonExecuteCommand))
+
+    length = len(commands)
+    if length == 1:
+        return future.createJsonTicket(powerOns, tickets[0],
+                                       "Request: Starting command '{}' execution.".format(commands[0]))
+    elif 1 < length:
+        return future.createJsonBlockTicket(powerOns, tuple(tickets),
+                                            "Request: Starting command list ({}) execution.".format(len(tickets)))
+
+    return "403 Forbidden", "Request: Starting command execution. Cause: Semantic error in the URL.", {}
+
 
 
 def _jsonExecuteCommand() -> tuple:
-    commands = tuple(command.upper() for command in _jsonRequest.get("path").args[1:])
-    count = len(commands)
-    job = "Request: Executing command list ({}).".format(count)
+    command = _jsonRequest.get("path").args[1]
+    job = "Request: Executing command '{}'.".format(command)
 
-    if executeCommandList(commands):
+    if executeCommand(command):
         return "200 OK", job, {
-            "name": "{} executed commands at {}.".format(count, config.datetime()),
-            "type": "command list",
-            "href": "http://{}/command/{}".format(config.get("ap", "ip"), "/".join(commands)),
+            "name": command,
+            "type": "command",
+            "href": "http://{}/command/{}".format(ip, command),
             "raw":  "",
             "parent": {},
             "children": [],
-            "value": {
-                "commands": commands
-            }
+            "value": {}
         }
 
     return "403 Forbidden", "{} Cause: Semantic error in the URL.".format(job), {}
-
-
-def _jsonGetQuickCommandStarting() -> tuple:
-    job = "Request: Starting command list execution quickly."
-
-    if future.add(_jsonRequest, _jsonExecuteQuickCommand, False) == 0:
-        return "202 Accepted", job, {}
-    else:
-        return "406 Not Acceptable", "{} Cause: Semantic error in the URL.".format(job), {}
-
-
-def _jsonExecuteQuickCommand() -> tuple:
-    executeCommandList(tuple(command.upper() for command in _jsonRequest.get("path").args[1:]))
-    return "", "", ""
 
 
 def _jsonGetProgramActionStarting() -> tuple:
@@ -313,7 +320,7 @@ def _jsonGetProgramActionStarting() -> tuple:
     job = "Request: Starting action '{}' of program '{}' ({}).".format(path.args[1], title, folder)
 
     if turtle.doesProgramExist(folder, title):
-        return future.getJsonTicket(future.add(_jsonRequest, _jsonExecuteProgramAction), job)
+        return future.createJsonTicket(powerOns, future.add(_jsonRequest, _jsonExecuteProgramAction), job)
     else:
         return "404 Not Found", "{} Cause: No such program.".format(job), {}
 
@@ -331,7 +338,7 @@ def _jsonExecuteProgramAction() -> tuple:
         return "200 OK", job, {
             "name": "Executed action '{}' of program '{}' ({}).".format(action, title, folder),
             "type": "program action",
-            "href": "http://{}/program/{}".format(config.get("ap", "ip"), "/".join((folder, title, action))),
+            "href": "http://{}/program/{}".format(ip, "/".join((folder, title, action))),
             "raw":  "",
             "parent": {},
             "children": [],
@@ -344,7 +351,6 @@ def _jsonExecuteProgramAction() -> tuple:
 
 _actionFunctions = {
     "command" : _jsonGetCommandExecutionStarting,
-    "quick"   : _jsonGetQuickCommandStarting,
     "program" : _jsonGetProgramActionStarting,
     "raw"     : _jsonGetFileByJsonLink
 }
@@ -605,7 +611,7 @@ if config.get("turtle", "active"):
 _ap = network.WLAN(network.AP_IF)
 
 _ap.active(config.get("ap", "active"))
-_ap.ifconfig((config.get("ap", "ip"), config.get("ap", "netmask"), config.get("ap", "gateway"), config.get("ap", "dns")))
+_ap.ifconfig((ip, config.get("ap", "netmask"), config.get("ap", "gateway"), config.get("ap", "dns")))
 _ap.config(authmode = network.AUTH_WPA_WPA2_PSK)
 
 

@@ -3,8 +3,8 @@ import network, ujson, uos
 from flashbdev import bdev
 from ubinascii import hexlify
 
-firmware = (0, 1, 184)
-initDatetime = (2021, 7, 18, 0, 16, 55, 0, 0)
+firmware = (0, 1, 185)
+initDatetime = (2021, 7, 18, 0, 23, 15, 0, 0)
 
 AP  = network.WLAN(network.AP_IF)
 mac = hexlify(AP.config("mac"), ":").decode()
@@ -63,8 +63,7 @@ data = {
                        "/etc/turtle/", "/etc/uart/", "/etc/web_repl/", "/etc/web_server"),
     "write_rights"  : ("/home/", "/program/"),
     "delete_rights" : ("/future/", "/home/", "/log/exception/", "/log/event/", "/log/object/", "/log/run/", "/program/"),
-    "has_action"    : ("/etc/", "/program/"),
-    "ticket_level"  : 2
+    "has_action"    : ("/etc/", "/program/")
 }
 
 feedback = {
