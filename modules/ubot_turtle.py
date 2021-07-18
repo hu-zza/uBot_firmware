@@ -119,7 +119,7 @@ def getValidTurtleChars():
     return _turtleChars
 
 
-def checkButtons(timer = None):
+def checkButtons(timer: Timer = None):
     _addCommand(_getValidatedPressedButton())
 
 

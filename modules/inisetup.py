@@ -3,8 +3,8 @@ import network, ujson, uos
 from flashbdev import bdev
 from ubinascii import hexlify
 
-firmware = (0, 1, 183)
-initDatetime = (2021, 7, 18, 0, 11, 50, 0, 0)
+firmware = (0, 1, 184)
+initDatetime = (2021, 7, 18, 0, 16, 55, 0, 0)
 
 AP  = network.WLAN(network.AP_IF)
 mac = hexlify(AP.config("mac"), ":").decode()
@@ -75,7 +75,7 @@ feedback = {
 future = {
     "name"          : "Async manager",
     "active"        : True,     # Should be always active
-    "period"        : 2000,
+    "period"        : 1000,
     "tickets"       : True
 }
 
@@ -155,8 +155,12 @@ web_server = {
     "active"        : True,
     "period"        : 250,
     "timeout"       : 100,
+    "port"          : 80,
+    "backlog"       : 5,
     "html_enabled"  : True,
     "json_enabled"  : True,
+    "open_quick"    : True,
+    "open_command"  : True,
     "log_event"     : True,
     "log_request"   : True,
     "log_response"  : True,

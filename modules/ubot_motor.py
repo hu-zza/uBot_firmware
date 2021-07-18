@@ -274,7 +274,7 @@ def _processMove(move: tuple) -> None:
     )
 
 
-def _stopAndInitNext(timer) -> None:
+def _stopAndInitNext(timer: Timer) -> None:
     """
     Part of a recursive loop: _processMove(move) - _stopAndInitNext() - _processNext() - _processMove(move) ...
 
@@ -293,7 +293,7 @@ def _stopAndInitNext(timer) -> None:
         )
 
 
-def _processNext(timer = None) -> None:
+def _processNext(timer: Timer = None) -> None:
     """
     Part of a recursive loop: _processMove(move) - _stopAndInitNext() - _processNext() - _processMove(move) ...
 

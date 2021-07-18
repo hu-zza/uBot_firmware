@@ -45,8 +45,9 @@ import ubot_turtle   as turtle
 _connection = 0
 _connected  = False
 _headerSent = False
-_isPress = False
-_isDrive = False
+_isCommand  = False
+_quickPress = False
+_quickDrive = False
 
 _started = False
 _period  = config.get("web_server", "period")
@@ -55,8 +56,8 @@ _timer  = Timer(-1)
 _socket = usocket.socket(usocket.AF_INET, usocket.SOCK_STREAM)
 _poller = uselect.poll()
 
-_socket.bind(("", 80))
-_socket.listen(5)
+_socket.bind(("", config.get("web_server", "port")))
+_socket.listen(config.get("web_server", "backlog"))
 _poller.register(_socket, uselect.POLLIN)
 
 _incoming = ""
@@ -87,6 +88,10 @@ _response = {
 
 _denyHtml = not config.get("web_server", "html_enabled")
 _denyJson = not config.get("web_server", "json_enabled")
+
+_open_quick   = config.get("web_server", "open_quick")
+_open_command = config.get("web_server", "open_command")
+
 _log_event    = config.get("web_server", "log_event")
 _log_request  = config.get("web_server", "log_request")
 _log_response = config.get("web_server", "log_response")
@@ -102,17 +107,17 @@ _hasJsonBody       = {"POST", "PUT"}
 ################################
 ## CONFIG
 
-def _unavailableJsonSender(*args):
+def _unavailableJsonSender(*args) -> None:
     raise Exception("ubot_webserver#_unavailableJsonSender\r\nThe '_jsonSender' is unavailable, processing had stopped.")
 
 _jsonSender = _unavailableJsonSender
 
-def setJsonSender(method):
+def setJsonSender(method) -> None:
     global _jsonSender
     _jsonSender = method
 
 
-def setJsonCallback(method, jsonFunction):
+def setJsonCallback(method: str, jsonFunction) -> None:
     global _jsonFunctionMap
 
     if isAllowed(method, allowedJsonMethods):
@@ -122,7 +127,7 @@ def setJsonCallback(method, jsonFunction):
 ################################
 ## PUBLIC METHODS
 
-def start():
+def start() -> None:
     global _started
 
     if not _started and config.get("web_server", "active"):
@@ -130,7 +135,7 @@ def start():
         _started = True
 
 
-def stop():
+def stop() -> None:
     global _started
 
     if _started:
@@ -138,7 +143,7 @@ def stop():
         _started = False
 
 
-def isAllowed(methodName, methodSet = None):
+def isAllowed(methodName: str, methodSet: set = None) -> bool:
     if methodSet is None:
         methodSet = allowedMethods
 
@@ -152,7 +157,7 @@ def isProcessing() -> bool:
 ################################
 ## PRIVATE, HELPER METHODS
 
-def _logRequest():
+def _logRequest() -> None:
     if _log_event:
         logger.append("{}\t{}".format(_request.get("method"), _request.get("rawPath")))
 
@@ -160,7 +165,7 @@ def _logRequest():
         logger.append(_request)
 
 
-def _logResponse(response):
+def _logResponse(response: dict) -> None:
     if _log_event:
         metaResponse = response.get("meta").get("response")
         logger.append("{}\t{}".format(metaResponse.get("status").replace(" ", "\t", 1), metaResponse.get("message")))
@@ -169,7 +174,7 @@ def _logResponse(response):
         logger.append(response)
 
 
-def _poll(timer) -> None:
+def _poll(timer: Timer) -> None:
     global _connected
 
     try:
@@ -194,7 +199,7 @@ def _canWork() -> bool:
            not motor.isProcessing()
 
 
-def _clearOldRequestData():
+def _clearOldRequestData() -> None:
     global _request
 
     _request["method"] = ""
@@ -207,32 +212,34 @@ def _clearOldRequestData():
     _request["processing"] = "UNDEFINED"
 
 
-def _processIncoming(incoming):
-    global _incoming, _connection, _headerSent, _isPress, _isDrive
+def _processIncoming(incoming: object) -> None:
+    global _incoming, _connection, _headerSent, _isCommand, _quickPress, _quickDrive
     _incoming = incoming
 
     try:
         _readIncoming()
 
-        if _isPress:
-            _processPressQuickly()
-        elif _isDrive:
-            _processDriveQuickly()
+        if _quickPress:
+            _processWithPriorityMethod(_processPressQuickly)
+        elif _quickDrive:
+            _processWithPriorityMethod(_processDriveQuickly)
         else:
-            _createPath()
             _chooseProcessingMethod()
+            _createPath()
             _processBody()
+
     except Exception as e:
         logger.append(e)
         _reply("400 Bad Request", "The server could not understand the request due to invalid syntax.")
     finally:
         _headerSent = False
-        _isPress = False
-        _isDrive = False
+        _isCommand  = False
+        _quickPress = False
+        _quickDrive = False
         _connection.close()
 
 
-def _readIncoming():
+def _readIncoming() -> None:
     global _connection, _request
 
     _connection, _request["address"] = _incoming.accept()
@@ -247,12 +254,12 @@ def _readIncoming():
             if 0 < _request.get("contentLength"):
                 _request["body"] = str(_socketFile.read(_request["contentLength"]), "utf-8")
             break
-        
+
         _processHeaderLine(str(line, "utf-8"))
 
 
-def _processHeaderLine(line):
-    global _request, _isPress, _isDrive
+def _processHeaderLine(line: str) -> None:
+    global _request, _isCommand, _quickPress, _quickDrive
 
     line = line.lower()
 
@@ -264,8 +271,12 @@ def _processHeaderLine(line):
         rawPath = line[firstSpace + 1:pathEnd]
         _request["rawPath"] = rawPath
 
-        _isPress = len(rawPath) < 19 and rawPath.startswith("/command/press_")
-        _isDrive = len(rawPath) < 17 and rawPath.startswith("/command/drive_")
+        length = len(rawPath)
+        if 8 < length:
+            _isCommand = rawPath.startswith("/command/")
+            if length < 19:
+                _quickPress = rawPath.startswith("/command/press_")
+                _quickDrive = rawPath.startswith("/command/drive_") and length < 17
 
     if 0 <= line.find("content-length:"):
         lengthString = line[15:].strip()
@@ -276,6 +287,18 @@ def _processHeaderLine(line):
 
     if 0 <= line.find("accept:"):
         _request["accept"] = line[7:].strip()
+
+
+def _processWithPriorityMethod(function) -> None:
+    if _open_quick:
+        function()
+    else:
+        _chooseProcessingMethod()
+        if _request.get("processing") == "JSON":
+            function()
+        else:
+            _createPath()
+            _processBody()
 
 
 def _processPressQuickly() -> None:
@@ -297,12 +320,7 @@ def _processDriveQuickly() -> None:
     turtle.move(ord(_request.get("rawPath")[15]) - 32)  # Upperchar
 
 
-def _createPath() -> None:
-    _request["path"] = data.createPath(_request.get("rawPath"))
-    data.preparePathIfSpecial(_request.get("path"))
-
-
-def _chooseProcessingMethod():
+def _chooseProcessingMethod() -> None:
     global _request
 
     accept = _request.get("accept")
@@ -319,7 +337,12 @@ def _chooseProcessingMethod():
         _request["processing"] = "UNDEFINED"
 
 
-def _processBody():
+def _createPath() -> None:
+    _request["path"] = data.createPath(_request.get("rawPath"))
+    data.preparePathIfSpecial(_request.get("path"))
+
+
+def _processBody() -> None:
     _logRequest()
 
     if isAllowed(_request.get("method")):
@@ -334,26 +357,29 @@ def _processBody():
                "The following HTTP request methods are allowed: {}.".format(", ".join(allowedMethods)))
 
 
-def _unsupportedTypeHandler():
+def _unsupportedTypeHandler() -> None:
     _reply("415 Unsupported Media Type", "'Content-Type' / 'Accept' should be 'text/html' or 'application/json'.")
 
 
-def _processHtmlQuery():
+def _processHtmlQuery() -> None:
     if _denyHtml:
         result = _unavailableSupplierFunction()
         _reply(result[0], result[1])
     elif isAllowed(_request.get("method"), allowedHtmlMethods):
-        _htmlFunctionMap[_request.get("method")]()
+        if _isCommand and _open_command:
+            _processJsonQuery()
+        else:
+            _htmlFunctionMap[_request.get("method")]()
     else:
         _reply("405 Method Not Allowed", "The following HTTP request methods are allowed with text/html "
                                          "content type: {}.".format(", ".join(allowedHtmlMethods)))
 
 
-def _unavailableSupplierFunction(*args):
+def _unavailableSupplierFunction(*args) -> tuple:
     return "503 Service Unavailable", "This service is not yet available.", {}
 
 
-def _processHtmlGetQuery():
+def _processHtmlGetQuery() -> None:
     path = _request.get("rawPath")
 
     if path in template.title:
@@ -386,7 +412,7 @@ def _replyWithHtmlTemplate(path: str) -> None:
     _logResponse(_getBasicReplyMap("200 OK", "Request: Get the page '{}'.".format(path)))
 
 
-def _includeDebugDashboard():
+def _includeDebugDashboard() -> None:
     _connection.write("        <h3>Information panels</h3>\r\n")
     for panelTitle in sorted(template.debugPanels.keys()):
         _connection.write("            <a href='http://{0}{1}' target='_blank'>{2}</a><br>\r\n"
@@ -414,7 +440,7 @@ def _includeDebugDashboard():
 
 def _processHtmlFileQuery() -> None:
     path = _request.get("rawPath")
-    _reply("200 OK", template.files.get(path))
+    _reply("200 OK", "Request: Get the file '{}'.".format(path), template.files.get(path))
 
 
 def _replyWithHtmlRaw(path: data.Path) -> None:
@@ -428,7 +454,7 @@ def _replyWithHtmlRaw(path: data.Path) -> None:
     _logResponse(_getBasicReplyMap("200 OK", "Request: Get the file '{}'.".format(path)))
 
 
-def _sendHeader(status = "200 OK", length = None, allow = None):
+def _sendHeader(status: str = "200 OK", length: int = None, allow: bool = None) -> None:
     global _headerSent
 
     if not _headerSent:
@@ -458,11 +484,11 @@ def _sendHeader(status = "200 OK", length = None, allow = None):
         _headerSent = True
 
 
-def _processHtmlPostQuery():
+def _processHtmlPostQuery() -> None:
     _reply("501 Not Implemented", "This service is not implemented yet.")
 
 
-def _processJsonQuery():
+def _processJsonQuery() -> None:
     if _denyJson:
         result = _unavailableSupplierFunction()
         _reply(result[0], result[1], result[2])
@@ -474,13 +500,13 @@ def _processJsonQuery():
                                          "content type: {}.".format(methods))
 
 
-def _startJsonProcessing():
+def _startJsonProcessing() -> None:
     _jsonSender(_request.get("path"), _request.get("body"))
     result = _jsonFunctionMap[_request.get("method")]()
     _reply(result[0], result[1], result[2])
 
 
-def _reply(responseStatus, message, result = None):
+def _reply(responseStatus: str, message: str, result: object = None) -> None:
     """ Try to reply with a text/html or application/json
         if the connection is alive, then closes it. """
     try:
@@ -500,7 +526,7 @@ def _reply(responseStatus, message, result = None):
             logger.append(e)
 
 
-def _createHtmlReply(responseStatus, message, result = None):
+def _createHtmlReply(responseStatus: str, message: str, result: dict = None) -> str:
     _updateReply(responseStatus, message, result)
 
     if responseStatus == "404 Not Found":
@@ -510,22 +536,22 @@ def _createHtmlReply(responseStatus, message, result = None):
     return template.getSimplePage().format(title = responseStatus, style = style, body = message)
 
 
-def _createJsonReply(responseStatus, message, result = None):
+def _createJsonReply(responseStatus: str, message: str, result: dict = None) -> str:
     _updateReply(responseStatus, message, result)
     return ujson.dumps(_response)
 
 
-def _createHtmlFileReply(responseStatus, message, result = None):
-    _updateReply(responseStatus, "Request: Get the file '{}'.".format(_request.get("rawPath")), result)
-    return ubinascii.a2b_base64(message[1]())
+def _createHtmlFileReply(responseStatus: str, message: str, result = None) -> bytes:
+    _updateReply(responseStatus, message, {})
+    return ubinascii.a2b_base64(result[1]())
 
 
-def _updateReply(responseStatus, message, result = None):
+def _updateReply(responseStatus: str, message: str, result: dict = None) -> None:
     global _response
     _response = _getBasicReplyMap(responseStatus, message, result)
 
 
-def _getBasicReplyMap(responseStatus, message, result = None):
+def _getBasicReplyMap(responseStatus: str, message: str, result = None) -> dict:
     statusCode = int(responseStatus[:3])
 
     if not isinstance(result, dict):
@@ -545,7 +571,7 @@ def _getBasicReplyMap(responseStatus, message, result = None):
     return replyMap
 
 
-def _getMessageWithFlags(message, statusCode):
+def _getMessageWithFlags(message: str, statusCode: int) -> str:
     flags = "{}"
 
     if 100 <= statusCode < 200:
@@ -560,7 +586,7 @@ def _getMessageWithFlags(message, statusCode):
     return flags.format(message)
 
 
-def _getHelperLinks():
+def _getHelperLinks() -> str:
     helperLinks = "        <ul class='links'>\r\n"
     helperLinks += "            <li>Sitemap</li>\r\n"
     for key in sorted(template.title.keys()):
@@ -572,7 +598,7 @@ def _getHelperLinks():
     return helperLinks
 
 
-def _sendRaw(path):
+def _sendRaw(path: str) -> None:
     """ If the path links to a dir, sends a linked list, otherwise tries to send the content of the target entity. """
     try:
         if path[-1] == "/":           # Folder -> A practical, cosy, and a bit dirty constraint for simple URL handling.

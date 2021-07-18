@@ -295,7 +295,7 @@ def _jsonExecuteCommand() -> tuple:
 def _jsonGetQuickCommandStarting() -> tuple:
     job = "Request: Starting command list execution quickly."
 
-    if future.add(_jsonRequest, _jsonExecuteQuickCommand, False) == -1:
+    if future.add(_jsonRequest, _jsonExecuteQuickCommand, False) == 0:
         return "202 Accepted", job, {}
     else:
         return "406 Not Acceptable", "{} Cause: Semantic error in the URL.".format(job), {}

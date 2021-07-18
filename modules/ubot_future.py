@@ -56,12 +56,12 @@ _rawLink  = "{}/raw{}".format(_hostLink, _writeFolder)
 _hostLink = "{}{}".format(_hostLink, _writeFolder)
 
 
-def _unavailableJsonSender(*args):
+def _unavailableJsonSender(*args) -> None:
     raise Exception("ubot_future#_unavailableJsonSender\r\nThe '_jsonSender' is unavailable, processing had stopped.")
 
 _jsonSender = _unavailableJsonSender
 
-def setJsonSender(method):
+def setJsonSender(method) -> None:
     global _jsonSender
     _jsonSender = method
 
@@ -101,11 +101,11 @@ def getJsonTicket(ticketNr: int, job: str = "") -> tuple:
         return "406 Not Acceptable", job, {}
 
 
-def normalizeFutureTitle(title) -> str:
+def normalizeFutureTitle(title: object) -> str:
     return "{:010d}.txt".format(data.extractIntTupleFromString(title, 1)[0])
 
 
-def getFutureFolders():
+def getFutureFolders() -> tuple:
     return data.getFoldersOf(data.FUTURE)
 
 
@@ -113,7 +113,7 @@ def getFutureTicketsOf(folder: str) -> tuple:
     return data.getFileNameListOf("future", folder, "txt")
 
 
-def _work(timer) -> None:
+def _work(timer: Timer) -> None:
     global _processing
 
     try:
