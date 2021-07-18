@@ -45,6 +45,7 @@ _processing = False
 
 _powerOns = config.get("system", "power_ons")
 _writeFolder = "/future/{:010d}/".format(_powerOns)
+_tickets = config.get("future", "tickets")
 
 uos.mkdir(_writeFolder[:-1])
 _ticketNr = 0
@@ -72,7 +73,7 @@ def isProcessing() -> bool:
 def add(request: dict, function, ticket: bool = True) -> int:
     global _ticketNr
     try:
-        if ticket:
+        if _tickets or ticket:
             _ticketNr += 1
             _jobs.append((_ticketNr, request, function))
             return _ticketNr

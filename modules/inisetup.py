@@ -3,12 +3,11 @@ import network, ujson, uos
 from flashbdev import bdev
 from ubinascii import hexlify
 
-firmware = (0, 1, 181)
-initDatetime = (2021, 7, 18, 0, 0, 15, 0, 0)
+firmware = (0, 1, 182)
+initDatetime = (2021, 7, 18, 0, 2, 15, 0, 0)
 
 AP  = network.WLAN(network.AP_IF)
 mac = hexlify(AP.config("mac"), ":").decode()
-
 
 ################################
 ## CONFIG SUBDICTIONARIES
@@ -76,7 +75,8 @@ feedback = {
 future = {
     "name"          : "Async manager",
     "active"        : True,     # Should be always active
-    "period"        : 300
+    "period"        : 2000,
+    "tickets"       : True
 }
 
 i2c = {
@@ -153,7 +153,7 @@ web_repl = {
 web_server = {
     "name"          : "Web server",
     "active"        : True,
-    "period"        : 200,
+    "period"        : 250,
     "timeout"       : 100,
     "html_enabled"  : True,
     "json_enabled"  : True,

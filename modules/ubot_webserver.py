@@ -39,11 +39,13 @@ import ubot_logger   as logger
 import ubot_motor    as motor
 import ubot_template as template
 import ubot_future   as future
+import ubot_turtle   as turtle
 
 
 _connection = 0
 _connected  = False
 _headerSent = False
+_isStandard = True
 
 _started = False
 _period  = config.get("web_server", "period")
@@ -210,7 +212,13 @@ def _processIncoming(incoming):
 
     try:
         _readIncoming()
-        _processBody()
+
+        if _isStandard:
+            _createPath()
+            _chooseProcessingMethod()
+            _processBody()
+        else:
+            _processPressQuickly()
     except Exception as e:
         logger.append(e)
         _reply("400 Bad Request", "The server could not understand the request due to invalid syntax.")
@@ -236,11 +244,10 @@ def _readIncoming():
             break
         
         _processHeaderLine(str(line, "utf-8"))
-    _chooseProcessingMethod()
 
 
 def _processHeaderLine(line):
-    global _request
+    global _request, _isStandard
 
     line = line.lower()
 
@@ -249,21 +256,36 @@ def _processHeaderLine(line):
         pathEnd = line.find(" http")
 
         _request["method"]  = line[0:firstSpace].upper()
-
         rawPath = line[firstSpace + 1:pathEnd]
         _request["rawPath"] = rawPath
-        _request["path"] = data.createPath(rawPath)
-        data.preparePathIfSpecial(_request.get("path"))
+
+        _isStandard = not (len(rawPath) < 20 and rawPath.startswith("/command/press_"))
 
     if 0 <= line.find("content-length:"):
         lengthString = line[15:].strip()
         _request["contentLength"] = int(lengthString) if lengthString.isdigit() else 0
-        
+
     if 0 <= line.find("content-type:"):
         _request["contentType"] = line[13:].strip()
-        
+
     if 0 <= line.find("accept:"):
         _request["accept"] = line[7:].strip()
+
+
+def _processPressQuickly() -> None:
+    global _headerSent
+
+    turtle.press(int(_request.get("rawPath")[15:]))
+
+    _connection.write("HTTP/1.1 202 Accepted\r\nContent-Length: 121\r\nConnection: close\r\n\r\n"
+                      "{\"meta\": {\"response\": {\"code\": 202, \"status\": \"202 Accepted\", "
+                      "\"message\": \"[DONE] Request: Press button.\"}}, \"result\": {}}")
+    _headerSent = True
+
+
+def _createPath() -> None:
+    _request["path"] = data.createPath(_request.get("rawPath"))
+    data.preparePathIfSpecial(_request.get("path"))
 
 
 def _chooseProcessingMethod():
