@@ -45,7 +45,8 @@ import ubot_turtle   as turtle
 _connection = 0
 _connected  = False
 _headerSent = False
-_isStandard = True
+_isPress = False
+_isDrive = False
 
 _started = False
 _period  = config.get("web_server", "period")
@@ -207,23 +208,27 @@ def _clearOldRequestData():
 
 
 def _processIncoming(incoming):
-    global _incoming, _connection, _headerSent
+    global _incoming, _connection, _headerSent, _isPress, _isDrive
     _incoming = incoming
 
     try:
         _readIncoming()
 
-        if _isStandard:
+        if _isPress:
+            _processPressQuickly()
+        elif _isDrive:
+            _processDriveQuickly()
+        else:
             _createPath()
             _chooseProcessingMethod()
             _processBody()
-        else:
-            _processPressQuickly()
     except Exception as e:
         logger.append(e)
         _reply("400 Bad Request", "The server could not understand the request due to invalid syntax.")
     finally:
         _headerSent = False
+        _isPress = False
+        _isDrive = False
         _connection.close()
 
 
@@ -247,7 +252,7 @@ def _readIncoming():
 
 
 def _processHeaderLine(line):
-    global _request, _isStandard
+    global _request, _isPress, _isDrive
 
     line = line.lower()
 
@@ -259,7 +264,8 @@ def _processHeaderLine(line):
         rawPath = line[firstSpace + 1:pathEnd]
         _request["rawPath"] = rawPath
 
-        _isStandard = not (len(rawPath) < 20 and rawPath.startswith("/command/press_"))
+        _isPress = len(rawPath) < 19 and rawPath.startswith("/command/press_")
+        _isDrive = len(rawPath) < 17 and rawPath.startswith("/command/drive_")
 
     if 0 <= line.find("content-length:"):
         lengthString = line[15:].strip()
@@ -274,13 +280,21 @@ def _processHeaderLine(line):
 
 def _processPressQuickly() -> None:
     global _headerSent
-
-    turtle.press(int(_request.get("rawPath")[15:]))
-
-    _connection.write("HTTP/1.1 202 Accepted\r\nContent-Length: 121\r\nConnection: close\r\n\r\n"
-                      "{\"meta\": {\"response\": {\"code\": 202, \"status\": \"202 Accepted\", "
-                      "\"message\": \"[DONE] Request: Press button.\"}}, \"result\": {}}")
+    _connection.write("HTTP/1.1 202 Accepted\r\nContent-Type: application/json; charset=UTF-8\r\nContent-Length: 131\r\n"
+                      "Connection: close\r\n\r\n{\"meta\": {\"response\": {\"code\": 202, \"status\": \"202 Accepted\", "
+                      "\"message\": \"[DONE] [QUICK] Request: Press a button.\"}}, \"result\": {}}")
     _headerSent = True
+    turtle.press(int(_request.get("rawPath").rstrip("/")[15:]))
+
+
+def _processDriveQuickly() -> None:
+    global _headerSent
+    _connection.write("HTTP/1.1 202 Accepted\r\nContent-Type: application/json; charset=UTF-8\r\nContent-Length: 132\r\n"
+                      "Connection: close\r\n\r\n{\"meta\": {\"response\": {\"code\": 202, \"status\": \"202 Accepted\", "
+                      "\"message\": \"[DONE] [QUICK] Request: Drive the μBot.\"}}, \"result\": {}}")
+    _headerSent = True
+    turtle.skipSignal(1, 1)
+    turtle.move(ord(_request.get("rawPath")[15]) - 32)  # Upperchar
 
 
 def _createPath() -> None:

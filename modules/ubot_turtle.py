@@ -140,7 +140,7 @@ def move(direction):
         motor.add(movementTuple)
 
 
-def skipSignal(stepCount = 1, endCount = 0):
+def skipSignal(stepCount: int = 1, endCount: int = 0) -> None:
     global _stepSignalSkipCount, _endSignalSkipCount
 
     _stepSignalSkipCount += stepCount
