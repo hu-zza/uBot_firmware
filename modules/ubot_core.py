@@ -269,7 +269,7 @@ def _jsonGetFileByJsonLink() -> tuple:
 
 def _jsonGetCommandExecutionStarting() -> tuple:
     basePath = _jsonRequest.get("path")
-    commands = tuple(command.upper() for command in basePath.args[1:])
+    commands = basePath.args[1:]
 
     request = {"path": data.INVALID_PATH,
                "body": "",
@@ -349,9 +349,26 @@ def _jsonExecuteProgramAction() -> tuple:
         return "403 Forbidden", "{} Cause: Semantic error in the URL.".format(job), {}
 
 
+def _jsonGetExistingTicket() -> tuple:
+    path = _jsonRequest.get("path")
+    args = path.args
+    job = "Request: Get future ticket."
+
+    if len(args) == 3:
+        return future.createJsonTicket(args[1], args[2], "Request: Get future single ticket [{}].".format(args[2]))
+    elif len(args) == 4:
+        ticketNrs = tuple(i + args[2] for i in range(args[3] - args[2] + 1))
+        return future.createJsonBlockTicket(args[1], ticketNrs,
+                                            "Request: Get future block ticket [{} - {}].".format(args[2], args[3]))
+
+    return "403 Forbidden", "{} Cause: Semantic error in the URL.".format(job), {}
+
+
+
 _actionFunctions = {
     "command" : _jsonGetCommandExecutionStarting,
     "program" : _jsonGetProgramActionStarting,
+    "ticket"  : _jsonGetExistingTicket,
     "raw"     : _jsonGetFileByJsonLink
 }
 
@@ -544,7 +561,7 @@ def _executeJsonDelete() -> tuple:                                              
 
 def _jsonDeleteEntity() -> tuple:
     path = _jsonRequest.get("path")
-    job  = "Request: Delete the {}".format(path.description)
+    job  = "Request: Delete the {}.".format(path.description)
 
     if path.isExist:
         if data.canDelete(path):
@@ -558,7 +575,7 @@ def _jsonDeleteEntity() -> tuple:
             else:
                 return "403 Forbidden", "{} Cause: Missing delete permission.".format(job), {}
     else:
-        return "403 Forbidden", "{} Cause: The {} doesn't exist.".format(job, path.description), {}
+        return "403 Forbidden", "{} Cause: The {} doesn't exist.".format(job, path), {}
 
 
 

@@ -74,6 +74,8 @@ def isProcessing() -> bool:
 def add(request: dict, function) -> int:
     global _ticketNr
     try:
+        _timer.init(period = _period, mode = Timer.PERIODIC, callback = _work)
+
         if _tickets:
             _ticketNr += 1
             _jobs.append((_ticketNr, request.copy(), function))
@@ -81,6 +83,7 @@ def add(request: dict, function) -> int:
         else:
             _jobs.append((0, request.copy(), function))
             return 0
+
     except Exception as e:
         logger.append(e)
         return -1
@@ -92,7 +95,7 @@ def createJsonTicket(folder: int, ticketNr: int, job: str = "") -> tuple:
         return "202 Accepted", job, {
             "name": "Ticket [{}]".format(ticketNr),
             "type": "future single ticket",
-            "href": "{}/ticket/{:010d}/{:010d}".format(_hostLink, folder, ticketNr),
+            "href": "{}/ticket/{:010d}/{:05d}".format(_hostLink, folder, ticketNr),
             "raw":  "",
             "parent": {},
             "children": [],
@@ -108,7 +111,7 @@ def createJsonBlockTicket(folder: int, ticketNrs: tuple, job: str = "") -> tuple
         return "202 Accepted", job, {
             "name": "Block ticket [{} - {}]".format(minNr, maxNr),
             "type": "future block ticket",
-            "href": "{}/ticket/{:010d}/{:010d}/{:010d}".format(_hostLink, folder, minNr, maxNr),
+            "href": "{}/ticket/{:010d}/{:05d}/{:05d}".format(_hostLink, folder, minNr, maxNr),
             "raw":  "",
             "parent": {},
             "children": [],
@@ -119,7 +122,7 @@ def createJsonBlockTicket(folder: int, ticketNrs: tuple, job: str = "") -> tuple
 
 def _createResultDictionary(folder: int, ticketNrs: tuple) -> dict:
 
-    files = [(ticketNr, "/{:010d}/{:010d}".format(folder, ticketNr)) for ticketNr in ticketNrs]
+    files = [(ticketNr, "/{:010d}/{:05d}".format(folder, ticketNr)) for ticketNr in ticketNrs]
 
     return {str(file[0]): {"name": file[1][file[1].rindex("/") + 1:],
                            "type": "file",
@@ -139,7 +142,7 @@ def normalizeFutureTitle(title: object) -> str:
 
     ticketTuple = data.extractIntTuple(title, 1)
     if ticketTuple != ():
-        return "{:010d}.txt".format(ticketTuple[0])
+        return "{:05d}.txt".format(ticketTuple[0])
     else:
         return ""
 
@@ -162,14 +165,14 @@ def _work(timer: Timer) -> None:
                 if _canWork():
                     while _jobs:
                         _pollJob()
+
+                    _timer.deinit()
                 else:
                     _processing = False
     except Exception as e:
         logger.append(e)
     finally:
         _processing = False
-
-_timer.init(period = _period, mode = Timer.PERIODIC, callback = _work)
 
 
 def _canWork() -> bool:
@@ -188,6 +191,9 @@ def _pollJob() -> None:
         status, message, result = function()
 
         try:
+            if not data.doesExist(_writeFolder):
+                uos.mkdir(_writeFolder[:-1])
+
             with open("{}{}".format(_writeFolder, normalizeFutureTitle(ticketNr)), "w") as file:
                 file.write("{}\r\n".format(status))
                 file.write("{}\r\n".format(message))

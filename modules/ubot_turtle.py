@@ -194,9 +194,9 @@ def normalizeProgramTitle(title: object, isTurtle: bool = True) -> str:
 
     if 0 < len(turtleTuple):
         if 1 == len(turtleTuple):
-            return "{:010d}_{:03d}.txt".format(_powerOns, turtleTuple[0])
+            return "{:010d}_{:05d}.txt".format(_powerOns, turtleTuple[0])
         else:
-            return "{:010d}_{:03d}.txt".format(turtleTuple[0], turtleTuple[1])
+            return "{:010d}_{:05d}.txt".format(turtleTuple[0], turtleTuple[1])
     else:
         return title if isinstance(title, str) and title.endswith(".txt") else "{}.txt".format(title)
 
@@ -258,7 +258,7 @@ def saveProgram(folder: str = "", title: str = "", program: str = "") -> data.Pa
 def _generateFullPathForAutoSave() -> data.Path:
     global _savedCount
     _savedCount += 1
-    return data.createPathOf("program", _turtleFolder, "{:010d}_{:03d}.txt".format(_powerOns, _savedCount))
+    return data.createPathOf("program", _turtleFolder, "{:010d}_{:05d}.txt".format(_powerOns, _savedCount))
 
 
 def deleteProgram(folder: str = "", title: str = "") -> bool:

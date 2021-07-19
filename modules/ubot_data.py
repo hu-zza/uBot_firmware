@@ -429,6 +429,9 @@ def canDelete(path: Path) -> bool:
     if path.isDeletable is None:
         path.isDeletable = _checkPermission(path.path, "delete_rights")
 
+    if path.isFolder:
+        path.isDeletable = getEntityCountOfFolder(path) == 0
+
     return path.isDeletable and path.isExist
 
 
@@ -537,7 +540,7 @@ def getLineCountOfFile(path: Path) -> int:
 
 def getEntityCountOfFolder(path: Path) -> int:
     if assertPathIsFolder(path):
-        return len(uos.listdir(path))
+        return len(uos.listdir(path.path))
     else:
         return 0
 
@@ -674,6 +677,10 @@ def extractCharTupleFromString(tupleString: str, enabledCharsSet: set, limit: in
     return tuple(result)
 
 
+def normalizePowerOns(title: object) -> str:
+    return "{:010d}".format(extractIntTuple(title, 1)[0])
+
+
 ################################
 ## REST/JSON related methods
 
@@ -690,15 +697,23 @@ def preparePathIfSpecial(path: Path) -> None:
 
         if 1 < size:
             if array[0] == "command":
-                args = ["command"] + array[1:]
+                args = ["command"] + [item.upper() for item in array[1:]]
                 del array[1:]
                 size = 1
+            elif array[0] == "ticket":
+                args = ["ticket"] + list(extractIntTuple("/".join(array[1:])))
+                del array[1:]
+                size = 1
+            elif array[0] == "future":
+                array[1] = normalizePowerOns(array[1])
 
             if 2 < size:
                 if array[0]  == "program":
                     array[2] = turtle.normalizeProgramTitleFromFolder(array[2], array[1])
                 elif array[0] == "log":
                     array[2] = logger.normalizeLogTitle(array[2])
+                elif array[0] == "future":
+                    array[2] = future.normalizeFutureTitle(array[2])
                 elif not array[2].endswith(".txt"):
                     array[2] = "{}.txt".format(array[2])
 
@@ -828,6 +843,7 @@ def _createJsonFileInstance(path: Path) -> tuple:
 
 import ubot_config as config
 import ubot_turtle as turtle
+import ubot_future as future
 
 _hostLink = "http://{}".format(config.get("ap", "ip"))
 _rawLink  = "{}/raw".format(_hostLink)
