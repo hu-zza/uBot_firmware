@@ -3,8 +3,8 @@ import network, ujson, uos
 from flashbdev import bdev
 from ubinascii import hexlify
 
-firmware = (0, 1, 188)
-initDatetime = (2021, 7, 20, 0, 13, 40, 0, 0)
+firmware = (0, 1, 189)
+initDatetime = (2021, 7, 20, 0, 15, 5, 0, 0)
 
 AP  = network.WLAN(network.AP_IF)
 mac = hexlify(AP.config("mac"), ":").decode()

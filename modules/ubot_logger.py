@@ -86,8 +86,9 @@ def getLog(category: str, title: object) -> tuple:
 
 def printLog(category: str, title: object) -> None:
     path = getPathOf(category, title)
-    print()
+    print("\r\n\r\nCategory: {}\r\nLog: {}\r\n\r\n".format(path.array[1], path.array[2]))
     data.printFile(path, False)
+    print("\r\n\r\n")
 
 
 def doesLogExist(category: str, title: object) -> bool:
@@ -99,7 +100,8 @@ def getPathOf(category: str, title: object) -> data.Path:
 
 
 def normalizeLogTitle(title: object) -> str:
-    return "{:010d}.txt".format(data.extractIntTuple(title, 1)[0])
+    logTuple = data.extractIntTuple(title, 1)
+    return "{:010d}.txt".format(logTuple[0] if logTuple != () else 0)
 
 
 ################################
