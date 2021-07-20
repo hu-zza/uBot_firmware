@@ -29,7 +29,7 @@
     SOFTWARE.
 """
 
-import ubinascii, ujson, uos, uselect, usocket
+import ujson, uos, uselect, usocket
 
 from machine import Timer
 
@@ -100,6 +100,8 @@ allowedMethods     = {"GET", "POST", "PUT", "DELETE"}
 allowedHtmlMethods = {"GET", "POST"}
 allowedJsonMethods = {"GET", "POST", "PUT", "DELETE"}
 _hasJsonBody       = {"POST", "PUT"}
+
+_files = tuple("/{}".format(name) for name in uos.listdir("/srv"))
 
 
 
@@ -326,7 +328,7 @@ def _chooseProcessingMethod() -> None:
     contentType = _request.get("contentType")
     union = accept + contentType
 
-    if _request.get("rawPath") in template.files:
+    if _request.get("rawPath") in _files:
         _request["processing"] = "FILE"
     elif "text/html" in union:
         _request["processing"] = "HTML"
@@ -437,11 +439,6 @@ def _includeDebugDashboard() -> None:
     _connection.write("            </table>\r\n")
 
 
-def _processHtmlFileQuery() -> None:
-    path = _request.get("rawPath")
-    _reply("200 OK", "Request: Get the file '{}'.".format(path), template.files.get(path))
-
-
 def _replyWithHtmlRaw(path: data.Path) -> None:
     _sendHeader()
     _connection.write(template.getPageHeadStart().format("μBot Raw &nbsp;| &nbsp; {}".format(path)))
@@ -464,7 +461,7 @@ def _sendHeader(status: str = "200 OK", length: int = None, allow: bool = None) 
             reply = "application/json; charset=UTF-8"
             allowSet = ", ".join(allowedJsonMethods)
         if _request.get("processing") == "FILE":
-            reply = template.files.get(_request.get("rawPath"))[0]
+            length, reply = _getFileMetadata(_request.get("rawPath"))
             allowSet = "GET"
 
         if allow is None:
@@ -481,6 +478,11 @@ def _sendHeader(status: str = "200 OK", length: int = None, allow: bool = None) 
         _connection.write("Cache-Control: no-cache\r\n")                                   # TODO: Make caching possible
         _connection.write("Connection: close\r\n\r\n")
         _headerSent = True
+
+
+def _getFileMetadata(fileName: str) -> tuple:
+    with open("/srv/{}_meta".format(fileName), "r") as file:
+        return tuple(line.strip() for line in file)
 
 
 def _processHtmlPostQuery() -> None:
@@ -505,17 +507,31 @@ def _startJsonProcessing() -> None:
     _reply(result[0], result[1], result[2])
 
 
+def _processFileQuery() -> None:
+    path = _request.get("rawPath")
+    _reply("200 OK", "Request: Get the file '{}'.".format(path), path)
+
+
 def _reply(responseStatus: str, message: str, result: object = None) -> None:
     """ Try to reply with a text/html or application/json
         if the connection is alive, then closes it. """
     try:
-        reply = _replyMap.setdefault(_request.get("processing"), _createHtmlReply)(responseStatus, message, result)
+        processing = _request.get("processing")
+        if processing == "FILE":
+            reply  = "/srv/{}".format(result)
+            length = 0
+            _updateReply(responseStatus, message, {})
+        else:
+            reply  = _replyMap.setdefault(_request.get("processing"), _createHtmlReply)(responseStatus, message, result)
+            length = len(reply)
 
         if _connected:
-            _sendHeader(responseStatus, len(reply))
+            _sendHeader(responseStatus, length)
 
-            if isinstance(reply, bytes):                                                # TODO: short-writes with check?
-                _connection.sendall(reply)
+            if processing == "FILE":
+                with open(reply, "rb") as file:
+                    for line in file:
+                        _connection.sendall(line)
             else:
                 _connection.write(reply)
 
@@ -538,11 +554,6 @@ def _createHtmlReply(responseStatus: str, message: str, result: dict = None) -> 
 def _createJsonReply(responseStatus: str, message: str, result: dict = None) -> str:
     _updateReply(responseStatus, message, result)
     return ujson.dumps(_response)
-
-
-def _createHtmlFileReply(responseStatus: str, message: str, result = None) -> bytes:
-    _updateReply(responseStatus, message, {})
-    return ubinascii.a2b_base64(result[1]())
 
 
 def _updateReply(responseStatus: str, message: str, result: dict = None) -> None:
@@ -671,11 +682,10 @@ _jsonFunctionMap = {
 _processingMap = {
     "HTML"   : _processHtmlQuery,
     "JSON"   : _processJsonQuery,
-    "FILE"   : _processHtmlFileQuery,
+    "FILE"   : _processFileQuery,
 }
 
 _replyMap = {
     "HTML"   : _createHtmlReply,
-    "JSON"   : _createJsonReply,
-    "FILE"   : _createHtmlFileReply
+    "JSON"   : _createJsonReply
 }

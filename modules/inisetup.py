@@ -1,13 +1,10 @@
-import network, ujson, uos
+import flashbdev, network, ubinascii, ujson, uos
 
-from flashbdev import bdev
-from ubinascii import hexlify
-
-firmware = (0, 1, 189)
-initDatetime = (2021, 7, 20, 0, 15, 5, 0, 0)
+firmware = (0, 1, 190)
+initDatetime = (2021, 7, 20, 0, 18, 30, 0, 0)
 
 AP  = network.WLAN(network.AP_IF)
-mac = hexlify(AP.config("mac"), ":").decode()
+mac = ubinascii.hexlify(AP.config("mac"), ":").decode()
 
 ################################
 ## CONFIG SUBDICTIONARIES
@@ -108,8 +105,8 @@ motor = {
 system = {
     "name"          : "System core",
     "active"        : True,     # Should be always active
-    "id"            : hexlify(uos.urandom(32)).decode(),
-    "chk"           : hexlify(uos.urandom(32)).decode(),
+    "id"            : ubinascii.hexlify(uos.urandom(32)).decode(),
+    "chk"           : ubinascii.hexlify(uos.urandom(32)).decode(),
     "firmware"      : firmware,
     "init_datetime" : initDatetime,
     "power_ons"     : 0,
@@ -190,8 +187,8 @@ configModules = {
 ########################################################################################################################
 
 def check_bootsec():
-    buf = bytearray(bdev.SEC_SIZE)
-    bdev.readblocks(0, buf)
+    buf = bytearray(flashbdev.bdev.SEC_SIZE)
+    flashbdev.bdev.readblocks(0, buf)
     empty = True
     for b in buf:
         if b != 0xFF:
@@ -214,7 +211,7 @@ snapshot to try to recover it. Otherwise, perform factory reprogramming
 of MicroPython firmware (completely erase flash, followed by firmware
 programming).
 """
-            % (bdev.START_SEC, bdev.blocks)
+            % (flashbdev.bdev.START_SEC, flashbdev.bdev.blocks)
         )
         time.sleep(3)
 
@@ -236,6 +233,8 @@ def createFolders() -> None:
     uos.mkdir("/program")
     uos.mkdir("/program/{}".format(turtle.get("turtle_folder")))
     uos.mkdir("/program/{}".format(turtle.get("named_folder")))
+
+    uos.mkdir("/srv")
 
 
 def createBaseFiles():
@@ -305,28 +304,66 @@ def createConfigFoldersAndFiles():
                 file.write("{}\r\n".format(ujson.dumps(attrValue)))
 
 
-def deleteDictionaries() -> None:
-    global configModules
+def createServerFiles():
+    for fileName, fileData in files.items():
+        path = "/srv/{}".format(fileName)
+        with open(path, "wb") as file:
+            file.write(ubinascii.a2b_base64(fileData[0]()))
 
-    for _, module in configModules.items():
-        module.clear()
+        with open("/srv/{}_meta".format(fileName), "w") as file:
+            file.write("{}\r\n".format(uos.stat(path)[6]))
 
-    configModules.clear()
-    del configModules
+            for line in fileData[1]:
+                file.write("{}\r\n".format(line))
 
 
 def setup():
     check_bootsec()
     setWifi()
 
-    uos.VfsLfs2.mkfs(bdev)
-    vfs = uos.VfsLfs2(bdev)
+    uos.VfsLfs2.mkfs(flashbdev.bdev)
+    vfs = uos.VfsLfs2(flashbdev.bdev)
     uos.mount(vfs, "/")
 
     createFolders()
     createBaseFiles()
     createLogs()
     createConfigFoldersAndFiles()
+    createServerFiles()
     deleteDictionaries()
 
     return vfs
+
+
+###########
+## FILES
+
+def getFaviconPng() -> str:
+    return "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"
+
+
+def getFaviconIco() -> str:
+    return getFaviconPng()
+
+
+files = {
+    "favicon.png": (getFaviconPng, ("image/png",), "getFaviconPng"),
+    "favicon.ico": (getFaviconIco, ("image/png",), "getFaviconIco")
+}
+
+
+def deleteDictionaries() -> None:
+    global configModules, files
+
+    for key, module in configModules.items():
+        module.clear()
+        exec("del inisetup.{}".format(key))
+
+    configModules.clear()
+    del configModules
+
+    for _, value in files.items():
+        exec("del inisetup.{}".format(value[2]))
+
+    files.clear()
+    del files
