@@ -398,11 +398,6 @@ def _replyWithHtmlTemplate(path: str) -> None:
     _sendHeader()
     _connection.write(template.getPageHeadStart().format(template.title.get(path)))
 
-    for style in template.style.get(path):
-        _connection.write(style())
-
-    _connection.write(template.getPageHeadEnd())
-
     for part in template.parts.get(path):
         _connection.write(part())
 
@@ -442,9 +437,6 @@ def _includeDebugDashboard() -> None:
 def _replyWithHtmlRaw(path: data.Path) -> None:
     _sendHeader()
     _connection.write(template.getPageHeadStart().format("μBot Raw &nbsp;| &nbsp; {}".format(path)))
-    _connection.write(template.getGeneralStyle())
-    _connection.write(template.getRawStyle())
-    _connection.write(template.getPageHeadEnd())
     _sendRaw(path.path)
     _connection.write(template.getPageFooter())
     _logResponse(_getBasicReplyMap("200 OK", "Request: Get the file '{}'.".format(path)))
@@ -547,8 +539,7 @@ def _createHtmlReply(responseStatus: str, message: str, result: dict = None) -> 
     if responseStatus == "404 Not Found":
         message = _getHelperLinks()
 
-    style = template.getGeneralStyle() + template.getSimpleStyle()
-    return template.getSimplePage().format(title = responseStatus, style = style, body = message)
+    return template.getSimplePage().format(title = responseStatus, body = message)
 
 
 def _createJsonReply(responseStatus: str, message: str, result: dict = None) -> str:

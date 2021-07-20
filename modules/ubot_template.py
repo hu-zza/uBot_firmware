@@ -51,10 +51,8 @@ def getSimplePage() -> str:
             "        <link rel='help' href='https://ubot.hu'>\r\n"
             "        <link rel='icon' type='image/png' href='/favicon.png' sizes='128x128'>\r\n"
             "        <link rel='shortcut icon' type='image/x-icon' href='/favicon.ico'>\r\n"
+            "        <link rel='stylesheet' href='/style.css'>\r\n"
             "        <title>μBot | {title}</title>\r\n"
-            "        <style>\r\n"
-            "{style}"
-            "        </style>\r\n"
             "    </head>\r\n"
             "    <body>\r\n"
             "        <h1>{title}</h1>\r\n"
@@ -75,12 +73,8 @@ def getPageHeadStart() -> str:
             "        <link rel='help' href='https://ubot.hu'>\r\n"
             "        <link rel='icon' type='image/png' href='/favicon.png' sizes='128x128'>\r\n"
             "        <link rel='shortcut icon' type='image/x-icon' href='/favicon.ico'>\r\n"
+            "        <link rel='stylesheet' href='/style.css'>\r\n"
             "        <title>{}</title>\r\n"
-            "        <style>\r\n")
-
-
-def getPageHeadEnd() -> str:
-    return ("        </style>\r\n"
             "    </head>\r\n"
             "    <body>\r\n")
 
@@ -88,67 +82,6 @@ def getPageHeadEnd() -> str:
 def getPageFooter() -> str:
     return ("    </body>\r\n"
             "</html>\r\n\r\n")
-
-
-def getGeneralStyle() -> str:
-    return ("            body     { font-family: Garamond, Baskerville, Baskerville Old Face, Times New Roman, serif; }\r\n"
-            "            a        { color: rgb(100, 100, 100); transition: 0.75s; }\r\n"
-            "            a:active { color: rgb(50, 50, 50); transition: 0.1s; }\r\n")
-
-
-def getDebugStyle() -> str:
-    return ("            a     { text-decoration: underline #BBB dotted 1px; }\r\n"
-            "            hr    { color: #EEE; }\r\n"
-            "            table { margin: 30px; }\r\n"
-            "            .data td { padding: 5px; border-bottom: dotted 1px #AAA; }\r\n")
-
-def getRawStyle() -> str:
-    return ("            a      { text-decoration: none; }\r\n"
-            "            table  { margin: 30px; }\r\n"
-            "            td, th { padding: 10px 25px; }\r\n"
-            "            thead  { color: #FFF; background: #555; }\r\n"
-            "            td:nth-child(even) { text-align: right; }\r\n"
-            "            tr:nth-child(even) { background: #EEE; }\r\n"
-            "            .info  { text-align: center; }\r\n")
-
-
-def getPanelStyle() -> str:
-    return ("            svg        { width: 100px;\r\n"
-            "                         height: 100px;\r\n"
-            "                         fill: rgb(160, 160, 160);\r\n"
-            "                         transition: 0.75s;\r\n"
-            "                       }\r\n"
-            "            svg:active { fill: rgb(80, 80, 80); transition: 0.1s; }\r\n"
-            "            .drive     { height: 400px; }\r\n"
-            "            .simple    { height: 900px; }\r\n"
-            "            .pro       { height: 1000px; }\r\n"
-            "            .panel     { width: 600px;\r\n"
-            "                         margin: auto;\r\n"
-            "                         text-align: center;\r\n"
-            "                       }\r\n")
-
-
-def getSimpleStyle() -> str:
-    return ("            .links    { width: 350px;\r\n"
-            "                        padding: 0px;\r\n"
-            "                        margin: 100px auto;\r\n"
-            "                        border-top: 0px;\r\n"
-            "                        border: 1px solid #BBB;\r\n"
-            "                        border-radius: 15px 15px 0px 0px;\r\n"
-            "                        font-size: 20px;\r\n"
-            "                        color: #888;\r\n"
-            "                      }\r\n"
-            "            .links li { list-style: none;\r\n"
-            "                        background: #EEE;\r\n"
-            "                        padding: 10px 20px;\r\n"
-            "                        border-top: 1px solid #CCC;\r\n"
-            "                      }\r\n"
-            "            .links li:first-child { color: #FFF;\r\n"
-            "                                    background: #555;\r\n"
-            "                                    border: none;\r\n"
-            "                                    border-radius: 10px 10px 0px 0px;\r\n"
-            "                                  }\r\n")
-
 
 
 ###########
@@ -416,7 +349,6 @@ def getCrossSymbol() -> str:
 
 def linkSitePathToExistingPath(path: str, existingPath: str) -> None:
     title[path] = title.get(existingPath)
-    style[path] = style.get(existingPath)
     parts[path] = parts.get(existingPath)
 
 
@@ -436,20 +368,6 @@ title = {
     "/drive"        : "μBot Drive",
     "/simple"       : "μBot Simple",
     "/pro"          : "μBot Professional"
-}
-
-style = {
-    "/_settings"    : (getGeneralStyle, getSimpleStyle),
-    "/_datetime"    : (getGeneralStyle, getSimpleStyle),
-    "/debug"        : (getGeneralStyle, getDebugStyle),
-    "/_system"      : (getGeneralStyle, getDebugStyle),
-    "/_services"    : (getGeneralStyle, getDebugStyle),
-    "/_ap"          : (getGeneralStyle, getDebugStyle),
-
-    "/turtle"       : (getGeneralStyle, getDebugStyle),
-    "/drive"        : (getGeneralStyle, getPanelStyle),
-    "/simple"       : (getGeneralStyle, getPanelStyle),
-    "/pro"          : (getGeneralStyle, getPanelStyle)
 }
 
 parts = {
