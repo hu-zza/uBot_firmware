@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta name='viewport' content='width=610'>
+        <meta charset='utf-8'>
+        <meta name='author' content='Szabó László András // hu-zza'>
+        <link rel='author' href='https://zza.hu'>
+        <link rel='license' href='/license.html'>
+        <link rel='help' href='https://ubot.hu'>
+        <link rel='icon' type='image/png' href='/favicon.png' sizes='128x128'>
+        <link rel='shortcut icon' type='image/x-icon' href='/favicon.ico'>
+        <title></title>
+        <style>
+
+<!--        def getGeneralStyle() -> str: -->
+            body     { font-family: Garamond, Baskerville, Baskerville Old Face, Times New Roman, serif; }
+            a        { color: rgb(100, 100, 100); transition: 0.75s; }
+            a:active { color: rgb(50, 50, 50); transition: 0.1s; }
+
+
+<!--        def getDebugStyle() -> str: -->
+            a     { text-decoration: underline #BBB dotted 1px; }
+            hr    { color: #EEE; }
+            table { margin: 30px; }
+            .data td { padding: 5px; border-bottom: dotted 1px #AAA; }
+
+<!--        def getRawStyle() -> str: -->
+            a      { text-decoration: none; }
+            table  { margin: 30px; }
+            td, th { padding: 10px 25px; }
+            thead  { color: #FFF; background: #555; }
+            td:nth-child(even) { text-align: right; }
+            tr:nth-child(even) { background: #EEE; }
+            .info  { text-align: center; }
+
+        </style>
+    </head>
+    <body>
+
+
+    </body>
+</html>

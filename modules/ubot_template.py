@@ -47,7 +47,7 @@ def getSimplePage() -> str:
             "        <meta charset='utf-8'>\r\n"
             "        <meta name='author' content='Szabó László András // hu-zza'>\r\n"
             "        <link rel='author' href='https://zza.hu'>\r\n"
-            "        <link rel='license' href='/license'>\r\n"
+            "        <link rel='license' href='/license.html'>\r\n"
             "        <link rel='help' href='https://ubot.hu'>\r\n"
             "        <link rel='icon' type='image/png' href='/favicon.png' sizes='128x128'>\r\n"
             "        <link rel='shortcut icon' type='image/x-icon' href='/favicon.ico'>\r\n"
@@ -71,7 +71,7 @@ def getPageHeadStart() -> str:
             "        <meta charset='utf-8'>\r\n"
             "        <meta name='author' content='Szabó László András // hu-zza'>\r\n"
             "        <link rel='author' href='https://zza.hu'>\r\n"
-            "        <link rel='license' href='/license'>\r\n"
+            "        <link rel='license' href='/license.html'>\r\n"
             "        <link rel='help' href='https://ubot.hu'>\r\n"
             "        <link rel='icon' type='image/png' href='/favicon.png' sizes='128x128'>\r\n"
             "        <link rel='shortcut icon' type='image/x-icon' href='/favicon.ico'>\r\n"
@@ -154,35 +154,6 @@ def getSimpleStyle() -> str:
 ###########
 ## PANELS
 
-
-def getLicensePanel() -> str:
-    return ("        <h1>\r\n"
-            "            The license of the μBot firmware\r\n"
-            "        </h1>\r\n"
-            "        This file is part of uBot_firmware.<br>\r\n"
-            "        <a href='https://zza.hu/uBot_firmware' target='_blank'>https://zza.hu/uBot_firmware</a><br>\r\n"
-            "        <a href='https://git.zza.hu/uBot_firmware' target='_blank'>https://git.zza.hu/uBot_firmware</a><br><br><br>\r\n"
-            "        <h2>\r\n"
-            "            MIT License\r\n"
-            "        </h2>\r\n"
-            "        Copyright (c) 2020-2021 Szabó László András // hu-zza<br><br>\r\n"
-            "        Permission is hereby granted, free of charge, to any person obtaining a copy<br>\r\n"
-            "        of this software and associated documentation files (the \"Software\"), to deal<br>\r\n"
-            "        in the Software without restriction, including without limitation the rights<br>\r\n"
-            "        to use, copy, modify, merge, publish, distribute, sublicense, and/or sell<br>\r\n"
-            "        copies of the Software, and to permit persons to whom the Software is<br>\r\n"
-            "        furnished to do so, subject to the following conditions:<br><br>\r\n"
-            "        The above copyright notice and this permission notice shall be included in all<br>\r\n"
-            "        copies or substantial portions of the Software.<br><br>\r\n"
-            "        THE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR<br>\r\n"
-            "        IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,<br>\r\n"
-            "        FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE<br>\r\n"
-            "        AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER<br>\r\n"
-            "        LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,<br>\r\n"
-            "        OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE<br>\r\n"
-            "        SOFTWARE.<br>\r\n")
-
-
 def getTurtlePanel() -> str:
     return ("        <h3>Commands</h3>\r\n"
             "            {commands}\r\n"
@@ -211,7 +182,7 @@ def getSystemPanel() -> str:
     return ("        <h3>System info</h3>\r\n"
             "            <table class='data'>\r\n"
             "                <tr><td> <strong>Power on count:</strong> </td><td>{powerOns}</td><td>  </td></tr>\r\n"
-            "                <tr><td> <strong>Firmware:</strong> </td><td>{major}.{minor}.{patch}</td><td><a href='license'>MIT License</a></td></tr>\r\n"
+            "                <tr><td> <strong>Firmware:</strong> </td><td>{major}.{minor}.{patch}</td><td><a href='/license.html'>MIT License</a></td></tr>\r\n"
             "                <tr><td> <strong>Free memory:</strong> </td><td>{freeMemoryPercent}%</td><td>{freeMemory} / {allMemory}</td></tr>\r\n"
             "                <tr><td> <strong>Free space:</strong> </td><td>{freeSpacePercent}%</td><td>{freeSpace} / {allSpace}</td></tr>\r\n"
             "                <tr><td> <strong>System RTC:</strong> </td><td colspan='2'>{year}. {month:02d}. {day:02d}.&nbsp;&nbsp;&nbsp;{hour:02d} : {minute:02d} : {second:02d}</td></tr>\r\n"
@@ -463,7 +434,6 @@ title = {
 
     "/turtle"       : "μBot TurtleCode",
     "/drive"        : "μBot Drive",
-    "/license"      : "μBot MIT License",
     "/simple"       : "μBot Simple",
     "/pro"          : "μBot Professional"
 }
@@ -478,7 +448,6 @@ style = {
 
     "/turtle"       : (getGeneralStyle, getDebugStyle),
     "/drive"        : (getGeneralStyle, getPanelStyle),
-    "/license"      : (getGeneralStyle, ),
     "/simple"       : (getGeneralStyle, getPanelStyle),
     "/pro"          : (getGeneralStyle, getPanelStyle)
 }
@@ -494,8 +463,6 @@ parts = {
     "/turtle"       : (getTurtlePanel,),
 
     "/drive"        : (getSvgDefinitionHead, getArrowSymbol, getSvgDefinitionFooter, getDrivePanel, getTurtleMoveSender),
-
-    "/license"      : (getLicensePanel,),
 
     "/simple"       : (getSvgDefinitionHead, getArrowSymbol, getPlaySymbol, getPauseSymbol, getUndoSymbol, getCrossSymbol,
                        getSvgDefinitionFooter, getSimplePanel, getButtonPressSender),
