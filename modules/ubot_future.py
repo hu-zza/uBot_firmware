@@ -40,7 +40,6 @@ import ubot_webserver as server
 import ubot_motor     as motor
 
 _timer  = Timer(-1)
-_period = config.get("future", "period")
 _processing = False
 
 _powerOns = config.get("system", "power_ons")
@@ -74,8 +73,6 @@ def isProcessing() -> bool:
 def add(request: dict, function) -> int:
     global _ticketNr
     try:
-        _timer.init(period = _period, mode = Timer.PERIODIC, callback = _work)
-
         if _tickets:
             _ticketNr += 1
             _jobs.append((_ticketNr, request.copy(), function))
@@ -155,7 +152,11 @@ def getFutureTicketsOf(folder: str) -> tuple:
     return data.getFileNameListOf("future", folder, "txt")
 
 
-def _work(timer: Timer) -> None:
+def urge() -> None:
+    _work()
+
+
+def _work(timer: Timer = None) -> None:
     global _processing
 
     try:
@@ -163,16 +164,16 @@ def _work(timer: Timer) -> None:
             if _canWork():
                 _processing = True
                 if _canWork():
-                    while _jobs:
+                    while _jobs and _canWork():
                         _pollJob()
-
-                    _timer.deinit()
                 else:
                     _processing = False
     except Exception as e:
         logger.append(e)
     finally:
         _processing = False
+
+_timer.init(period = config.get("future", "period"), mode = Timer.PERIODIC, callback = _work)
 
 
 def _canWork() -> bool:

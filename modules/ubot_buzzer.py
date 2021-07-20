@@ -43,7 +43,7 @@ _defaultState = 0
 ################################
 ## PUBLIC METHODS
 
-def keyBeep(key):
+def keyBeep(key: str) -> None:
     tuneList = config.get("buzzer", key)
 
     if tuneList is not None:
@@ -60,12 +60,12 @@ def keyBeep(key):
                 midiBeep(tuneList[0], tuneList[1], tuneList[2], tuneList[3])
 
 
-def midiBeep(noteOn = 69, duration = 100, restAround = 100, count = 1):
+def midiBeep(noteOn: int = 69, duration: int = 100, restAround: int = 100, count: int = 1) -> None:
     freq = 440 * pow(2, (noteOn - 69) / 12)
     beep(freq, duration, restAround, count)
 
 
-def beep(freq = 440.0, duration = 100, restAround = 100, count = 1):
+def beep(freq: float = 440.0, duration: int = 100, restAround: int = 100, count: int = 1) -> None:
     for i in range(count):
         rest(restAround)
 
@@ -78,13 +78,13 @@ def beep(freq = 440.0, duration = 100, restAround = 100, count = 1):
         rest(restAround)
 
 
-def rest(duration = 100):
+def rest(duration: int = 100) -> None:
     _pwm.duty(0)
     sleep_ms(duration)
     _setDutyByDefaultState()
 
 
-def setDefaultState(value = 0):
+def setDefaultState(value: int = 0) -> None:
     global _defaultState
 
     _defaultState = value
@@ -94,11 +94,11 @@ def setDefaultState(value = 0):
 ################################
 ## PRIVATE, HELPER METHODS
 
-def _pwmBeep(freq = 440.0, duration = 100):
+def _pwmBeep(freq: float = 440.0, duration: int = 100) -> None:
     _pwm.freq(round(freq))
     _pwm.duty(512)
     sleep_ms(duration)
 
 
-def _setDutyByDefaultState():
+def _setDutyByDefaultState() -> None:
     _pwm.duty(1023 * _defaultState)

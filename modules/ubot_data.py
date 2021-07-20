@@ -496,12 +496,16 @@ def getFileNameList(path: Path, suffix = "") -> tuple:
 def getFileList(path: Path, suffix = "") -> tuple:
     """ Returns filenames (file_name.suffix) of the given path as a string tuple. Result can be filtered by suffix."""
     try:
-        pathString = path.path
-        return tuple(name for name in uos.listdir(pathString)
-                     if name.endswith(suffix) and _isFile("{}{}".format(pathString, name)))
+        if path.isExist:
+            pathString = path.path
+            return tuple(name for name in uos.listdir(pathString)
+                         if name.endswith(suffix) and _isFile("{}{}".format(pathString, name)))
+        else:
+            logger.append(AttributeError("ubot_data#getFileList\r\nPath '{}' doesn't exist.\r\n".format(path)))
+            return ()
     except Exception as e:
         logger.append(e)
-        logger.append(AttributeError("ubot_data#getFileList\r\nPath '{}' doesn't exist.\r\n".format(path)))
+        logger.append(AttributeError("ubot_data#getFileList\r\nCan not process '{}'.\r\n".format(path)))
         return ()
 
 
@@ -566,10 +570,15 @@ def printFile(path: Path, isJson: bool = None) -> tuple:    # Exactly same as ge
         return ()
 
 
-def saveFile(path: Path, lines: object, isRecursive: bool = False) -> bool:
+def saveFile(path: Path, lines: object, isJson: bool = None, isRecursive: bool = False) -> bool:
     if assertPathIsSavable(path):
         written = 0
+        isJson = isJson is True or path.array[0] in _jsonCategories           # Root is not savable, so 0 < len(path.array)
+
         try:
+            if isJson:
+                lines = ujson.dumps(lines)
+
             if isRecursive:
                 createFoldersAlongPath(createPathFrom(path.array[:-1]))
 
@@ -596,7 +605,7 @@ def saveFile(path: Path, lines: object, isRecursive: bool = False) -> bool:
         return False
 
 
-def _writeOut(file: object, line: object, isJson: bool = False) -> int:
+def _writeOut(file, line: object, isJson: bool = False) -> int:
     toWrite = "{}\r\n".format(ujson.dumps(line) if isJson else line)
     return file.write(toWrite) - len(toWrite)
 
@@ -780,7 +789,7 @@ def _createJsonFolderInstance(path: Path) -> tuple:
                           "href": "{}{}/".format(folderLink, subFolder),
                           "raw":  "{}{}/".format(folderRawLink, subFolder)} for subFolder in subFolders]}
     else:
-        return "404 Not Found", job + " Cause: The folder doesn't exist.", {}
+        return "404 Not Found", job + " Cause: The folder does not exist.", {}
 
 
 def _createJsonSubFolderInstance(path: Path) -> tuple:
@@ -790,7 +799,6 @@ def _createJsonSubFolderInstance(path: Path) -> tuple:
     if assertPathIsFolder(path):
         files         = getFileNameList(path, "txt")                 #! Burnt-in txt suffix: filtered by it, but chopped
         array         = path.array
-        parentName    = array[0]
         folderLink    = "{}{}".format(_hostLink, name)
         folderRawLink = "{}{}".format(_rawLink,  name)
 
@@ -800,10 +808,10 @@ def _createJsonSubFolderInstance(path: Path) -> tuple:
             "href": folderLink,
             "raw":  folderRawLink,
 
-            "parent": {"name": parentName,
+            "parent": {"name": array[0],
                        "type": "folder",
-                       "href": "{}/{}/".format(_hostLink, parentName),
-                       "raw":  "{}/{}/".format(_rawLink,  parentName)},
+                       "href": "{}/{}/".format(_hostLink, array[0]),
+                       "raw":  "{}/{}/".format(_rawLink,  array[0])},
 
             "children": [{"name": file,
                           "type": "file",
@@ -816,22 +824,21 @@ def _createJsonSubFolderInstance(path: Path) -> tuple:
 def _createJsonFileInstance(path: Path) -> tuple:
     name   = str(path)
     array  = path.array
-    parent = array[1]
 
     job = "Request: Get the file '{}'.".format(name)
 
     if assertPathIsFile(path):
-        isJson = True if array[0] in config.get("data", "json_folders") else None
+        isJson = True if array[0] in _jsonCategories else None
         return "200 OK", job, {
             "name": array[2],
             "type": "file",
             "href": "{}{}".format(_hostLink, name[:-4] if name.endswith(".txt") else name),
             "raw":  "{}{}".format(_rawLink,  name),
             "parent": {
-                "name": parent,
+                "name": array[1],
                 "type": "folder",
-                "href": "{}/{}/".format(_hostLink, parent),
-                "raw":  "{}/{}/".format(_rawLink,  parent)
+                "href": "{}/{}/{}/".format(_hostLink, array[0], array[1]),
+                "raw":  "{}/{}/{}/".format(_rawLink, array[0], array[1])
             },
             "children": [],
             "value": getFile(path, isJson)}
@@ -847,3 +854,4 @@ import ubot_future as future
 
 _hostLink = "http://{}".format(config.get("ap", "ip"))
 _rawLink  = "{}/raw".format(_hostLink)
+_jsonCategories = config.get("data", "json_category")

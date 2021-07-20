@@ -247,7 +247,7 @@ def saveProgram(folder: str = "", title: str = "", program: str = "") -> data.Pa
     isTitleValid = data.isStringWithContent(title)
     path = data.createPathOf("program", folder, title) if isTitleValid else _generateFullPathForAutoSave()
 
-    result = data.saveFile(path, program, True)
+    result = data.saveFile(path, program, False, True)
 
     if not result and not isTitleValid:
         _savedCount -= 1
@@ -574,6 +574,7 @@ def _start(arguments):                # (blockLevel,)
     logger.logCommandsAndProgram()
 
     motor.setCallback(0, _callbackEnd)
+    motor.setCallback(1, _callbackStep)
 
     #counter = 0                                   #    Debug
     #print("_toPlay[:_pointer]", "_toPlay[_pointer:]", "\t\t\t", "counter", "_pointer", "_toPlay[_pointer]") # Debug
@@ -956,8 +957,5 @@ _moveCharMapping = {
 ## LAST PART OF INITIALISATION
 
 _currentMapping = _defaultMapping
-
-motor.setCallback(0, _callbackEnd)
-motor.setCallback(1, _callbackStep)
 
 _startButtonChecking()

@@ -60,20 +60,35 @@ if config.get("web_server", "active"):
 powerOns = config.get("system", "power_ons")
 ip = config.get("ap", "ip")
 
-def printEvents(nr: int = -1) -> None:
-    logger.printLog("event", powerOns if nr < 0 else nr)
+
+def printEvents(nr: int = None) -> None:
+    logger.printLog("event", _logIndexResolver(nr))
 
 
-def printExceptions(nr: int = -1) -> None:
-    logger.printLog("exception", powerOns if nr < 0 else nr)
+def printExceptions(nr: int = None) -> None:
+    logger.printLog("exception", _logIndexResolver(nr))
 
 
-def printObjects(nr: int = -1) -> None:
-    logger.printLog("object", powerOns if nr < 0 else nr)
+def printObjects(nr: int = None) -> None:
+    logger.printLog("object", _logIndexResolver(nr))
 
 
-def printRuns(nr: int = -1) -> None:
-    logger.printLog("run", powerOns if nr < 0 else nr)
+def printRuns(nr: int = None) -> None:
+    logger.printLog("run", _logIndexResolver(nr))
+
+
+def _logIndexResolver(nr: int = None) -> int:
+    if nr is None:
+        return powerOns
+    elif powerOns <= nr:
+        return powerOns
+    elif 0 <= nr:
+        return nr
+    else:
+        if nr <= -powerOns:
+            return 0
+        else:
+            return powerOns + nr
 
 
 def executeCommandList(commands: tuple) -> tuple:
@@ -146,6 +161,8 @@ def motor(args: str):  # MOT_1_1000
     direction = inp[0] if 0 < length else 1
     length = inp[1] if 1 < length else 1000
 
+    mot.deleteCallback(0)
+    mot.deleteCallback(1)
     mot.move(direction, length)
 
 
@@ -171,15 +188,22 @@ def step(args: str):    # STEP_FFR
         turtle.move(char)
 
 
-def time(args: str):    # TIME_2020-02-02_20:20:20:200
+def datetime(args: str = ""):
+    time(args)
+
+
+def time(args: str = ""):    # TIME_2020-02-02_20:20:20.200
     inp = data.extractIntTupleFromString(args, 7)
     if 2 < len(inp):
         inp = list(inp)
         inp.insert(3, 0)   # Insert week day nr at position 3, it's calculated by MicroPython either way, so 0 is OK
         inp += [0] * (8 - len(inp))
-        config.datetime(inp)
+        dateTime = config.datetime(tuple(inp))
     else:
-        config.datetime()
+        dateTime = config.datetime()
+
+    print("{}. {:02d}. {:02d}.  {:02d}:{:02d}:{:02d}.{:03d}".format(dateTime[0], dateTime[1], dateTime[2], dateTime[4],
+                                                                    dateTime[5], dateTime[6], dateTime[7]))
 
 
 _commandFunctions = {
@@ -244,9 +268,9 @@ def _jsonReplyWithFileInstance(path: data.Path, job: str) -> tuple:
         if savedProgram[0] == "200 OK":
             return "200 OK", job, savedProgram[2]
         else:
-            return "500 Internal Server Error", "{} Cause: The file system is not available.".format(job), {}
+            return "500 Internal Server Error", "{} Cause: Can not open the path '{}'.".format(job, path), {}
     else:
-        return "422 Unprocessable Entity", "{} Cause: Semantic error in JSON.".format(job), {}
+        return "422 Unprocessable Entity", "{} Cause: The path '{}' does not exist.".format(job, path), {}
 
 
 def _executeJsonGet() -> tuple:                                                              ########## JSON GET HANDLER
@@ -398,7 +422,7 @@ def _jsonPostProgram() -> tuple:
     job = "Request: Save the {}.".format(path.description)
 
     if path.size < 3:
-        _jsonWriteProgram("", "", job)
+        return _jsonWriteProgram("", "", job)
     else:
         folder, title = path.array[1:3]
 
@@ -408,7 +432,7 @@ def _jsonPostProgram() -> tuple:
             return "403 Forbidden", "{} Cause: The program already exists.".format(job), {}
 
 
-def _jsonWriteProgram(folder, title, job) -> tuple:
+def _jsonWriteProgram(folder: str, title: str, job: str) -> tuple:
     body = _jsonRequest.get("body")
     if body == "":
         path = turtle.saveLoadedProgram(folder, title)
@@ -442,8 +466,7 @@ def _jsonWriteFile(path: data.Path, job: str, isJson: bool = None) -> tuple:
     body   = _jsonRequest.get("body")
     isJson = isJson is True or body.get("isJson") is True
 
-    file = ujson.dumps(body.get("value")) if isJson else body.get("value")
-    data.saveFile(path, file)
+    data.saveFile(path, body.get("value"), isJson, True)
 
     return _jsonReplyWithFileInstance(path, job)
 
@@ -473,7 +496,7 @@ def _jsonPostCommand() -> tuple:
 def _jsonPostLog() -> tuple:
     job = "Request: Send log for processing."
 
-    if config.get("logger", "active"):
+    if logger.isLoggerActive():
         result = _jsonBodyValidator(job)
         if result[0] != "200 OK":
             return result
@@ -481,9 +504,9 @@ def _jsonPostLog() -> tuple:
         log = _jsonRequest.get("body").get("value")
 
         logFile = "event" if isinstance(log, str) else "object"
-        if logFile in config.get("logger", "active_logs"):
+        if logger.isLogCategoryActive(logFile):
             logger.append(log)
-            status, message, json = data.createRestReplyOf("log", logFile, str(powerOns))
+            status, message, json = data.createRestReplyOf("log", logFile, logger.normalizeLogTitle(_logIndexResolver()))
 
             if status == "200 OK":
                 return "200 OK", job, json
@@ -575,7 +598,7 @@ def _jsonDeleteEntity() -> tuple:
             else:
                 return "403 Forbidden", "{} Cause: Missing delete permission.".format(job), {}
     else:
-        return "403 Forbidden", "{} Cause: The {} doesn't exist.".format(job, path), {}
+        return "403 Forbidden", "{} Cause: The path '{}' does not exist.".format(job, path), {}
 
 
 

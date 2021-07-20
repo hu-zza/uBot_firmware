@@ -50,7 +50,6 @@ _quickPress = False
 _quickDrive = False
 
 _started = False
-_period  = config.get("web_server", "period")
 _timeout = config.get("web_server", "timeout")
 _timer  = Timer(-1)
 _socket = usocket.socket(usocket.AF_INET, usocket.SOCK_STREAM)
@@ -73,8 +72,8 @@ _request = {
     "processing": "UNDEFINED"
 }
 
-_major, _minor, _patch = config.get("system", "firmware")
-_server = "uBot_firmware/{}.{}.{}".format(_major, _minor, _patch)
+_server = "uBot_firmware/{}".format(".".join([str(i) for i in config.get("system", "firmware")]))
+_apiLink = config.get("constant", "api_link")
 _response = {
         "meta": {
             "request": _request,
@@ -131,7 +130,7 @@ def start() -> None:
     global _started
 
     if not _started and config.get("web_server", "active"):
-        _timer.init(period = _period, mode = Timer.PERIODIC, callback = _poll)
+        _timer.init(period = config.get("web_server", "period"), mode = Timer.PERIODIC, callback = _poll)
         _started = True
 
 
@@ -413,14 +412,14 @@ def _replyWithHtmlTemplate(path: str) -> None:
 
 
 def _includeDebugDashboard() -> None:
+    ip = config.get("ap", "ip")
     _connection.write("        <h3>Information panels</h3>\r\n")
     for panelTitle in sorted(template.debugPanels.keys()):
         _connection.write("            <a href='http://{0}{1}' target='_blank'>{2}</a><br>\r\n"
-                          .format(config.get("ap", "ip"), template.debugPanels.get(panelTitle), panelTitle))
+                          .format(ip, template.debugPanels.get(panelTitle), panelTitle))
     _connection.write("        <br><br><hr><hr>\r\n")
     _connection.write("        <h3>Log files</h3>\r\n")
-    _powerOns = config.get("system", "power_ons")
-    _host = "http://{}/raw".format(config.get("ap", "ip"))
+    _host = "http://{}/raw".format(ip)
     _filenameBase = "/log/{{}}/{:010d}.txt".format(config.get("system", "power_ons"))
     _fallbackBase = "/log/{}/0000000000.txt"
     _connection.write("            <table class='data'>\r\n")
@@ -581,7 +580,7 @@ def _getMessageWithFlags(message: str, statusCode: int) -> str:
     elif 300 <= statusCode < 400:
         flags = "[LINK] {}"
     elif 400 <= statusCode < 600:
-        flags = "[FAIL] {{}}  // More info: {}".format(config.get("constant", "api_link"))
+        flags = "[FAIL] {{}}  // More info: {}".format(_apiLink)
 
     return flags.format(message)
 
@@ -601,7 +600,7 @@ def _getHelperLinks() -> str:
 def _sendRaw(path: str) -> None:
     """ If the path links to a dir, sends a linked list, otherwise tries to send the content of the target entity. """
     try:
-        if path[-1] == "/":           # Folder -> A practical, cosy, and a bit dirty constraint for simple URL handling.
+        if path[-1] == "/":  # Folder -> A practical, cosy, and a bit dirty constraint for simple relative URL handling.
             _connection.write(("        <table>\r\n"
                                "            <thead>\r\n"
                                "                <tr><th scope='col'>Filename</th><th scope='col'>File size</th></tr>\r\n"

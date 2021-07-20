@@ -33,20 +33,21 @@ import usys
 
 import ubot_config as config
 
-_enabled  = config.get("logger", "active")
+_enabled    = config.get("logger", "active")
+_activeLogs = config.get("logger", "active_logs")
 
         # Name        | List  | Path  | Enabled
 _logs = (
-        ["Exception",   [],     "",     "exception" in config.get("logger", "active_logs")],
-        ["Event",       [],     "",     "event" in config.get("logger", "active_logs")],
-        ["Object",      [],     "",     "object" in config.get("logger", "active_logs")],
-        ["Run",         [],     "",     "run" in config.get("logger", "active_logs")])
+        ["Exception",   [],     "",     "exception" in _activeLogs],
+        ["Event",       [],     "",     "event"     in _activeLogs],
+        ["Object",      [],     "",     "object"    in _activeLogs],
+        ["Run",         [],     "",     "run"       in _activeLogs])
 
 
 ################################
 ## PUBLIC METHODS
 
-def append(item, logIndex = None):
+def append(item: object, logIndex: int = None) -> None:
     if _enabled:
         try:
             logIndex = _defineIndex(item) if logIndex is None else logIndex
@@ -58,32 +59,42 @@ def append(item, logIndex = None):
             _appendToList(item)
 
 
-def logCommandsAndProgram():
+def logCommandsAndProgram() -> None:
     if _logs[3][3]:
         append((turtle.getCommandArray(), turtle.getProgramArray()), 3)
 
 
-def getLogCategories():
+def isLoggerActive() -> bool:
+    return _enabled
+
+
+def getLogCategories() -> tuple:
     return data.getFoldersOf(data.LOG)
 
 
-def getCategoryLogs(category):
+def isLogCategoryActive(category: str) -> bool:
+    return category in _activeLogs
+
+
+def getCategoryLogs(category: str) -> tuple:
     return data.getFileListOf("log", category, "txt")
 
 
-def getLog(category: str, title) -> tuple:
+def getLog(category: str, title: object) -> tuple:
     return data.getFile(getPathOf(category, title), False)
 
 
-def printLog(category: str, title) -> None:
-    data.printFile(getPathOf(category, title), False)
+def printLog(category: str, title: object) -> None:
+    path = getPathOf(category, title)
+    print()
+    data.printFile(path, False)
 
 
-def doesLogExist(category, title):
+def doesLogExist(category: str, title: object) -> bool:
     return normalizeLogTitle(title) in getCategoryLogs(category)
 
 
-def getPathOf(category: str, title = "") -> data.Path:
+def getPathOf(category: str, title: object) -> data.Path:
     return data.createPathOf("log", category, normalizeLogTitle(title))
 
 
@@ -94,7 +105,7 @@ def normalizeLogTitle(title: object) -> str:
 ################################
 ## PRIVATE, HELPER METHODS
 
-def _appendToList(item):
+def _appendToList(item: object) -> None:
     global _logs
 
     index = _defineIndex(item)
@@ -115,7 +126,7 @@ def _appendToList(item):
                 usys.print_exception(item)
 
 
-def _saveFromList(logFile, fallback = False):
+def _saveFromList(logFile: list, fallback: bool = False) -> None:
     if _enabled and logFile[3] and 0 < len(logFile[1]):             # Logger and log is active and log list has item(s).
 
         filename = "0000000000.txt" if fallback else _filename
@@ -131,7 +142,7 @@ def _saveFromList(logFile, fallback = False):
                 _saveFromList(logFile, True)
 
 
-def _writeOutItem(dateTime, logFile, item):
+def _writeOutItem(dateTime: tuple, logFile, item: object) -> None:
     if isinstance(item, str):
         logFile.write("{}     \t".format(dateTime))
     else:
@@ -144,7 +155,7 @@ def _writeOutItem(dateTime, logFile, item):
     logFile.write("\r\n\r\n")
 
 
-def _chooseWriteOutMethod(logFile, item, indentation = ""):
+def _chooseWriteOutMethod(logFile, item: object, indentation: str = "") -> None:
     if isinstance(item, dict):
         _writeOutDict(logFile, item, indentation)
     elif isinstance(item, tuple) or isinstance(item, list):
@@ -156,7 +167,7 @@ def _chooseWriteOutMethod(logFile, item, indentation = ""):
             logFile.write("{}[empty string]\r\n".format(indentation))
 
 
-def _writeOutIterable(logFile, iterable, indentation = ""):
+def _writeOutIterable(logFile, iterable: list, indentation: str = "") -> None:
     if 0 < len(iterable):
         for item in iterable:
             _chooseWriteOutMethod(logFile, item, indentation)
@@ -164,7 +175,7 @@ def _writeOutIterable(logFile, iterable, indentation = ""):
         logFile.write("{}[empty iterable]\r\n".format(indentation))
 
 
-def _writeOutDict(logFile, dictionary, indentation = ""):
+def _writeOutDict(logFile, dictionary: dict, indentation: str = "") -> None:
     if 0 < len(dictionary):
         for key in dictionary.keys():
             logFile.write("{}{}:\r\n".format(indentation, key))
@@ -173,7 +184,7 @@ def _writeOutDict(logFile, dictionary, indentation = ""):
         logFile.write("{}[empty map]\r\n".format(indentation))
 
 
-def _defineIndex(item):
+def _defineIndex(item: object) -> int:
     if not _enabled:
         return -1
     elif isinstance(item, Exception):

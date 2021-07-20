@@ -3,8 +3,8 @@ import network, ujson, uos
 from flashbdev import bdev
 from ubinascii import hexlify
 
-firmware = (0, 1, 187)
-initDatetime = (2021, 7, 19, 0, 2, 25, 0, 0)
+firmware = (0, 1, 188)
+initDatetime = (2021, 7, 20, 0, 13, 40, 0, 0)
 
 AP  = network.WLAN(network.AP_IF)
 mac = hexlify(AP.config("mac"), ":").decode()
@@ -58,12 +58,11 @@ constant = {
 data = {
     "name"          : "File manager",
     "active"        : True,     # Should be always active
-    "json_folders"  : ("etc", ),
+    "json_category" : ("etc", ),
     "modify_rights" : ("/etc/ap/", "/etc/buzzer/", "/etc/feedback/", "/etc/i2c/", "/etc/logger/", "/etc/motor/",
                        "/etc/turtle/", "/etc/uart/", "/etc/web_repl/", "/etc/web_server"),
     "write_rights"  : ("/home/", "/program/"),
-    "delete_rights" : ("/future/", "/home/", "/log/exception/", "/log/event/", "/log/object/", "/log/run/", "/program/"),
-    "has_action"    : ("/etc/", "/program/")
+    "delete_rights" : ("/future/", "/home/", "/log/exception/", "/log/event/", "/log/object/", "/log/run/", "/program/")
 }
 
 feedback = {
@@ -268,7 +267,8 @@ def createBaseFiles():
         file.write(firmwareComment)
         file.write(gc)
         file.write("import micropython\r\n"
-                   "micropython.alloc_emergency_exception_buf(100)\r\n\r\n"
+                   "micropython.alloc_emergency_exception_buf(100)\r\n"
+                   "del micropython\r\n\r\n"
                    "import ubot_core as core\r\n\r\n")
         file.write(footerComment)
 
@@ -276,7 +276,8 @@ def createBaseFiles():
         file.write(firmwareComment)
         file.write(gc)
         file.write(("import usys\r\n"
-                    "core = usys.modules.get('ubot_core')\r\n\r\n"))
+                    "core = usys.modules.get('ubot_core')\r\n"
+                    "del usys\r\n\r\n"))
         file.write(footerComment)
 
 
