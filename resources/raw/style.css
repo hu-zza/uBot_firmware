@@ -55,14 +55,14 @@ body.raw .info {
     text-align: center;
 }
 
-img.turtle {
+svg.turtle {
     width: 100px;
     height: 100px;
     opacity: 35%;
     transition: 0.75s;
 }
 
-img.turtle:active {
+svg.turtle:active {
     opacity: 70%;
     transition: 0.1s;
 }
