@@ -17,8 +17,13 @@ hr {
     color: #EEE;
 }
 
-table {
+table:not(.inline) {
     margin: 30px;
+}
+
+table.inline {
+    width: 100%;
+    text-align: center;
 }
 
 .data td {

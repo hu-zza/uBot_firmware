@@ -35,70 +35,6 @@ import ubot_config as config
 import ubot_turtle as turtle
 
 
-
-###########
-## GENERAL
-
-def getSimplePage() -> str:
-    return ("<!DOCTYPE html>\r\n"
-            "<html>\r\n"
-            "    <head>\r\n"
-            "        <meta name='viewport' content='width=450'>\r\n"
-            "        <meta charset='utf-8'>\r\n"
-            "        <meta name='author' content='Szabó László András // hu-zza'>\r\n"
-            "        <link rel='author' href='https://zza.hu'>\r\n"
-            "        <link rel='license' href='/license.html'>\r\n"
-            "        <link rel='help' href='https://ubot.hu'>\r\n"
-            "        <link rel='icon' type='image/png' href='/android-chrome-512x512.png' sizes='512x512'>\r\n"
-            "        <link rel='icon' type='image/png' href='/android-chrome-192x192.png' sizes='192x192'>\r\n"
-            "        <link rel='icon' type='image/png' href='/favicon.png' sizes='192x192'>\r\n"
-            "        <link rel='icon' type='image/png' href='/favicon-32x32.png' sizes='32x32'>\r\n"
-            "        <link rel='icon' type='image/png' href='/favicon-16x16.png' sizes='16x16'>\r\n"
-            "        <link rel='icon' type='image/x-icon' href='/favicon.ico'>\r\n"
-            "        <link rel='shortcut icon' type='image/x-icon' href='/favicon.ico'>\r\n"
-            "        <link rel='manifest' href='/site.webmanifest'>\r\n"
-            "        <link rel='stylesheet' href='/style.css'>\r\n"
-            "        <title>μBot | {title}</title>\r\n"
-            "    </head>\r\n"
-            "    <body>\r\n"
-            "        <h1>{title}</h1>\r\n"
-            "        {body}\r\n"
-            "    </body>\r\n"
-            "</html>\r\n\r\n")
-
-
-def getPageHeadStart() -> str:
-    return ("<!DOCTYPE html>\r\n"
-            "<html>\r\n"
-            "    <head>\r\n"
-            "        <meta name='viewport' content='width=610'>\r\n"
-            "        <meta charset='utf-8'>\r\n"
-            "        <meta name='author' content='Szabó László András // hu-zza'>\r\n"
-            "        <link rel='author' href='https://zza.hu'>\r\n"
-            "        <link rel='license' href='/license.html'>\r\n"
-            "        <link rel='help' href='https://ubot.hu'>\r\n"
-            "        <link rel='icon' type='image/png' href='/android-chrome-512x512.png' sizes='512x512'>\r\n"
-            "        <link rel='icon' type='image/png' href='/android-chrome-192x192.png' sizes='192x192'>\r\n"
-            "        <link rel='icon' type='image/png' href='/favicon.png' sizes='192x192'>\r\n"
-            "        <link rel='icon' type='image/png' href='/favicon-32x32.png' sizes='32x32'>\r\n"
-            "        <link rel='icon' type='image/png' href='/favicon-16x16.png' sizes='16x16'>\r\n"
-            "        <link rel='icon' type='image/x-icon' href='/favicon.ico'>\r\n"
-            "        <link rel='shortcut icon' type='image/x-icon' href='/favicon.ico'>\r\n"
-            "        <link rel='manifest' href='/site.webmanifest'>\r\n"
-            "        <link rel='stylesheet' href='/style.css'>\r\n")
-
-
-def getPageHeadEnd() -> str:
-    return ("        <title>{}</title>\r\n"
-            "    </head>\r\n"
-            "    <body class='{}'>\r\n")
-
-
-def getPageFooter() -> str:
-    return ("    </body>\r\n"
-            "</html>\r\n\r\n")
-
-
 ###########
 ## PANELS
 
@@ -177,161 +113,23 @@ def getApPanel() -> str:
                                                dns = config.get("ap", "dns"))
 
 
-def getDrivePanel() -> str:
-    return ("        <table class='drive panel'>\r\n"
-            "            <tr>\r\n"
-            "                <td><svg onclick='send(\"K\")' class='turtle arrow rot-45'><use xlink:href='turtle.svg#arrow'></use></svg></td>\r\n"
-            "                <td><svg onclick='send(\"F\")' class='turtle arrow'><use xlink:href='turtle.svg#arrow'></use></svg></td>\r\n"
-            "                <td><svg onclick='send(\"Q\")' class='turtle arrow rot45'><use xlink:href='turtle.svg#arrow'></use></svg></td>\r\n"
-            "            </tr>\r\n"
-            "            <tr>\r\n"
-            "                <td><svg onclick='send(\"L\")' class='turtle arrow rot-90'><use xlink:href='turtle.svg#arrow'></use></svg></td>\r\n"
-            "                <td><svg onclick='send(\"B\")' class='turtle arrow rot180'><use xlink:href='turtle.svg#arrow'></use></svg></td>\r\n"
-            "                <td><svg onclick='send(\"R\")' class='turtle arrow rot90'><use xlink:href='turtle.svg#arrow'></use></svg></td>\r\n"
-            "            </tr>\r\n"
-            "        </table>\r\n")
-
-
-def getSimplePanel() -> str:
-    return ("        <table class='simple panel'>\r\n"
-            "            <tr>\r\n"
-            "                <td></td>\r\n"
-            "                <td><svg onclick='send(1)' class='turtle arrow'><use xlink:href='turtle.svg#arrow'></use></svg></td>\r\n"
-            "                <td></td>\r\n"
-            "            </tr>\r\n"
-            "            <tr>\r\n"
-            "                <td><svg onclick='send(128)' class='turtle arrow rot-90'><use xlink:href='turtle.svg#arrow'></use></svg></td>\r\n"
-            "                <td><svg onclick='send(64)' class='turtle play'><use xlink:href='turtle.svg#play'></use></svg></td>\r\n"
-            "                <td><svg onclick='send(16)' class='turtle arrow rot90'><use xlink:href='turtle.svg#arrow'></use></svg></td>\r\n"
-            "            </tr>\r\n"
-            "            <tr>\r\n"
-            "                <td></td>\r\n"
-            "                <td><svg onclick='send(32)' class='turtle arrow rot180'><use xlink:href='turtle.svg#arrow'></use></svg></td>\r\n"
-            "                <td></td>\r\n"
-            "            </tr>\r\n"
-            "            <tr>\r\n"
-            "                <td colspan='3' style='height:100px;'></td>\r\n"
-            "            </tr>\r\n"
-            "            <tr>\r\n"
-            "                <td><svg onclick='send(512)' class='turtle cross'><use xlink:href='turtle.svg#cross'></use></svg></td>\r\n"
-            "                <td><svg onclick='send(2)' class='turtle pause'><use xlink:href='turtle.svg#pause'></use></svg></td>\r\n"
-            "                <td><svg onclick='send(256)' class='turtle undo'><use xlink:href='turtle.svg#undo'></use></svg></td>\r\n"
-            "            </tr>\r\n"
-            "        </table>\r\n")
-
-
-def getProPanel() -> str:
-    return ("        <table class='pro panel'>\r\n"
-            "            <tr>\r\n"
-            "                <td><svg onclick='send(128)' class='turtle arrow rot-45'><use xlink:href='turtle.svg#arrow'></use></svg></td>\r\n"
-            "                <td><svg onclick='send(1)' class='turtle arrow'><use xlink:href='turtle.svg#arrow'></use></svg></td>\r\n"
-            "                <td><svg onclick='send(16)' class='turtle arrow rot45'><use xlink:href='turtle.svg#arrow'></use></svg></td>\r\n"
-            "            </tr>\r\n"
-            "            <tr>\r\n"
-            "                <td><svg onclick='send(128)' class='turtle arrow rot-90'><use xlink:href='turtle.svg#arrow'></use></svg></td>\r\n"
-            "                <td><svg onclick='send(64)' class='turtle play'><use xlink:href='turtle.svg#play'></use></svg></td>\r\n"
-            "                <td><svg onclick='send(16)' class='turtle arrow rot90'><use xlink:href='turtle.svg#arrow'></use></svg></td>\r\n"
-            "            </tr>\r\n"
-            "            <tr>\r\n"
-            "                <td><svg onclick='send(2)' class='turtle pause'><use xlink:href='turtle.svg#pause'></use></svg></td>\r\n"
-            "                <td><svg onclick='send(32)' class='turtle arrow rot180'><use xlink:href='turtle.svg#arrow'></use></svg></td>\r\n"
-            "                <td><svg onclick='send(4)' class='turtle repeat'><use xlink:href='turtle.svg#repeat'></use></svg></td>\r\n"
-            "            </tr>\r\n"
-            "            <tr>\r\n"
-            "                <td><svg onclick='send(512)' class='turtle cross'><use xlink:href='turtle.svg#cross'></use></svg></td>\r\n"
-            "                <td><svg onclick='send(256)' class='turtle undo'><use xlink:href='turtle.svg#undo'></use></svg></td>\r\n"
-            "                <td><svg onclick='send(8)' class='turtle cross rot45'><use xlink:href='turtle.svg#cross'></use></svg></td>\r\n"
-            "            </tr>\r\n"
-            "            <tr>\r\n"
-            "                <td><svg onclick='send(6)' class='turtle f1'><use xlink:href='turtle.svg#F1'></use></svg></td>\r\n"
-            "                <td><svg onclick='send(10)' class='turtle f2'><use xlink:href='turtle.svg#F2'></use></svg></td>\r\n"
-            "                <td><svg onclick='send(12)' class='turtle f3'><use xlink:href='turtle.svg#F3'></use></svg></td>\r\n"
-            "            </tr>\r\n"
-            "        </table>\r\n")
-
-
-def getSettingsPanel() -> str:
-    return ("        <ul class='links'>\r\n"
-            "            <li>Settings</li>\r\n"
-            "            <li><a href='_datetime'>Date & Time</a></li>\r\n"
-            "            <li><a href=''></a></li>\r\n"
-            "            <li><a href=''></a></li>\r\n"
-            "        </ul>\r\n")
-
-
-def getDateTimePanel() -> str:
-    dt = config.datetime()
-    return ("        <ul class='links'>\r\n"
-            "            <li>Date & Time</li>\r\n"
-            "            <li><table style='width: 100%; text-align: center;'><tr><td>{}. {:02d}. {:02d}.</td><td>{:02d} : {:02d} : {:02d}</td></tr></table></li>\r\n"
-            "            <li><center><input type='date' id='date'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<input type='time' id='time'></center></li>\r\n"
-            "            <li><a href='_datetime' onclick='send(1)'>Save</a></li>\r\n"
-            "            <li><a href='_settings'>Back to settings</a></li>\r\n"
-            "        </ul>\r\n").format(dt[0], dt[1], dt[2], dt[4], dt[5], dt[6])
-
-
-_sender =  ("\r\n"
-            "        <script>\r\n"
-            "            function send(value) {{\r\n"
-            "                let xhr = new XMLHttpRequest();\r\n"
-            "                xhr.open('GET', '/command/{});\r\n"
-            "                xhr.setRequestHeader('Content-Type', 'application/json');\r\n"
-            "                xhr.send();\r\n"
-            "            }}\r\n"
-            "        </script>\r\n")
-
-
-def getTurtleMoveSender() -> str:
-    return _sender.format("DRIVE_' + value")
-
-
-def getButtonPressSender() -> str:
-    return _sender.format("PRESS_' + value")
-
-
-def getDateTimeSender() -> str:
-    return _sender.format("TIME_' + document.getElementById(\"date\").value +"
-                          " \"_\" + document.getElementById(\"time\").value")
-
-
-def linkSitePathToExistingPath(path: str, existingPath: str) -> None:
-    title[path] = title.get(existingPath)
-    parts[path] = parts.get(existingPath)
-
-
 ############
 ## CATALOGS
 
-
 title = {
-    "/_settings"    : "μBot Settings",
-    "/_datetime"    : "μBot Settings - Date & Time",
     "/debug"        : "μBot Debug - Dashboard",
     "/_system"      : "μBot Debug - System info",
     "/_services"    : "μBot Debug - Service status",
     "/_ap"          : "μBot Debug - Access point",
-
-    "/turtle"       : "μBot TurtleCode",
-    "/drive"        : "μBot Drive",
-    "/simple"       : "μBot Simple",
-    "/pro"          : "μBot Professional"
+    "/turtle"       : "μBot TurtleCode"
 }
 
 parts = {
-    "/_settings"    : (getSettingsPanel,),
-    "/_datetime"    : (getDateTimePanel, getDateTimeSender),
     "/debug"        : (),
     "/_system"      : (getSystemPanel,),
     "/_services"    : (getServiceStatusPanel,),
     "/_ap"          : (getApPanel,),
-
-    "/turtle"       : (getTurtlePanel,),
-
-    "/drive"        : (getDrivePanel, getTurtleMoveSender),
-
-    "/simple"       : (getSimplePanel, getButtonPressSender),
-
-    "/pro"          : (getProPanel, getButtonPressSender)
+    "/turtle"       : (getTurtlePanel,)
 }
 
 debugPanels = {
@@ -339,7 +137,3 @@ debugPanels = {
     "Service status" : "/_services",
     "Access point"   : "/_ap"
 }
-
-linkSitePathToExistingPath("/", "/simple")
-linkSitePathToExistingPath("/professional", "/pro")
-linkSitePathToExistingPath("/turtlecode", "/turtle")

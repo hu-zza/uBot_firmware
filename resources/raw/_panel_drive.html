@@ -1,0 +1,26 @@
+        <title>μBot Drive</title>
+    </head>
+    <body>
+        <table class="drive panel">
+            <tr>
+                <td><svg onclick="send('K')" class="turtle arrow rot-45"><use xlink:href="turtle.svg#arrow"></use></svg></td>
+                <td><svg onclick="send('F')" class="turtle arrow"><use xlink:href="turtle.svg#arrow"></use></svg></td>
+                <td><svg onclick="send('Q')" class="turtle arrow rot45"><use xlink:href="turtle.svg#arrow"></use></svg></td>
+            </tr>
+            <tr>
+                <td><svg onclick="send('L')" class="turtle arrow rot-90"><use xlink:href="turtle.svg#arrow"></use></svg></td>
+                <td><svg onclick="send('B')" class="turtle arrow rot180"><use xlink:href="turtle.svg#arrow"></use></svg></td>
+                <td><svg onclick="send('R')" class="turtle arrow rot90"><use xlink:href="turtle.svg#arrow"></use></svg></td>
+            </tr>
+        </table>
+
+        <script>
+            function send(value) {{
+                let xhr = new XMLHttpRequest();
+                xhr.open("GET", "/command/DRIVE_" + value);
+                xhr.setRequestHeader("Content-Type", "application/json");
+                xhr.send();
+            }}
+        </script>
+    </body>
+</html>

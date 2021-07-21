@@ -1,0 +1,25 @@
+        <title>μBot Settings - Date & Time</title>
+    </head>
+    <body>
+        <ul class="links">
+            <li>Date & Time</li>
+<!--
+#!MicroPython
+dt = config.datetime()
+return "            <li><table class=\"inline\"><tr><td>{}. {:02d}. {:02d}.</td><td>{:02d} : {:02d} : {:02d}</td></tr></table></li>".format(dt[0], dt[1], dt[2], dt[4], dt[5], dt[6])
+-->
+            <li><center><input type="date" id="date">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<input type="time" id="time"></center></li>
+            <li><a href="_datetime" onclick="send(1)">Save</a></li>
+            <li><a href="_settings">Back to settings</a></li>
+        </ul>
+
+        <script>
+            function send(value) {{
+                let xhr = new XMLHttpRequest();
+                xhr.open("GET", "/command/TIME_" + document.getElementById("date").value + "_" + document.getElementById("time").value);
+                xhr.setRequestHeader("Content-Type", "application/json");
+                xhr.send();
+            }}
+        </script>
+    </body>
+</html>

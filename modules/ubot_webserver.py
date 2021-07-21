@@ -101,8 +101,43 @@ allowedHtmlMethods = {"GET", "POST"}
 allowedJsonMethods = {"GET", "POST", "PUT", "DELETE"}
 _hasJsonBody       = {"POST", "PUT"}
 
-_files = tuple("/{}".format(name) for name in uos.listdir("/srv"))
+_srv = tuple(name for name in uos.listdir("/srv") if not name.endswith("_meta"))
 
+tmp = ([], [])
+for name in _srv:
+    tmp[name.startswith("_panel_")].append("/{}".format(name[7:-5] if name.startswith("_panel_") else name))
+
+_files  = tuple(tmp[0])
+_panels = tuple(tmp[1])
+del tmp
+
+_headerEnd = ("        <title>{}</title>\r\n"
+              "    </head>\r\n"
+              "    <body class='{}'>\r\n")
+
+_bodyEnd   = ("    </body>\r\n"
+              "</html>\r\n\r\n")
+
+
+_simpleEnd = ("        <title>μBot | {title}</title>\r\n"
+              "    </head>\r\n"
+              "    <body>\r\n"
+              "        <h1>{title}</h1>\r\n"
+              "        {body}\r\n"
+              "    </body>\r\n"
+              "</html>\r\n\r\n")
+
+
+def _getFileMetadata(fileName: str) -> tuple:
+    try:
+        with open("/srv/{}_meta".format(fileName.strip("/")), "r") as file:
+            return tuple(line.strip() for line in file)
+    except Exception as e:
+        logger.append("ubot_webserver#_getFileMetadata\r\nFile '{}' can not found.".format(fileName))
+        logger.append(e)
+        return "0", "text/html; charset=UTF-8"
+
+_headLength = int(_getFileMetadata("_panel___head.html")[0])
 
 
 ################################
@@ -381,9 +416,11 @@ def _unavailableSupplierFunction(*args) -> tuple:
 
 
 def _processHtmlGetQuery() -> None:
-    path = _request.get("rawPath")
+    path = _resolveLinks(_request.get("rawPath"))
 
-    if path in template.title:
+    if path in _panels and not path.startswith("__"):
+        _replyWithHtmlPanel(path)
+    elif path in template.title:
         _replyWithHtmlTemplate(path)
     else:
         path = _request.get("path")
@@ -393,11 +430,45 @@ def _processHtmlGetQuery() -> None:
         else:
             _reply("404 Not Found", "Request: Get the page / file '{}'.".format(path))
 
+_links = {
+    "/":             "/go",
+    "/professional": "/pro",
+    "/turtlecode":   "/turtle"
+}
+
+def _resolveLinks(path: str) -> str:
+    if path in _links:
+        return _links.get(path)
+    else:
+        return path
+
+
+def _replyWithHtmlPanel(path: str) -> None:
+    path = "_panel_{}.html".format(path[1:])
+
+    _sendHeader("200 OK", _headLength + int(_getFileMetadata(path)[0]))
+    _sendPanel("__head.html")
+    _sendPanel(path)
+    _logResponse(_getBasicReplyMap("200 OK", "Request: Get the page '{}'.".format(path)))
+
+
+def _sendPanel(panelFilename: str) -> None:
+    try:
+        if not panelFilename.startswith("_panel_"):
+            panelFilename = "_panel_{}".format(panelFilename)
+
+        with open("/srv/{}".format(panelFilename)) as file:
+            for line in file:
+                _connection.write(line)
+    except Exception as e:
+        logger.append("ubot_webserver#_sendPanel\r\nPanel '{}' can not found.".format(panelFilename))
+        logger.append(e)
+
 
 def _replyWithHtmlTemplate(path: str) -> None:
     _sendHeader()
-    _connection.write(template.getPageHeadStart())
-    _connection.write(template.getPageHeadEnd().format(template.title.get(path), "general"))
+    _sendPanel("__head.html")
+    _connection.write(_headerEnd.format(template.title.get(path), "general"))
 
     for part in template.parts.get(path):
         _connection.write(part())
@@ -405,7 +476,7 @@ def _replyWithHtmlTemplate(path: str) -> None:
     if path.startswith("/debug"):
         _includeDebugDashboard()
 
-    _connection.write(template.getPageFooter())
+    _connection.write(_bodyEnd)
     _logResponse(_getBasicReplyMap("200 OK", "Request: Get the page '{}'.".format(path)))
 
 
@@ -437,11 +508,11 @@ def _includeDebugDashboard() -> None:
 
 def _replyWithHtmlRaw(path: data.Path) -> None:
     _sendHeader()
-    _connection.write(template.getPageHeadStart())
-    _connection.write(template.getPageHeadEnd().format("μBot Raw &nbsp;| &nbsp; {}".format(path), "raw"))
+    _sendPanel("__head.html")
+    _connection.write(_headerEnd.format("μBot Raw &nbsp;| &nbsp; {}".format(path), "raw"))
     _sendRaw(path.path)
-    _connection.write(template.getPageFooter())
-    _logResponse(_getBasicReplyMap("200 OK", "Request: Get the file '{}'.".format(path)))
+    _connection.write(_bodyEnd)
+    _logResponse(_getBasicReplyMap("200 OK", "Request: Get the folder / file '{}'.".format(path)))
 
 
 def _sendHeader(status: str = "200 OK", length: int = None, allow: bool = None) -> None:
@@ -470,11 +541,6 @@ def _sendHeader(status: str = "200 OK", length: int = None, allow: bool = None) 
                           "Transfer-Encoding: identity\r\nServer: {}\r\nAllow: {}\r\nCache-Control: {}\r\n"
                           "Connection: close\r\n\r\n".format(status, contentType, contentLength, _server, allow, cache))
         _headerSent = True
-
-
-def _getFileMetadata(fileName: str) -> tuple:
-    with open("/srv/{}_meta".format(fileName), "r") as file:
-        return tuple(line.strip() for line in file)
 
 
 def _processHtmlPostQuery() -> None:
@@ -515,7 +581,7 @@ def _reply(responseStatus: str, message: str, result: object = None) -> None:
             _updateReply(responseStatus, message, {})
         else:
             reply  = _replyMap.setdefault(_request.get("processing"), _createHtmlReply)(responseStatus, message, result)
-            length = len(reply)
+            length = len(reply) + _headLength
 
         if _connected:
             _sendHeader(responseStatus, length)
@@ -525,6 +591,7 @@ def _reply(responseStatus: str, message: str, result: object = None) -> None:
                     for line in file:
                         _connection.sendall(line)
             else:
+                _sendPanel("__head.html")
                 _connection.write(reply)
 
         _logResponse(_response)
@@ -539,7 +606,7 @@ def _createHtmlReply(responseStatus: str, message: str, result: dict = None) -> 
     if responseStatus == "404 Not Found":
         message = _getHelperLinks()
 
-    return template.getSimplePage().format(title = responseStatus, body = message)
+    return _simpleEnd.format(title = responseStatus, body = message)
 
 
 def _createJsonReply(responseStatus: str, message: str, result: dict = None) -> str:
