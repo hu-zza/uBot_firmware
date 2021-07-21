@@ -459,7 +459,7 @@ def _sendHeader(status: str = "200 OK", length: int = None, allow: bool = None) 
         if _request.get("processing") == "FILE":
             length, contentType = _getFileMetadata(_request.get("rawPath"))
             allowSet = "GET"
-            cache = "public, max-age=3600, immutable"
+            cache = "private, max-age=3600, immutable"
 
         contentLength = "" if length is None else "Content-Length: {}\r\n".format(length)
 
