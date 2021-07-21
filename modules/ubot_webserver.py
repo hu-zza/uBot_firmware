@@ -396,7 +396,8 @@ def _processHtmlGetQuery() -> None:
 
 def _replyWithHtmlTemplate(path: str) -> None:
     _sendHeader()
-    _connection.write(template.getPageHead().format(template.title.get(path), "general"))
+    _connection.write(template.getPageHeadStart())
+    _connection.write(template.getPageHeadEnd().format(template.title.get(path), "general"))
 
     for part in template.parts.get(path):
         _connection.write(part())
@@ -436,7 +437,8 @@ def _includeDebugDashboard() -> None:
 
 def _replyWithHtmlRaw(path: data.Path) -> None:
     _sendHeader()
-    _connection.write(template.getPageHead().format("μBot Raw &nbsp;| &nbsp; {}".format(path), "raw"))
+    _connection.write(template.getPageHeadStart())
+    _connection.write(template.getPageHeadEnd().format("μBot Raw &nbsp;| &nbsp; {}".format(path), "raw"))
     _sendRaw(path.path)
     _connection.write(template.getPageFooter())
     _logResponse(_getBasicReplyMap("200 OK", "Request: Get the file '{}'.".format(path)))
