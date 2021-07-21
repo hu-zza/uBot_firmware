@@ -396,7 +396,7 @@ def _processHtmlGetQuery() -> None:
 
 def _replyWithHtmlTemplate(path: str) -> None:
     _sendHeader()
-    _connection.write(template.getPageHeadStart().format(template.title.get(path)))
+    _connection.write(template.getPageHead().format(template.title.get(path), "general"))
 
     for part in template.parts.get(path):
         _connection.write(part())
@@ -436,7 +436,7 @@ def _includeDebugDashboard() -> None:
 
 def _replyWithHtmlRaw(path: data.Path) -> None:
     _sendHeader()
-    _connection.write(template.getPageHeadStart().format("μBot Raw &nbsp;| &nbsp; {}".format(path)))
+    _connection.write(template.getPageHead().format("μBot Raw &nbsp;| &nbsp; {}".format(path), "raw"))
     _sendRaw(path.path)
     _connection.write(template.getPageFooter())
     _logResponse(_getBasicReplyMap("200 OK", "Request: Get the file '{}'.".format(path)))
@@ -446,29 +446,27 @@ def _sendHeader(status: str = "200 OK", length: int = None, allow: bool = None) 
     global _headerSent
 
     if not _headerSent:
-        reply = "text/html; charset=UTF-8"
+        contentType = "text/html; charset=UTF-8"
         allowSet = ", ".join(allowedHtmlMethods)
+        cache = "no-cache"
 
         if _request.get("processing") == "JSON":
-            reply = "application/json; charset=UTF-8"
+            contentType = "application/json; charset=UTF-8"
             allowSet = ", ".join(allowedJsonMethods)
+            cache = "no-cache"
         if _request.get("processing") == "FILE":
-            length, reply = _getFileMetadata(_request.get("rawPath"))
+            length, contentType = _getFileMetadata(_request.get("rawPath"))
             allowSet = "GET"
+            cache = "public, max-age=3600, immutable"
+
+        contentLength = "" if length is None else "Content-Length: {}\r\n".format(length)
 
         if allow is None:
             allow = allowSet
 
-        _connection.write("HTTP/1.1 {}\r\n".format(status))
-        if length is not None:
-            _connection.write("Content-Length: {}\r\n".format(length))
-        _connection.write("Content-Type: {}\r\n".format(reply))
-        _connection.write("Content-Encoding: identity\r\n")
-        _connection.write("Transfer-Encoding: identity\r\n")
-        _connection.write("Server: {}\r\n".format(_server))
-        _connection.write("Allow: {}\r\n".format(allow))
-        _connection.write("Cache-Control: no-cache\r\n")                                   # TODO: Make caching possible
-        _connection.write("Connection: close\r\n\r\n")
+        _connection.write("HTTP/1.1 {}\r\nContent-Type: {}\r\n{}Content-Encoding: identity\r\n"
+                          "Transfer-Encoding: identity\r\nServer: {}\r\nAllow: {}\r\nCache-Control: {}\r\n"
+                          "Connection: close\r\n\r\n".format(status, contentType, contentLength, _server, allow, cache))
         _headerSent = True
 
 
