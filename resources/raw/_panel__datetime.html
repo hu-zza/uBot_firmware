@@ -16,7 +16,7 @@ return "            <li><table class=\"inline\"><tr><td>{}. {:02d}. {:02d}.</td>
         <script>
             function send(value) {{
                 let xhr = new XMLHttpRequest();
-                xhr.open("GET", "/command/TIME_" + document.getElementById("date").value + "_" + document.getElementById("time").value);
+                xhr.open("GET", "/command/TIME_" + document.getElementById("date").value + "_" + document.getElementById("time").value.replace(":", "-"));
                 xhr.setRequestHeader("Content-Type", "application/json");
                 xhr.send();
             }}

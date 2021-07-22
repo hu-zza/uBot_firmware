@@ -133,7 +133,7 @@ def _getFileMetadata(fileName: str) -> tuple:
         with open("/srv/{}_meta".format(fileName.strip("/")), "r") as file:
             return tuple(line.strip() for line in file)
     except Exception as e:
-        logger.append("ubot_webserver#_getFileMetadata\r\nFile '{}' can not found.".format(fileName))
+        logger.append(AttributeError("ubot_webserver#_getFileMetadata\r\nFile '{}' can not found.".format(fileName)))
         logger.append(e)
         return "0", "text/html; charset=UTF-8"
 
@@ -452,19 +452,6 @@ def _replyWithHtmlPanel(path: str) -> None:
     _logResponse(_getBasicReplyMap("200 OK", "Request: Get the page '{}'.".format(path)))
 
 
-def _sendPanel(panelFilename: str) -> None:
-    try:
-        if not panelFilename.startswith("_panel_"):
-            panelFilename = "_panel_{}".format(panelFilename)
-
-        with open("/srv/{}".format(panelFilename)) as file:
-            for line in file:
-                _connection.write(line)
-    except Exception as e:
-        logger.append("ubot_webserver#_sendPanel\r\nPanel '{}' can not found.".format(panelFilename))
-        logger.append(e)
-
-
 def _replyWithHtmlTemplate(path: str) -> None:
     _sendHeader()
     _sendPanel("__head.html")
@@ -528,7 +515,8 @@ def _sendHeader(status: str = "200 OK", length: int = None, allow: bool = None) 
             allowSet = ", ".join(allowedJsonMethods)
             cache = "no-cache"
         if _request.get("processing") == "FILE":
-            length, contentType = _getFileMetadata(_request.get("rawPath"))
+            meta = _getFileMetadata(_request.get("rawPath"))
+            length, contentType = meta[0], meta[1]
             allowSet = "GET"
             cache = "public, max-age=31536000, immutable"
 
@@ -570,17 +558,33 @@ def _processFileQuery() -> None:
     _reply("200 OK", "Request: Get the file '{}'.".format(path), path)
 
 
+def _sendPanel(panelFilename: str) -> None:
+    try:
+        if not panelFilename.startswith("_panel_"):
+            panelFilename = "_panel_{}".format(panelFilename)
+
+        with open("/srv/{}".format(panelFilename)) as file:
+            for line in file:
+                _connection.write(line)
+    except Exception as e:
+        logger.append(AttributeError("ubot_webserver#_sendPanel\r\nPanel '{}' can not found.".format(panelFilename)))
+        logger.append(e)
+
+
 def _reply(responseStatus: str, message: str, result: object = None) -> None:
     """ Try to reply with a text/html or application/json
         if the connection is alive, then closes it. """
     try:
         processing = _request.get("processing")
         if processing == "FILE":
+            _updateReply(responseStatus, message, {})
             reply  = "/srv/{}".format(result)
             length = 0
-            _updateReply(responseStatus, message, {})
+        elif processing == "JSON":
+            reply = _createJsonReply(responseStatus, message, result)
+            length = len(reply)
         else:
-            reply  = _replyMap.setdefault(_request.get("processing"), _createHtmlReply)(responseStatus, message, result)
+            reply  = _createHtmlReply(responseStatus, message, result)
             length = len(reply) + _headLength
 
         if _connected:
@@ -591,7 +595,9 @@ def _reply(responseStatus: str, message: str, result: object = None) -> None:
                     for line in file:
                         _connection.sendall(line)
             else:
-                _sendPanel("__head.html")
+                if processing == "HTML":
+                    _sendPanel("__head.html")
+
                 _connection.write(reply)
 
         _logResponse(_response)
@@ -741,9 +747,4 @@ _processingMap = {
     "HTML"   : _processHtmlQuery,
     "JSON"   : _processJsonQuery,
     "FILE"   : _processFileQuery,
-}
-
-_replyMap = {
-    "HTML"   : _createHtmlReply,
-    "JSON"   : _createJsonReply
 }

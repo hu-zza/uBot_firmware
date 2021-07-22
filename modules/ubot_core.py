@@ -201,9 +201,9 @@ def time(args: str = ""):    # TIME_2020-02-02_20:20:20.200
         dateTime = config.datetime(tuple(inp))
     else:
         dateTime = config.datetime()
-
-    print("{}. {:02d}. {:02d}.  {:02d}:{:02d}:{:02d}.{:03d}".format(dateTime[0], dateTime[1], dateTime[2], dateTime[4],
-                                                                    dateTime[5], dateTime[6], dateTime[7]))
+        print("{}. {:02d}. {:02d}.  {:02d}:{:02d}:{:02d}.{:03d}".format(dateTime[0], dateTime[1], dateTime[2],
+                                                                        dateTime[4], dateTime[5], dateTime[6],
+                                                                        dateTime[7]))
 
 
 _commandFunctions = {
@@ -292,31 +292,32 @@ def _jsonGetFileByJsonLink() -> tuple:
 
 
 def _jsonGetCommandExecutionStarting() -> tuple:
-    basePath = _jsonRequest.get("path")
-    commands = basePath.args[1:]
+    return _jsonBookCommandList(_jsonRequest.get("path").args[1:])
 
-    request = {"path": data.INVALID_PATH,
-               "body": "",
-               "parsed": False}
+
+def _jsonBookCommandList(commandList: tuple) -> tuple:
+    basePath = _jsonRequest.get("path")
+    request  = {"path": data.INVALID_PATH,
+                "body": "",
+                "parsed": False}
 
     tickets = []
 
-    for command in commands:
+    for command in commandList:
         path = data.clonePath(basePath)
         path.args = ("command", command)
         request["path"] = path
         tickets.append(future.add(request, _jsonExecuteCommand))
 
-    length = len(commands)
+    length = len(commandList)
     if length == 1:
         return future.createJsonTicket(powerOns, tickets[0],
-                                       "Request: Starting command '{}' execution.".format(commands[0]))
+                                       "Request: Starting command '{}' execution.".format(commandList[0]))
     elif 1 < length:
-        return future.createJsonBlockTicket(powerOns, tuple(tickets),
-                                            "Request: Starting command list ({}) execution.".format(len(tickets)))
+        return future.createJsonBlockTicketFromTuple(powerOns, tuple(tickets),
+                                                     "Request: Starting command list ({}) execution.".format(len(tickets)))
 
-    return "403 Forbidden", "Request: Starting command execution. Cause: Semantic error in the URL.", {}
-
+    return "403 Forbidden", "Request: Starting command execution. Cause: Semantic error in the command string.", {}
 
 
 def _jsonExecuteCommand() -> tuple:
@@ -381,8 +382,7 @@ def _jsonGetExistingTicket() -> tuple:
     if len(args) == 3:
         return future.createJsonTicket(args[1], args[2], "Request: Get future single ticket [{}].".format(args[2]))
     elif len(args) == 4:
-        ticketNrs = tuple(i + args[2] for i in range(args[3] - args[2] + 1))
-        return future.createJsonBlockTicket(args[1], ticketNrs,
+        return future.createJsonBlockTicket(args[1], args[2], args[3],
                                             "Request: Get future block ticket [{} - {}].".format(args[2], args[3]))
 
     return "403 Forbidden", "{} Cause: Semantic error in the URL.".format(job), {}
@@ -419,20 +419,30 @@ def _executeJsonPost() -> tuple:                                                
 def _jsonPostProgram() -> tuple:
     path = _jsonRequest.get("path")
 
-    job = "Request: Save the {}.".format(path.description)
+    job = "Request: Starting the program saving to {}.".format(path.description)
 
     if path.size < 3:
-        return _jsonWriteProgram("", "", job)
+        return future.createJsonTicket(powerOns, future.add(_jsonRequest, _jsonWriteProgram), job)
     else:
         folder, title = path.array[1:3]
 
         if not turtle.doesProgramExist(folder, title):
-            return _jsonWriteProgram(folder, title, job)
+            return future.createJsonTicket(powerOns, future.add(_jsonRequest, _jsonWriteProgram), job)
         else:
             return "403 Forbidden", "{} Cause: The program already exists.".format(job), {}
 
 
-def _jsonWriteProgram(folder: str, title: str, job: str) -> tuple:
+def _jsonWriteProgram() -> tuple:
+    path = _jsonRequest.get("path")
+
+    if 2 < path.size:
+        folder, title = path.array[1:3]
+        job = "Request: Save program to {}.".format(path.description)
+    else:
+        folder = ""
+        title = ""
+        job = "Request: Save program to folder '{}' (/program).".format(config.get("turtle", "turtle_folder"))
+
     body = _jsonRequest.get("body")
     if body == "":
         path = turtle.saveLoadedProgram(folder, title)
@@ -447,75 +457,71 @@ def _jsonWriteProgram(folder: str, title: str, job: str) -> tuple:
 
 def _jsonPostFile() -> tuple:
     path = _jsonRequest.get("path")
-    job = "Request: Save the {}.".format(path.description)
+    job = "Request: Starting the saving of the {}.".format(path.description)
 
     if not path.isExist:
         if data.canCreate(path):
-            return _jsonWriteFile(path, job)
+            return future.createJsonTicket(powerOns, future.add(_jsonRequest, _jsonWriteFile), job)
         else:
             return "403 Forbidden", "{} Cause: Missing write permission.".format(job), {}
     else:
         return "403 Forbidden", "{} Cause: The file already exists.".format(job), {}
 
 
-def _jsonWriteFile(path: data.Path, job: str, isJson: bool = None) -> tuple:
+def _jsonWriteFile() -> tuple:
+    path = _jsonRequest.get("path")
+    job  = ("Request: Modifying {}." if path.isExist else "Request: Saving {}.").format(path.description)
+
     result = _jsonBodyValidator(job)
     if result[0] != "200 OK":
         return result
 
-    body   = _jsonRequest.get("body")
-    isJson = isJson is True or body.get("isJson") is True
+    body = _jsonRequest.get("body")
 
-    data.saveFile(path, body.get("value"), isJson, True)
+    data.saveFile(path, body.get("value"), body.get("isJson") or None, True)
 
     return _jsonReplyWithFileInstance(path, job)
 
 
 def _jsonPostCommand() -> tuple:
-    job = "Request: Starting commands execution."
+    job = "Request: Starting command execution."
 
     result = _jsonBodyValidator(job)
     if result[0] != "200 OK":
         return result
 
-    commandArray = _jsonRequest.get("body").get("value")
-    counter, commandCount = 0, -1
-    try:
-        commandCount = len(commandArray)
-        for command in commandArray:
-            counter += 1 if executeCommand(command) else 0
-    except Exception as e:
-        logger.append(e)
-
-    if counter == commandCount:
-        return "200 OK", job, counter
-    else:
-        return "422 Unprocessable Entity", "{} Cause: Semantic error in JSON.".format(job), {}
+    return _jsonBookCommandList(_jsonRequest.get("body").get("value"))
 
 
 def _jsonPostLog() -> tuple:
-    job = "Request: Send log for processing."
+    job = "Request: Send log entry for processing."
 
     if logger.isLoggerActive():
         result = _jsonBodyValidator(job)
         if result[0] != "200 OK":
             return result
 
-        log = _jsonRequest.get("body").get("value")
-
-        logFile = "event" if isinstance(log, str) else "object"
-        if logger.isLogCategoryActive(logFile):
-            logger.append(log)
-            status, message, json = data.createRestReplyOf("log", logFile, logger.normalizeLogTitle(_logIndexResolver()))
-
-            if status == "200 OK":
-                return "200 OK", job, json
-            else:
-                return "500 Internal Server Error", "{} Cause: The file system is not available.".format(job), {}
-        else:
-            return "403 Forbidden", "{} Cause: The log '{}' is inactive.".format(job, logFile), {}
+        return future.createJsonTicket(powerOns, future.add(_jsonRequest, _jsonOfferLog), job)
     else:
         return "403 Forbidden", "{} Cause: The logger module is inactive.".format(job), {}
+
+
+def _jsonOfferLog():
+    log = _jsonRequest.get("body").get("value")
+
+    logFile = "event" if isinstance(log, str) else "object"
+    job     = "Request: Offer entry for appending to the '{}' log.".format(logFile)
+
+    if logger.isLogCategoryActive(logFile):
+        logger.append(log)
+        status, message, json = data.createRestReplyOf("log", logFile, logger.normalizeLogTitle(_logIndexResolver()))
+
+        if status == "200 OK":
+            return "200 OK", job, json
+        else:
+            return "500 Internal Server Error", "{} Cause: The file system is not available.".format(job), {}
+    else:
+        return "403 Forbidden", "{} Cause: The log is inactive.".format(job), {}
 
 
 def _jsonPostRoot() -> tuple:
@@ -563,11 +569,11 @@ def _executeJsonPut() -> tuple:                                                 
 def _jsonPutFile() -> tuple:
     path = _jsonRequest.get("path")
 
-    job = "Request: Modify the {}.".format(path.description)
+    job = "Request: Starting the modifying of the {}.".format(path.description)
 
     if path.isExist:
         if data.canWrite(path) or data.canModify(path):
-            return _jsonWriteFile(path, job)
+            return future.createJsonTicket(powerOns, future.add(_jsonRequest, _jsonWriteFile), job)
         else:
             return "403 Forbidden", "{} Cause: Missing write / modify permission.".format(job), {}
     else:
@@ -584,14 +590,11 @@ def _executeJsonDelete() -> tuple:                                              
 
 def _jsonDeleteEntity() -> tuple:
     path = _jsonRequest.get("path")
-    job  = "Request: Delete the {}.".format(path.description)
+    job  = "Request: Starting the deleting of the {}.".format(path.description)
 
     if path.isExist:
         if data.canDelete(path):
-            if data.delete(path):
-                return "200 OK", job, {}
-            else:
-                return "500 Internal Server Error", "{} Cause: The file system is not available.".format(job), {}
+            return future.createJsonTicket(powerOns, future.add(_jsonRequest, _jsonExecuteDeletion), job)
         else:
             if path.isFolder and 0 < data.getEntityCountOfFolder(path):
                 return "403 Forbidden", "{} Cause: The folder '{}' is not empty.".format(job, path), {}
@@ -600,6 +603,15 @@ def _jsonDeleteEntity() -> tuple:
     else:
         return "403 Forbidden", "{} Cause: The path '{}' does not exist.".format(job, path), {}
 
+
+def _jsonExecuteDeletion():
+    path = _jsonRequest.get("path")
+    job  = "Request: Delete the {}.".format(path.description)
+
+    if data.delete(path):
+        return "200 OK", job, {}
+    else:
+        return "500 Internal Server Error", "{} Cause: The file system is not available.".format(job), {}
 
 
 ################################

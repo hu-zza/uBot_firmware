@@ -542,6 +542,13 @@ def getLineCountOfFile(path: Path) -> int:
         return 0
 
 
+def getFileSizeInBytes(path: Path) -> int:
+    if assertPathIsReadable(path):
+        return uos.stat(path.path)[6]
+    else:
+        return 0
+
+
 def getEntityCountOfFolder(path: Path) -> int:
     if assertPathIsFolder(path):
         return len(uos.listdir(path.path))
@@ -776,6 +783,7 @@ def _createJsonFolderInstance(path: Path) -> tuple:
         return "200 OK", job, {
             "name": "/" if isRoot else path.array[0],
             "type": "folder",
+            "size": len(subFolders),
             "href": folderLink,
             "raw":  folderRawLink,
 
@@ -805,6 +813,7 @@ def _createJsonSubFolderInstance(path: Path) -> tuple:
         return "200 OK", job, {
             "name": array[1],
             "type": "folder",
+            "size": len(files),
             "href": folderLink,
             "raw":  folderRawLink,
 
@@ -832,6 +841,7 @@ def _createJsonFileInstance(path: Path) -> tuple:
         return "200 OK", job, {
             "name": array[2],
             "type": "file",
+            "size": getFileSizeInBytes(path),
             "href": "{}{}".format(_hostLink, name[:-4] if name.endswith(".txt") else name),
             "raw":  "{}{}".format(_rawLink,  name),
             "parent": {

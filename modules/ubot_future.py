@@ -96,15 +96,22 @@ def createJsonTicket(folder: int, ticketNr: int, job: str = "") -> tuple:
             "raw":  "",
             "parent": {},
             "children": [],
-            "value": _createResultDictionary(folder, (ticketNr,))
+            "value": _createResultDictionary(folder, (ticketNr,)) if ticketNr != 0 else {}
             }
     else:
         return "406 Not Acceptable", job, {}
 
 
-def createJsonBlockTicket(folder: int, ticketNrs: tuple, job: str = "") -> tuple:
+def createJsonBlockTicket(folder: int, fromNr: int, toNr: int, job: str = "") -> tuple:
+    if 0 <= toNr and fromNr <= toNr:
+        return createJsonBlockTicketFromTuple(folder, tuple(i + fromNr for i in range(toNr - fromNr + 1)), job)
+    else:
+        return "406 Not Acceptable", job, {}
+
+
+def createJsonBlockTicketFromTuple(folder: int, ticketNrs: tuple, job: str = "") -> tuple:
     minNr, maxNr = min(ticketNrs), max(ticketNrs)
-    if 0 <= maxNr:
+    if 0 <= maxNr and minNr <= maxNr:
         return "202 Accepted", job, {
             "name": "Block ticket [{} - {}]".format(minNr, maxNr),
             "type": "future block ticket",
@@ -125,11 +132,19 @@ def _createResultDictionary(folder: int, ticketNrs: tuple) -> dict:
                            "type": "file",
                            "href": "{}{}".format(_futureLink, file[1]),
                            "raw":  "{}{}.txt".format(_futureRawLink, file[1]),
-                           "ready": doesFutureContentExist(folder, file[0])} for file in files}
+                           "ready": doesFutureContentExist(folder, file[0]),
+                           "size": getFutureContentSizeInBytes(folder, file[0])} for file in files}
 
 
 def doesFutureContentExist(folder: int, ticketNr: int) -> bool:
     return data.doesExist("/future/{:010d}/{}".format(folder, normalizeFutureTitle(ticketNr)))
+
+
+def getFutureContentSizeInBytes(folder: int, ticketNr: int) -> int:
+    try:
+        return uos.stat("/future/{:010d}/{}".format(folder, normalizeFutureTitle(ticketNr)))[6]
+    except Exception:
+        return 0
 
 
 def normalizeFutureTitle(title: object) -> str:
@@ -182,7 +197,7 @@ def _canWork() -> bool:
 
 
 def _pollJob() -> None:
-    ticketNr,  request, function = _jobs.pop(0)
+    ticketNr, request, function = _jobs.pop(0)
 
     _jsonSender(request.get("path"), request.get("body"), request.get("parsed"))
 
