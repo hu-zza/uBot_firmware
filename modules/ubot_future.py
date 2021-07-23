@@ -90,7 +90,7 @@ def createJsonTicket(folder: int, ticketNr: int, job: str = "") -> tuple:
     if 0 <= ticketNr:
 
         return "202 Accepted", job, {
-            "name": "Ticket [{}]".format(ticketNr),
+            "name": "Ticket [{} /  {}]".format(folder, ticketNr),
             "type": "future single ticket",
             "href": "{}/ticket/{:010d}/{:05d}".format(_hostLink, folder, ticketNr),
             "raw":  "",
@@ -113,7 +113,7 @@ def createJsonBlockTicketFromTuple(folder: int, ticketNrs: tuple, job: str = "")
     minNr, maxNr = min(ticketNrs), max(ticketNrs)
     if 0 <= maxNr and minNr <= maxNr:
         return "202 Accepted", job, {
-            "name": "Block ticket [{} - {}]".format(minNr, maxNr),
+            "name": "Block ticket [{} /  {} - {}]".format(folder, minNr, maxNr),
             "type": "future block ticket",
             "href": "{}/ticket/{:010d}/{:05d}/{:05d}".format(_hostLink, folder, minNr, maxNr),
             "raw":  "",
@@ -129,20 +129,32 @@ def _createResultDictionary(folder: int, ticketNrs: tuple) -> dict:
     files = [(ticketNr, "/{:010d}/{:05d}".format(folder, ticketNr)) for ticketNr in ticketNrs]
 
     return {str(file[0]): {"name": file[1][file[1].rindex("/") + 1:],
-                           "type": "file",
+                           "type": "future result",
                            "href": "{}{}".format(_futureLink, file[1]),
-                           "raw":  "{}{}.txt".format(_futureRawLink, file[1]),
-                           "ready": doesFutureContentExist(folder, file[0]),
-                           "size": getFutureContentSizeInBytes(folder, file[0])} for file in files}
+                           "raw":  "",
+                           "ready": doesFutureResultExist(folder, file[0]),
+                           "size": getFutureResultSizeInBytes(folder, file[0])} for file in files}
 
 
-def doesFutureContentExist(folder: int, ticketNr: int) -> bool:
-    return data.doesExist("/future/{:010d}/{}".format(folder, normalizeFutureTitle(ticketNr)))
+def createJsonFutureResult(folder: int, ticketNr: int, job: str = "") -> tuple:
+    if doesFutureResultExist(folder, ticketNr):
+        try:
+            result = data.getFile(data.createPath(normalizeFuturePath(folder, ticketNr)), False)
+            return result[0].rstrip(), result[1].rstrip(), ujson.loads(result[2])
+        except Exception as e:
+            logger.append(e)
+            return "500 Internal Server Error", "{} Cause: Can not open and parse the future result.".format(job), {}
+    else:
+        return "404 Not Found", "{} Cause: No such future result.".format(job), {}
 
 
-def getFutureContentSizeInBytes(folder: int, ticketNr: int) -> int:
+def doesFutureResultExist(folder: int, ticketNr: int) -> bool:
+    return data.doesExist(normalizeFuturePath(folder, ticketNr))
+
+
+def getFutureResultSizeInBytes(folder: int, ticketNr: int) -> int:
     try:
-        return uos.stat("/future/{:010d}/{}".format(folder, normalizeFutureTitle(ticketNr)))[6]
+        return uos.stat(normalizeFuturePath(folder, ticketNr))[6]
     except Exception:
         return 0
 
@@ -157,6 +169,10 @@ def normalizeFutureTitle(title: object) -> str:
         return "{:05d}.txt".format(ticketTuple[0])
     else:
         return ""
+
+
+def normalizeFuturePath(folder: int, ticketNr: int) -> str:
+    return "/future/{:010d}/{}".format(folder, normalizeFutureTitle(ticketNr))
 
 
 def getFutureFolders() -> tuple:

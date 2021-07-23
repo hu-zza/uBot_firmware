@@ -117,11 +117,21 @@ def getApPanel() -> str:
 ## CATALOGS
 
 title = {
-    "/debug"        : "μBot Debug - Dashboard",
+    "/debug"        : "μBot Debug",
     "/_system"      : "μBot Debug - System info",
     "/_services"    : "μBot Debug - Service status",
     "/_ap"          : "μBot Debug - Access point",
     "/turtle"       : "μBot TurtleCode"
+}
+
+mainLinks = {
+    "/"             : "μBot Go",
+    "/drive"        : "μBot Drive",
+    "/go"           : "μBot Go",
+    "/pro"          : "μBot Professional",
+    "/turtle"       : "μBot TurtleCode",
+    "/settings"     : "μBot Settings",
+    "/debug"        : "μBot Debug",
 }
 
 parts = {

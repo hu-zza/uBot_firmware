@@ -716,8 +716,8 @@ def preparePathIfSpecial(path: Path) -> None:
                 args = ["command"] + [item.upper() for item in array[1:]]
                 del array[1:]
                 size = 1
-            elif array[0] == "ticket":
-                args = ["ticket"] + list(extractIntTuple("/".join(array[1:])))
+            elif array[0] == "ticket" or array[0] == "future":
+                args = [array[0]] + list(extractIntTuple("/".join(array[1:])))
                 del array[1:]
                 size = 1
             elif array[0] == "future":
@@ -728,8 +728,6 @@ def preparePathIfSpecial(path: Path) -> None:
                     array[2] = turtle.normalizeProgramTitleFromFolder(array[2], array[1])
                 elif array[0] == "log":
                     array[2] = logger.normalizeLogTitle(array[2])
-                elif array[0] == "future":
-                    array[2] = future.normalizeFutureTitle(array[2])
                 elif not array[2].endswith(".txt"):
                     array[2] = "{}.txt".format(array[2])
 
@@ -805,7 +803,7 @@ def _createJsonSubFolderInstance(path: Path) -> tuple:
     job  = "Request: Get the folder '{}'.".format(name)
 
     if assertPathIsFolder(path):
-        files         = getFileNameList(path, "txt")                 #! Burnt-in txt suffix: filtered by it, but chopped
+        files         = getFileList(path, "txt")                                                  #! Burnt-in txt suffix
         array         = path.array
         folderLink    = "{}{}".format(_hostLink, name)
         folderRawLink = "{}{}".format(_rawLink,  name)
@@ -824,8 +822,8 @@ def _createJsonSubFolderInstance(path: Path) -> tuple:
 
             "children": [{"name": file,
                           "type": "file",
-                          "href": "{}{}".format(folderLink, file),
-                          "raw":  "{}{}.txt".format(folderRawLink, file)} for file in files]}     #! Burnt-in txt suffix
+                          "href": "{}{}".format(folderLink, file[:-4]),
+                          "raw":  "{}{}".format(folderRawLink, file)} for file in files]}     #! Burnt-in txt suffix
     else:
         return "404 Not Found", job + " Cause: The folder does not exist.", {}
 
@@ -838,10 +836,11 @@ def _createJsonFileInstance(path: Path) -> tuple:
 
     if assertPathIsFile(path):
         isJson = True if array[0] in _jsonCategories else None
+        size = getFileSizeInBytes(path)
         return "200 OK", job, {
             "name": array[2],
             "type": "file",
-            "size": getFileSizeInBytes(path),
+            "size": size,
             "href": "{}{}".format(_hostLink, name[:-4] if name.endswith(".txt") else name),
             "raw":  "{}{}".format(_rawLink,  name),
             "parent": {
@@ -851,7 +850,7 @@ def _createJsonFileInstance(path: Path) -> tuple:
                 "raw":  "{}/{}/{}/".format(_rawLink, array[0], array[1])
             },
             "children": [],
-            "value": getFile(path, isJson)}
+            "value": getFile(path, isJson) if size <= _jsonGetLimit else ["File size exceeds the limit ({}).".format(_jsonGetLimit)]}
     else:
         return "404 Not Found", job + " Cause: The file does not exist.", {}
 
@@ -865,3 +864,4 @@ import ubot_future as future
 _hostLink = "http://{}".format(config.get("ap", "ip"))
 _rawLink  = "{}/raw".format(_hostLink)
 _jsonCategories = config.get("data", "json_category")
+_jsonGetLimit = config.get("data", "json_get_limit")

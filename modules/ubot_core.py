@@ -223,8 +223,8 @@ _commandFunctions = {
 ## PRIVATE METHODS FOR REST/JSON
 
 _jsonRequest = {                                                                        ########## JSON REQUEST HANDLING
-    "path": data.INVALID_PATH,
-    "body": "",
+    "path"  : data.INVALID_PATH,
+    "body"  : "",
     "parsed": False
 }
 
@@ -297,8 +297,8 @@ def _jsonGetCommandExecutionStarting() -> tuple:
 
 def _jsonBookCommandList(commandList: tuple) -> tuple:
     basePath = _jsonRequest.get("path")
-    request  = {"path": data.INVALID_PATH,
-                "body": "",
+    request  = {"path"  : data.INVALID_PATH,
+                "body"  : "",
                 "parsed": False}
 
     tickets = []
@@ -334,6 +334,17 @@ def _jsonExecuteCommand() -> tuple:
             "children": [],
             "value": {}
         }
+
+    return "403 Forbidden", "{} Cause: Semantic error in the URL.".format(job), {}
+
+
+def _jsonGetFutureResult() -> tuple:
+    path = _jsonRequest.get("path")
+    args = path.args
+    job = "Request: Get future result."
+
+    if len(args) == 3:
+        return future.createJsonFutureResult(args[1], args[2], "Request: Get future result [{} /  {}].".format(args[1], args[2]))
 
     return "403 Forbidden", "{} Cause: Semantic error in the URL.".format(job), {}
 
@@ -380,20 +391,21 @@ def _jsonGetExistingTicket() -> tuple:
     job = "Request: Get future ticket."
 
     if len(args) == 3:
-        return future.createJsonTicket(args[1], args[2], "Request: Get future single ticket [{}].".format(args[2]))
+        return future.createJsonTicket(args[1], args[2], "Request: Get future single ticket [{} /  {}].".format(args[1], args[2]))
     elif len(args) == 4:
         return future.createJsonBlockTicket(args[1], args[2], args[3],
-                                            "Request: Get future block ticket [{} - {}].".format(args[2], args[3]))
+                                            "Request: Get future block ticket [{} /  {} - {}].".format(args[1], args[2], args[3]))
 
     return "403 Forbidden", "{} Cause: Semantic error in the URL.".format(job), {}
 
 
 
 _actionFunctions = {
-    "command" : _jsonGetCommandExecutionStarting,
-    "program" : _jsonGetProgramActionStarting,
-    "ticket"  : _jsonGetExistingTicket,
-    "raw"     : _jsonGetFileByJsonLink
+    "command": _jsonGetCommandExecutionStarting,
+    "future":  _jsonGetFutureResult,
+    "program": _jsonGetProgramActionStarting,
+    "ticket" : _jsonGetExistingTicket,
+    "raw":     _jsonGetFileByJsonLink
 }
 
 

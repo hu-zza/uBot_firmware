@@ -1,7 +1,7 @@
 import flashbdev, network, ubinascii, ujson, uos
 
-firmware = (0, 1, 197)
-initDatetime = (2021, 7, 22, 0, 23, 45, 0, 0)
+firmware = (0, 1, 198)
+initDatetime = (2021, 7, 23, 0, 2, 10, 0, 0)
 
 AP  = network.WLAN(network.AP_IF)
 mac = ubinascii.hexlify(AP.config("mac"), ":").decode()
@@ -56,6 +56,7 @@ data = {
     "name"          : "File manager",
     "active"        : True,     # Should be always active
     "json_category" : ("etc", ),
+    "json_get_limit": 8000,
     "modify_rights" : ("/etc/ap/", "/etc/buzzer/", "/etc/feedback/", "/etc/i2c/", "/etc/logger/", "/etc/motor/",
                        "/etc/turtle/", "/etc/uart/", "/etc/web_repl/", "/etc/web_server"),
     "write_rights"  : ("/home/", "/program/"),

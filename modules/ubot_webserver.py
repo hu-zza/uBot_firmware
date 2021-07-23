@@ -661,12 +661,13 @@ def _getMessageWithFlags(message: str, statusCode: int) -> str:
 
 
 def _getHelperLinks() -> str:
+    ip = config.get("ap", "ip")
     helperLinks = "        <ul class='links'>\r\n"
     helperLinks += "            <li>Sitemap</li>\r\n"
-    for key in sorted(template.title.keys()):
+    for key in sorted(template.mainLinks.keys()):
         if key == "/" or key[1] != "_":
             helperLinks += "            <li><a href='{key}'>{title}</a><br><small>{host}{key}</small></li>\r\n".format(
-                host = config.get("ap", "ip"), key = key, title = template.title.get(key)
+                host = ip, key = key, title = template.mainLinks.get(key)
             )
     helperLinks += "        </ul>\r\n"
     return helperLinks
