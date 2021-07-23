@@ -1,6 +1,0 @@
-This favicon was generated using the following font:
-
-- Font Title: STIX Two Math
-- Font Author: Copyright 2001-2021 The STIX Fonts Project Authors (https://github.com/stipub/stixfonts)
-- Font Source: http://fonts.gstatic.com/s/stixtwomath/v1/pONg1hwwL_6M9EkZySr_yteUi1rADEcF1pY.ttf
-- Font License: SIL Open Font License, 1.1 (http://scripts.sil.org/OFL)
